@@ -17,6 +17,11 @@ Os primeiros pacotes foram baixados pelo Windows porque a rede do WSL estava a 4
 Licença do Android SDK aceita pelo usuário em 13/11 (`~/Android/Sdk/licenses`). O `sdkmanager` diz que `--licenses` "não é mais necessário", mas o AGP 9.5.1 continua exigindo o aceite. A plataforma 37 tinha sido extraída sem `package.xml` e foi reinstalada pelo `sdkmanager`.
 **Atenção:** o `sdkmanager` agora delega para o novo "Android CLI", que coleta métricas de uso por padrão. Isso afeta só a máquina de desenvolvimento; para desligar, use `--no-metrics`.
 
+**Segunda máquina (13/11, PC desktop, Windows 11 Pro build 26300, WSL2 em NAT):** mesmas versões de JDK e Go (SHA-256 conferidos); cmdline-tools 16111833 (SHA-1 conferido com o `repository2-3.xml`); `platforms;android-37.0` r02, `build-tools;36.0.0` e platform-tools 37.0.1, instalados pelo Android CLI com métricas desligadas. A rede do WSL em NAT mediu ~15 MB/s, sem precisar da rede espelhada. Achados:
+- O wrapper `sdkmanager` **não aceita** `--no-metrics` (mostra a ajuda e sai com erro). Use o binário `android` diretamente: `android --no-metrics --sdk="$ANDROID_HOME" sdk install "platforms/android-37.0" "build-tools/36.0.0" "platform-tools"`. Ele grava o `package.xml` e o aceite em `licenses/`.
+- O `unzip` não estava instalado (sem sudo). O cmdline-tools foi extraído com o `zipfile` do Python, preservando as permissões de execução.
+- Cada máquina gera a própria chave de debug (`~/.android/debug.keystore`). O APK de outra máquina não instala por cima ("conflito com pacote existente"): desinstale o app antes.
+
 ## Versões fixadas (P9)
 | Componente | Versão | Observação |
 |---|---|---|
@@ -44,7 +49,7 @@ Licença do Android SDK aceita pelo usuário em 13/11 (`~/Android/Sdk/licenses`)
 |---|---|---|
 | (a) HTTPS com pin via QR | **Central e cliente prontos; teste cruzado JVM×Go passando**; falta o aparelho real | Go: pin SPKI base64url (43 caracteres), pin estável ao reemitir o certificado com IP novo, pin errado recusado, cliente sem pin recusa o certificado autoassinado, só rede local (RFC 1918 / link-local / loopback). Contratos validados por JSON Schema. **Kotlin** (`:core:sync`): `TrustManager` e `HostnameVerifier` pelo pin; mesmo pin que Go e OpenSSL (fixture `tls/pin.json`); contra o servidor Go real: TLS 1.3, TLS 1.2 forçado (Android 8/9), pin de outra Central recusado, porta fechada. TLS 1.2 restrito adotado (ADR-0014). **App de diagnóstico** (`:app`): lê o QR (CameraX + ZXing), pede `ACCESS_LOCAL_NETWORK` no Android 17, usa `requestNetwork(TRANSPORT_WIFI)` sem exigir internet e mostra o resultado de `/v1/status` |
 | (b) Hotspot Windows / tampa | Pendente (usuário, notebook real) | Roteiro em `rede-em-campo.md`. Executável: `desktop/bin/sitposse7-central.exe` |
-| (c) PRAGMAs Room 3 | **Resolvido na JVM**; falta conferir no aparelho (tela de diagnóstico) | **Hipótese confirmada:** Room 3.0.3 + WAL deixava todas as conexões com `synchronous=1` (NORMAL) e `foreign_keys=0`. O código do Room (`RoomConnectionManager`) executa `PRAGMA synchronous = NORMAL` em cada conexão do pool depois do `driver.open()`, e `Callback.onOpen` só roda na primeira conexão. **Correção:** `DriverDuravel` envolve o `BundledSQLiteDriver`, liga `foreign_keys=ON` e `synchronous=FULL` na abertura e eleva para FULL qualquer `PRAGMA synchronous` menor. Resultado (`PragmasTest`, escrita + 4 leituras + reabertura): `wal / 2 / 1`, SQLite 3.50.1. `setJournalMode(WRITE_AHEAD_LOGGING)` fixo |
+| (c) PRAGMAs Room 3 | **Concluído:** JVM e aparelho real (moto g56, Android 16, 13/11: escrita e leitura `wal / 2 / 1`, SQLite 3.50.1, "Configuração de durabilidade correta") | **Hipótese confirmada:** Room 3.0.3 + WAL deixava todas as conexões com `synchronous=1` (NORMAL) e `foreign_keys=0`. O código do Room (`RoomConnectionManager`) executa `PRAGMA synchronous = NORMAL` em cada conexão do pool depois do `driver.open()`, e `Callback.onOpen` só roda na primeira conexão. **Correção:** `DriverDuravel` envolve o `BundledSQLiteDriver`, liga `foreign_keys=ON` e `synchronous=FULL` na abertura e eleva para FULL qualquer `PRAGMA synchronous` menor. Resultado (`PragmasTest`, escrita + 4 leituras + reabertura): `wal / 2 / 1`, SQLite 3.50.1. `setJournalMode(WRITE_AHEAD_LOGGING)` fixo |
 | (d) Instalador NSIS | Script pronto; teste pendente (Windows) | WebView2 **offline** (Evergreen Standalone x64 em `build/windows/nsis/`), regra de firewall `localsubnet` na porta 38807 (perfis Privado e Público) e remoção na desinstalação. Dados da Central nunca são apagados. Falta: instalar NSIS no Windows, gerar e testar em Windows 10 22H2 e 11 limpos sem internet |
 
 ## Achados
@@ -68,13 +73,14 @@ Licença do Android SDK aceita pelo usuário em 13/11 (`~/Android/Sdk/licenses`)
 | Data | Aparelho | Rede | Resultado |
 |---|---|---|---|
 | 13/11 | Motorola moto g56 5G, **Android 16** | Hotspot do Windows 11 (origem com internet: "Wi‑Fi 2"); Central `sitposse7-central-38807.exe` | **Conectado em TLSv1.3, 108 ms** pela leitura do QR da Central. No Android 16 não há a permissão de rede local (só no 17). Pendente: o cartão "Banco de dados" |
+| 13/11 | Motorola moto g56 5G, **Android 16** (APK gerado na 2ª máquina) | Hotspot do Windows 11 num PC desktop (origem com internet: Ethernet; banda 5 GHz; "Economia de energia" desativada). Celular em `192.168.137.64`; QR com `192.168.0.24 · 192.168.137.1 · 172.18.64.1` | **Cartão "Banco de dados": escrita e leitura `journal=wal · synchronous=2 · foreign_keys=1`, SQLite 3.50.1, "Configuração de durabilidade correta"** (fecha o spike (c) no aparelho). **Conectado a 192.168.0.24 em TLSv1.3, 92 ms.** Achado: o celular alcançou a Central pelo IP da **Ethernet**, não pelo do hotspot, porque o compartilhamento de internet do Windows encaminha entre as interfaces. Sem a origem, esse IP some e o app perde até 5 s nele antes de tentar o `192.168.137.1` (reforça a melhoria "tentar os IPs em paralelo / filtrar adaptadores") |
 
 ## Próximos passos
 Lista ordenada e atualizada: [continuacao.md](continuacao.md) §2.
 
 1. ~~Projeto Android~~ · ~~teste cruzado Kotlin × Go~~ · ~~app de diagnóstico~~ (13/11).
 2. **Usuário, em aparelho real** (APK: `mobile/app/build/outputs/apk/debug/app-debug.apk`; instalar com `adb install -r`):
-   - a tela de diagnóstico mostra "Configuração de durabilidade correta" (`wal / 2 / 1`);
+   - ~~a tela de diagnóstico mostra "Configuração de durabilidade correta" (`wal / 2 / 1`)~~ (13/11, moto g56);
    - ler o QR da Central e testar a conexão: hotspot do celular e hotspot do Windows, sem internet; anotar a versão TLS e o tempo;
    - um aparelho com Android 17 (permissão de rede local) e, se houver, um com Android 8 ou 9 (TLS 1.2);
    - roteiro de rede/tampa ([rede-em-campo.md](../operacao/rede-em-campo.md)) e instalador NSIS em Windows 10 22H2 e 11 limpos.

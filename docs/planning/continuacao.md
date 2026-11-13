@@ -19,7 +19,7 @@
 | Central (Go + Wails 3) | Esqueleto, banco com migração 0001, servidor HTTPS `GET /v1/status`, QR na tela de diagnóstico | `go test ./internal/... ./app/...` |
 | App Android | Esqueleto (`:app`, `:core:dominio`, `:core:dados`, `:core:sync`) e tela de diagnóstico | `./gradlew test ...` (22 testes) |
 | Spike (a) HTTPS + pin via QR | Cliente Kotlin × servidor Go real: TLS 1.3, TLS 1.2, pin divergente. **Aparelho real OK:** moto g56, Android 16, hotspot do Windows **com** internet na origem, TLSv1.3, 108 ms | `ClienteCentralGoTest`; `fase-0.md` §Testes em aparelho real |
-| Spike (c) PRAGMAs Room 3 | Room rebaixava `synchronous` para NORMAL e deixava `foreign_keys` desligado; corrigido com `DriverDuravel` | `PragmasTest` (JVM) |
+| Spike (c) PRAGMAs Room 3 | Room rebaixava `synchronous` para NORMAL e deixava `foreign_keys` desligado; corrigido com `DriverDuravel`. **Aparelho real OK** (moto g56, 13/11: `wal · 2 · 1`, SQLite 3.50.1); na mesma sessão, nova conexão em TLSv1.3, 92 ms | `PragmasTest` (JVM); `fase-0.md` §Testes em aparelho real |
 | Spike (d) Instalador NSIS | Script pronto (WebView2 offline, firewall na porta 38807) | **Não testado** |
 | Decisões novas | A19/ADR-0014 (TLS 1.2 restrito), A20/ADR-0015 (ZXing no lugar do ML Kit), porta 38807 | [matriz-decisoes.md](matriz-decisoes.md) |
 
@@ -27,9 +27,10 @@
 
 Quase tudo depende do **usuário com aparelho e notebook reais**. O agente prepara os builds, orienta e registra os resultados em `fase-0.md`.
 
-1. **Cartão "Banco de dados" no aparelho:** confirmar que o moto g56 mostra "Configuração de durabilidade correta" (`wal · synchronous=2 · foreign_keys=1`). Fecha o spike (c) no aparelho.
+1. ~~**Cartão "Banco de dados" no aparelho**~~: **feito em 13/11** (moto g56: "Configuração de durabilidade correta", `wal · synchronous=2 · foreign_keys=1`).
 2. **P8, hotspot do Windows sem internet** ([rede-em-campo.md](../operacao/rede-em-campo.md), testes 1 a 7):
-   - com o celular conectado, desligar a origem (o "Wi‑Fi 2"), manter o hotspot ligado e verificar por 30 min se ele continua ativo e se o **Testar conexão** funciona;
+   - com o celular conectado, desligar a origem (no notebook, o "Wi‑Fi 2"; no PC desktop, o cabo Ethernet), manter o hotspot ligado e verificar por 30 min se ele continua ativo e se o **Testar conexão** funciona;
+   - depois de desligar a origem, clicar em **Atualizar** na Central e **ler o QR de novo**: o IP da origem (ex.: `192.168.0.24`) some, e o celular chegava à Central por ele (achado de 13/11);
    - com a "Economia de energia" do hotspot já **desativada**;
    - se o hotspot cair: testar o Adaptador de Loopback da Microsoft como origem;
    - tampa fechada com "Não fazer nada", e com a tela apagada.
@@ -68,6 +69,11 @@ export PATH="$HOME/.local/go/bin:$HOME/go/bin:$JAVA_HOME/bin:$ANDROID_HOME/cmdli
 **Armadilhas já encontradas (não repetir):**
 - **Licença do SDK:** o `sdkmanager` atual diz que `--licenses` "não é mais necessário", mas o AGP 9.5.1 exige o aceite. Instale os pacotes pelo `sdkmanager --install "platforms;android-37.0"` (ele grava `package.xml` e o aceite). Plataforma extraída à mão, sem `package.xml`, não é reconhecida pelo AGP. Aceitar a licença é decisão do usuário: pergunte antes.
 - **Android CLI coleta métricas:** o `sdkmanager` agora delega para o "Android CLI" do Google, que envia métricas de uso por padrão. Use `--no-metrics` e evite chamá-lo sem necessidade.
+- **O wrapper `sdkmanager` não aceita `--no-metrics`** (mostra a ajuda e falha). Chame o binário `android` diretamente, com a opção **antes** do subcomando:
+  `android --no-metrics --sdk="$ANDROID_HOME" sdk install "platforms/android-37.0" "build-tools/36.0.0" "platform-tools"` (grava `package.xml` e `licenses/`).
+- **Sem `unzip`** (e sem sudo): extraia o cmdline-tools com o `zipfile` do Python, aplicando as permissões de `external_attr` (senão os scripts de `bin/` perdem o `+x`).
+- **Chave de debug por máquina:** o APK gerado em outra máquina não instala por cima do anterior ("conflito com pacote existente"). Desinstale o app no celular antes (só há dados de diagnóstico na Fase 0).
+- **Meça a rede antes de baixar:** na 2ª máquina o WSL em NAT fez ~15 MB/s e não precisou da rede espelhada.
 - **WSL com `networkingMode=mirrored`:** deixa a rede rápida, mas **reserva no Windows as portas 44620–48715**. Por isso a Central usa a porta 38807 (`porta_test.go` impede regressão). O `netsh ... excludedportrange` não mostra essa reserva.
 - **Testes de porta no Windows:** use só `127.0.0.1`. Abrir um socket em `0.0.0.0` dispara o pedido de permissão do Firewall, e o clique em "Permitir" cria uma regra de entrada (aconteceu com o `powershell.exe`).
 - **Sem emulador** nesta máquina (sem acesso a `/dev/kvm`). Teste em aparelho real.
