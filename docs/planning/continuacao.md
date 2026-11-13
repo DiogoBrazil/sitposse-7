@@ -29,10 +29,12 @@
 Quase tudo depende do **usuário com aparelhos e computador reais**. O P8 (hotspot do Windows sem internet e tampa fechada) foi **encerrado sem teste** pela A21/ADR-0016: o hotspot do Windows só é usado com internet e com o computador ligado. O agente prepara os builds, orienta e registra os resultados em `fase-0.md`.
 
 1. ~~**Cartão "Banco de dados" no aparelho**~~: **feito em 13/11** (moto g56: "Configuração de durabilidade correta", `wal · synchronous=2 · foreign_keys=1`).
-2. **Cenário A, hotspot do celular:** um celular cria o hotspot (sem dados móveis); o computador da Central (PC com Wi‑Fi ou notebook) e outro celular se conectam a ele; testar a conexão dos dois celulares, inclusive o que criou o hotspot ([rede-em-campo.md](../operacao/rede-em-campo.md) §Cenário A).
-3. **P7, Android 17:** testar em um aparelho com Android 17 (a permissão de rede local é pedida antes de conectar). Se houver, testar também Android 8 ou 9 (deve conectar em **TLSv1.2**).
-4. **Spike (d), instalador:** instalar o NSIS no Windows, gerar o instalador (`wails3 package` no Windows) e testar em Windows 10 22H2 e 11 **limpos e sem internet**: WebView2 offline, regra de firewall, desinstalação sem apagar os dados.
-5. Registrar tudo em `fase-0.md`, fechar P7 em [pendencias.md](pendencias.md), atualizar o changelog e **pedir ao usuário que aprove a conclusão da Fase 0**.
+2. **Spike (d), instalador:** instalar o NSIS no Windows, gerar o instalador (`wails3 package` no Windows) e testar em Windows 10 22H2 e 11 **limpos e sem internet**: WebView2 offline, regra de firewall, desinstalação sem apagar os dados.
+3. Registrar tudo em `fase-0.md`, atualizar o changelog e **pedir ao usuário que aprove a conclusão da Fase 0**. Como os testes abaixo foram adiados, o critério do plano ("P7 fechada") só é cumprido fazendo-os antes ou com o usuário aprovando, no fechamento, levá-los para depois. **Não decidir isso sozinho.**
+
+### Adiados pelo usuário (13/11/2026): fazer depois
+1. **Hotspot do celular (cenário A):** um celular cria o hotspot (sem dados móveis); o computador da Central (PC com Wi‑Fi ou notebook) e outro celular se conectam a ele; testar a conexão dos dois celulares, inclusive o que criou o hotspot ([rede-em-campo.md](../operacao/rede-em-campo.md) §Cenário A).
+2. **Android 17 (P7):** testar em um aparelho com Android 17 (a permissão de rede local é pedida antes de conectar). Se houver, testar também Android 8 ou 9 (deve conectar em **TLSv1.2**).
 
 ### Melhorias já identificadas (não bloqueiam a Fase 0; fazer quando o usuário aprovar ou na Fase 2)
 - A Central permite várias janelas abertas ao mesmo tempo; deveria aceitar só uma (instância única do Wails). A segunda janela mostra "porta em uso".

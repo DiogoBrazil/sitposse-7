@@ -85,3 +85,5 @@ Lista ordenada e atualizada: [continuacao.md](continuacao.md) §2.
    - um aparelho com Android 17 (permissão de rede local) e, se houver, um com Android 8 ou 9 (TLS 1.2);
    - instalador NSIS em Windows 10 22H2 e 11 limpos. ~~Roteiro de rede/tampa~~ cancelado (A21, ADR-0016).
 3. Com os resultados: fechar P7 (P8 já encerrada pela A21), registrar aqui e dar a Fase 0 por concluída.
+
+**Adiados pelo usuário em 13/11/2026** (fazer depois): o teste no hotspot do celular (cenário A) e o teste em Android 17 (P7) e em Android 8/9. Lista em [continuacao.md](continuacao.md) §2.

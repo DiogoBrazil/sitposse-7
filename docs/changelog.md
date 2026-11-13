@@ -2,6 +2,9 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-13 (Fase 0) — testes adiados
+- **docs** · A pedido do usuário, o teste no hotspot do celular (cenário A) e o teste em Android 17 (P7), além de Android 8/9, ficam para depois: seção "Adiados" em `planning/continuacao.md` §2; notas em `fase-0.md` e `pendencias.md` (P7). O critério da Fase 0 não muda; o fechamento depende de fazê-los ou de o usuário aprovar levá-los adiante.
+
 ## 2026-11-13 (Fase 0) — hotspot do Windows só com internet (A21, ADR-0016)
 - **docs** · Decisão do usuário: o hotspot do Windows é usado **somente com internet na origem** e com o computador (PC ou notebook) **ligado**; sem internet, hotspot do celular ou pacote USB. ADR-0016 substitui a condição "hotspot do Windows condicionado ao teste" da A16; matriz com A21.
 - **docs** · P8 encerrada sem teste de bancada (`pendencias.md`); spike (b) cancelado (`plano.md`, `fase-0.md`); `operacao/rede-em-campo.md` reescrito no cenário B (passo a passo com internet, tampa aberta, economia de energia desativada, queda de internet durante o uso); risco K2 reavaliado (`riscos.md`); `continuacao.md` sem o item P8; `README.md`.
