@@ -1,0 +1,18 @@
+{
+  "descricao": "Normalização de nomes de itens 'Outros' (RN-35). O original nunca é alterado; normalizado = trim, colapso de espaços (inclui tab/quebra de linha), minúsculas, NFD sem marcas combinantes. Hífens e demais pontuações são preservados.",
+  "versao": 1,
+  "casos": [
+    {"original": "  Micro-ondas  ",        "normalizado": "micro-ondas",        "valido": true},
+    {"original": "MICRO-ONDAS",            "normalizado": "micro-ondas",        "valido": true},
+    {"original": "microondas",             "normalizado": "microondas",         "valido": true},
+    {"original": "Máquina   de   costura", "normalizado": "maquina de costura", "valido": true},
+    {"original": "Fogão a lenha",          "normalizado": "fogao a lenha",      "valido": true},
+    {"original": "Peru ",                  "normalizado": "peru",               "valido": true},
+    {"original": "Codorna",                "normalizado": "codorna",            "valido": true},
+    {"original": "Ação\tTeste",            "normalizado": "acao teste",         "valido": true},
+    {"original": "Linha\nNova",            "normalizado": "linha nova",         "valido": true},
+    {"original": "Ñandu",                  "normalizado": "nandu",              "valido": true},
+    {"original": "",                       "normalizado": "",                   "valido": false},
+    {"original": "   ",                    "normalizado": "",                   "valido": false}
+  ]
+}

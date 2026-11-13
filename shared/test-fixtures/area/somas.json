@@ -1,0 +1,37 @@
+{
+  "descricao": "Soma de áreas (RN-45). Propriedades sem área não entram como zero e são contadas à parte.",
+  "versao": 1,
+  "casos": [
+    {
+      "propriedades": [
+        {"milesimos": 10500, "unidade": "alq_paulista"},
+        {"milesimos": 2345,  "unidade": "ha"},
+        {"milesimos": null,  "unidade": null}
+      ],
+      "total_dm2": 27755000,
+      "total_ha_exibicao": "27,76",
+      "com_area": 2,
+      "sem_area": 1
+    },
+    {
+      "propriedades": [
+        {"milesimos": null, "unidade": null},
+        {"milesimos": null, "unidade": null}
+      ],
+      "total_dm2": 0,
+      "total_ha_exibicao": "0,00",
+      "com_area": 0,
+      "sem_area": 2
+    },
+    {
+      "propriedades": [
+        {"milesimos": 0,    "unidade": "ha"},
+        {"milesimos": 1000, "unidade": "alq_paulista"}
+      ],
+      "total_dm2": 2420000,
+      "total_ha_exibicao": "2,42",
+      "com_area": 2,
+      "sem_area": 0
+    }
+  ]
+}

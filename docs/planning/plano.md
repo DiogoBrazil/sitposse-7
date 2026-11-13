@@ -1,0 +1,23 @@
+# Plano de implementação
+
+Aprovado em **13/11/2026**. As estimativas são para **um desenvolvedor em tempo integral**; a faixa é ampla por causa da incerteza com dispositivos reais.
+
+| Fase | Entregas | Critério de aceite | Estim. | Status |
+|---|---|---|---|---|
+| **Docs** | Plano gravado em `docs/`, ADRs, AGENTS.md, estrutura do monorepo, fixtures de área e normalização | Revisão do usuário | — | **Concluída** |
+| **0. Fundação e spikes de risco** | Esqueleto `mobile/` (Gradle, Compose, Room 3) e `desktop/` (Wails 3 + Vue); `shared/schemas` iniciais. **Spikes:** (a) Android → Central por HTTPS com pin pelo QR, nos dois tipos de hotspot, sem internet, incluindo Android 17; (b) teste de hotspot e tampa do Windows ([rede-em-campo.md](../operacao/rede-em-campo.md)); (c) PRAGMAs efetivos do Room 3 com BundledSQLiteDriver; (d) instalador NSIS + WebView2 + firewall em Windows 10 22H2 e 11 limpos | Spikes documentados com resultado; P7 e P8 fechadas; versões fixadas | 1,5–2,5 sem | Próxima |
+| **1. Campo: persistência e coleta** | Equipe, propriedades, campos fixos, itens dinâmicos, área, GNSS, fotos, rascunhos, lista e busca, estados | Testes Android de `testing/estrategia.md` §2 passando | 3–4 sem | — |
+| **2. Central: base e recepção mínima** | Banco, migrações, operações e equipes, pareamento, recepção de lote com fotos, CRUD e auditoria | Primeira carga de 2 celulares com contagens, UUIDs e hashes conferidos | 2–3 sem | — |
+| **3. Sincronização robusta** | Incremental, tombstones, retomada de fotos, recibos, ACK perdido, conflitos com tela de resolução, pacote USB com recibo, restauração de equipe | Cenários 1–14 de `testing/estrategia.md` §4 passando | 3–4 sem | — |
+| **4. Estatísticas e filtros** | `FiltroEstudo`, painel, tabelas, gráficos, drill-down, aliases, sugestão de duplicatas (P5) | Fixture de estatísticas com todos os cruzamentos do prompt §18 | 2–3 sem | — |
+| **5. Backups e relatórios** | Backup e restauração nos dois lados; liberar espaço (P3/P4); relatórios PDF/CSV | Restauração real testada | 1,5–2 sem | — |
+| **6. Cartografia online** | Provedor (P1), mapas individual e geral, cartas-imagem, indisponibilidade amigável | Testes de `testing/estrategia.md` §6 | 1,5–2 sem | — |
+| **7. Campo, empacotamento e docs** | Teste com equipes reais, ajustes de UX, APK assinado, instalador, manuais | Checklist de aceite (§7 da estratégia) | 1,5–2 sem | — |
+
+**Total estimado: 16–23 semanas.** A Fase 4 pode correr em paralelo com a 3, e a Fase 6 depende de P1.
+
+**Por que a ordem difere da sugerida no prompt:** a infraestrutura de rede (hotspot Windows/Android, Android 17) é o maior desconhecido técnico, então foi antecipada para spikes da Fase 0, antes de investir na UI.
+
+## Detalhes por produto
+- Android: [mobile/docs](../../mobile/docs/arquitetura.md)
+- Central: [desktop/docs](../../desktop/docs/arquitetura.md)
