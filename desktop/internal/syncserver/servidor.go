@@ -1,0 +1,151 @@
+package syncserver
+
+import (
+	"context"
+	"crypto/tls"
+	"encoding/json"
+	"errors"
+	"net"
+	"net/http"
+	"strconv"
+	"time"
+)
+
+// Versões de protocolo e esquema aceitas por esta Central.
+const (
+	ProtocoloVersao = 1
+	SchemaVersao    = 1
+	PortaPadrao     = 47807
+)
+
+// Status é a resposta de GET /v1/status (shared/schemas/status.v1.schema.json).
+type Status struct {
+	ProtocoloVersao    int        `json:"protocolo_versao"`
+	ProtocoloVersaoMin int        `json:"protocolo_versao_min"`
+	ProtocoloVersaoMax int        `json:"protocolo_versao_max"`
+	SchemaVersaoMin    int        `json:"schema_versao_min"`
+	SchemaVersaoMax    int        `json:"schema_versao_max"`
+	CentralID          string     `json:"central_id"`
+	Operacao           *Operacao  `json:"operacao"`
+	Horario            string     `json:"horario"`
+}
+
+// Operacao identifica a operação ativa.
+type Operacao struct {
+	UUID string `json:"uuid"`
+	Nome string `json:"nome"`
+}
+
+// PayloadQR é o conteúdo do QR de pareamento (shared/schemas/qr-pareamento.v1.schema.json).
+type PayloadQR struct {
+	V             int      `json:"v"`
+	CentralID     string   `json:"central_id"`
+	IPs           []string `json:"ips"`
+	Porta         int      `json:"porta"`
+	SPKISHA256    string   `json:"spki_sha256"`
+	Token         string   `json:"token_pareamento,omitempty"`
+	OperacaoUUID  string   `json:"operacao_uuid,omitempty"`
+	OperacaoNome  string   `json:"operacao_nome,omitempty"`
+}
+
+// Servidor é o servidor HTTPS local da Central.
+type Servidor struct {
+	Identidade *Identidade
+	CentralID  string
+	Operacao   func() *Operacao
+	http       *http.Server
+	ln         net.Listener
+}
+
+// Handler devolve o roteador HTTP (exposto para testes).
+func (s *Servidor) Handler() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /v1/status", s.status)
+	return somenteRedeLocal(mux)
+}
+
+func (s *Servidor) status(w http.ResponseWriter, r *http.Request) {
+	var op *Operacao
+	if s.Operacao != nil {
+		op = s.Operacao()
+	}
+	escreverJSON(w, http.StatusOK, Status{
+		ProtocoloVersao: ProtocoloVersao, ProtocoloVersaoMin: 1, ProtocoloVersaoMax: ProtocoloVersao,
+		SchemaVersaoMin: 1, SchemaVersaoMax: SchemaVersao,
+		CentralID: s.CentralID, Operacao: op,
+		Horario: time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),
+	})
+}
+
+func somenteRedeLocal(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !EnderecoPermitido(r.RemoteAddr) {
+			escreverJSON(w, http.StatusForbidden, map[string]string{"erro": "somente rede local"})
+			return
+		}
+		h.ServeHTTP(w, r)
+	})
+}
+
+func escreverJSON(w http.ResponseWriter, code int, v any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+// Iniciar escuta em endereco (ex.: ":47807") com TLS 1.3 e retorna imediatamente.
+func (s *Servidor) Iniciar(endereco string) error {
+	cfg := &tls.Config{
+		MinVersion:   tls.VersionTLS13,
+		Certificates: []tls.Certificate{s.Identidade.Certificado},
+	}
+	ln, err := net.Listen("tcp", endereco)
+	if err != nil {
+		return err
+	}
+	s.ln = ln
+	s.http = &http.Server{
+		Handler:           s.Handler(),
+		ReadHeaderTimeout: 15 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+	}
+	go func() {
+		if err := s.http.Serve(tls.NewListener(ln, cfg)); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			_ = err // registrado pelo chamador via logs na Fase 2
+		}
+	}()
+	return nil
+}
+
+// Porta devolve a porta efetivamente em uso.
+func (s *Servidor) Porta() int {
+	if s.ln == nil {
+		return 0
+	}
+	_, p, _ := net.SplitHostPort(s.ln.Addr().String())
+	n, _ := strconv.Atoi(p)
+	return n
+}
+
+// Parar encerra o servidor aguardando requisições em andamento.
+func (s *Servidor) Parar(ctx context.Context) error {
+	if s.http == nil {
+		return nil
+	}
+	return s.http.Shutdown(ctx)
+}
+
+// QR monta o payload de pareamento com os IPs atuais.
+func (s *Servidor) QR(token string, op *Operacao) PayloadQR {
+	ips := make([]string, 0, len(s.Identidade.IPs))
+	for _, ip := range s.Identidade.IPs {
+		if !ip.IsLoopback() {
+			ips = append(ips, ip.String())
+		}
+	}
+	p := PayloadQR{V: 1, CentralID: s.CentralID, IPs: ips, Porta: s.Porta(), SPKISHA256: s.Identidade.Pin(), Token: token}
+	if op != nil {
+		p.OperacaoUUID, p.OperacaoNome = op.UUID, op.Nome
+	}
+	return p
+}

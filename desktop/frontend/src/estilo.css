@@ -1,0 +1,27 @@
+:root {
+  --fundo: #f8fafc;
+  --superficie: #ffffff;
+  --texto: #0f172a;
+  --texto-suave: #475569;
+  --borda: #e2e8f0;
+  --primaria: #1d4ed8;
+  --ok: #15803d;
+  --erro: #b91c1c;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  color: var(--texto);
+  background: var(--fundo);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fundo: #0b1220;
+    --superficie: #111a2e;
+    --texto: #e2e8f0;
+    --texto-suave: #94a3b8;
+    --borda: #1e293b;
+    --primaria: #60a5fa;
+    --ok: #4ade80;
+    --erro: #f87171;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fundo); }

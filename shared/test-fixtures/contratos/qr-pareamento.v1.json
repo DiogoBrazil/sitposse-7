@@ -1,0 +1,14 @@
+{
+  "validos": [
+    {"v": 1, "central_id": "3f1c9a52-6a0e-4c1b-9d55-2f7f1f0b8e21", "ips": ["192.168.43.10"], "porta": 47807, "spki_sha256": "q8nY3w0h0a4cX1m5Jt8ZbRkK2pV7sL9eF6gH1iJ0kLM"},
+    {"v": 1, "central_id": "3f1c9a52-6a0e-4c1b-9d55-2f7f1f0b8e21", "ips": [], "porta": 47807, "spki_sha256": "q8nY3w0h0a4cX1m5Jt8ZbRkK2pV7sL9eF6gH1iJ0kLM"},
+    {"v": 1, "central_id": "3f1c9a52-6a0e-4c1b-9d55-2f7f1f0b8e21", "ips": ["10.0.0.2", "192.168.137.1"], "porta": 47807, "spki_sha256": "q8nY3w0h0a4cX1m5Jt8ZbRkK2pV7sL9eF6gH1iJ0kLM", "token_pareamento": "Zt3m8fQe0W1xYp4kLr7uVb2nHc6sJd9aGq5iTo0eM1E", "operacao_uuid": "9b2d4f61-0c3e-4a5b-8f7d-1e2c3b4a5d6e", "operacao_nome": "Reintegração Gleba A"}
+  ],
+  "invalidos": [
+    {"motivo": "versao", "dado": {"v": 2, "central_id": "3f1c9a52-6a0e-4c1b-9d55-2f7f1f0b8e21", "ips": [], "porta": 47807, "spki_sha256": "q8nY3w0h0a4cX1m5Jt8ZbRkK2pV7sL9eF6gH1iJ0kLM"}},
+    {"motivo": "pin_curto", "dado": {"v": 1, "central_id": "3f1c9a52-6a0e-4c1b-9d55-2f7f1f0b8e21", "ips": [], "porta": 47807, "spki_sha256": "abc"}},
+    {"motivo": "sem_pin", "dado": {"v": 1, "central_id": "3f1c9a52-6a0e-4c1b-9d55-2f7f1f0b8e21", "ips": [], "porta": 47807}},
+    {"motivo": "porta", "dado": {"v": 1, "central_id": "3f1c9a52-6a0e-4c1b-9d55-2f7f1f0b8e21", "ips": [], "porta": 70000, "spki_sha256": "q8nY3w0h0a4cX1m5Jt8ZbRkK2pV7sL9eF6gH1iJ0kLM"}},
+    {"motivo": "campo_extra", "dado": {"v": 1, "central_id": "3f1c9a52-6a0e-4c1b-9d55-2f7f1f0b8e21", "ips": [], "porta": 47807, "spki_sha256": "q8nY3w0h0a4cX1m5Jt8ZbRkK2pV7sL9eF6gH1iJ0kLM", "senha": "x"}}
+  ]
+}

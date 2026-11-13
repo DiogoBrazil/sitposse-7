@@ -1,0 +1,9 @@
+.task
+.wails
+bin
+frontend/dist
+frontend/node_modules
+# Instaladores do WebView2 (grandes; baixados na hora do empacotamento)
+build/windows/nsis/MicrosoftEdgeWebView2RuntimeInstallerX64.exe
+build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
+*.syso
