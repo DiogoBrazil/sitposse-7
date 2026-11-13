@@ -2,6 +2,10 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-13 (Fase 0) — instalador gerado e A22
+- **desktop** · Instalador NSIS gerado pelo WSL (`wails3 package GOOS=windows`, `makensis` 3.09), com o WebView2 Evergreen Standalone x64 (assinatura da Microsoft conferida). Sem mudança no script; o binário do WebView2 continua fora do git. Teste em VM limpa pendente.
+- **docs** · A22 (matriz): a Fase 0 pode ser concluída com os testes de hotspot do celular e de Android 17/8/9 adiados; P7 segue aberta (prazo recomendado: Fase 3). `plano.md` (critério da Fase 0), `pendencias.md`, `continuacao.md` (§2 com o roteiro da VM; §4 com o comando do instalador) e `fase-0.md`.
+
 ## 2026-11-13 (Fase 0) — testes adiados
 - **docs** · A pedido do usuário, o teste no hotspot do celular (cenário A) e o teste em Android 17 (P7), além de Android 8/9, ficam para depois: seção "Adiados" em `planning/continuacao.md` §2; notas em `fase-0.md` e `pendencias.md` (P7). O critério da Fase 0 não muda; o fechamento depende de fazê-los ou de o usuário aprovar levá-los adiante.
 

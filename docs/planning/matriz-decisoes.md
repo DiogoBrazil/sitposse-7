@@ -28,6 +28,7 @@ Fonte: prompt-mestre e respostas do usuário em 13/11/2026; recomendações R1�
 | A19 | Transporte: TLS 1.3 preferido; TLS 1.2 só com ECDHE + AEAD, para Android 8/9 (13/11/2026) | usuário (Fase 0) | ADR-0014 |
 | A20 | Leitor de QR: ZXing no lugar do ML Kit, que traz telemetria do Google (13/11/2026) | usuário (Fase 0) | ADR-0015 |
 | A21 | Hotspot do Windows só com internet na origem e com o computador (PC ou notebook) ligado; sem internet, hotspot do celular ou pacote USB. Sem teste de hotspot sem internet nem de tampa fechada; P8 encerrada (13/11/2026) | usuário (Fase 0) | ADR-0016 |
+| A22 | A Fase 0 pode ser concluída com o teste no hotspot do celular (cenário A) e os testes em Android 17 (P7) e 8/9 **adiados**; P7 continua aberta até o teste (13/11/2026). Decisão de cronograma, sem mudança de arquitetura | usuário (Fase 0) | plano.md, continuacao.md §2 |
 | R1 | Stack: Room 3 + BundledSQLiteDriver; Compose/M3; Wails v3.1 + Vue 3 + TS; modernc SQLite; JSON Schema | plano | ADR-0002..0004 |
 | R2 | `rev` por entidade + `rev_confirmada` | plano | ADR-0005 |
 | R3 | Unidade de conflito = cadastro | plano | ADR-0006 |

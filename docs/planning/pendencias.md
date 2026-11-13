@@ -10,7 +10,7 @@ Nenhuma destas decisões pode ser tomada em silêncio. Cada uma tem recomendaç�
 | P4 | Critério para liberar espaço no celular | Igual a P3; a Central informa a cobertura de backup em `/v1/status` | Fase 5 | Aberta |
 | P5 | Duplicidade sem UUID comum (mesma família por duas equipes) | Sugerir candidatas (nome normalizado + distância GPS); permitir **vincular** sem fundir nem apagar | Fase 4 | Aberta |
 | P6 | Reuso de aparelho em nova operação / equipe já vinculada a outra operação | "Encerrar operação" só com tudo confirmado; nova equipe | Fase 3 | Aberta |
-| P7 | Distribuição do APK e `targetSdk` | Sideload; `targetSdk 37` + `ACCESS_LOCAL_NETWORK` | Fase 0 | Parcial: app configurado assim (`fase-0.md`); falta o teste em aparelho com Android 17, **adiado pelo usuário em 13/11/2026** (ver `continuacao.md` §2) |
+| P7 | Distribuição do APK e `targetSdk` | Sideload; `targetSdk 37` + `ACCESS_LOCAL_NETWORK` | Depois da Fase 0 (A22); recomendado até a Fase 3 (risco K3) | Parcial: app configurado assim (`fase-0.md`); falta o teste em aparelho com Android 17, **adiado pelo usuário em 13/11/2026** sem bloquear a Fase 0 (A22; ver `continuacao.md` §2) |
 | P9 | Versões exatas (Compose BOM, Kotlin, AGP, Go, leitor de QR, PrimeVue, ECharts, Leaflet, lib PDF) | Fixar as estáveis mais recentes no spike | Fase 0 | Parcial: ver [fase-0.md](fase-0.md); PrimeVue/ECharts/Leaflet/PDF nas fases de uso |
 | P10 | `applicationId` / pacote definitivo do app | Provisório `br.gov.ro.pm.sitposse7.campo`. Trocar depois da primeira instalação em campo faz o Android tratá-lo como **outro app** (dados não migram), então decidir antes disso | Antes do 1º uso em campo (Fase 7) | Aberta |
 

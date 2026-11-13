@@ -29,8 +29,11 @@
 Quase tudo depende do **usuário com aparelhos e computador reais**. O P8 (hotspot do Windows sem internet e tampa fechada) foi **encerrado sem teste** pela A21/ADR-0016: o hotspot do Windows só é usado com internet e com o computador ligado. O agente prepara os builds, orienta e registra os resultados em `fase-0.md`.
 
 1. ~~**Cartão "Banco de dados" no aparelho**~~: **feito em 13/11** (moto g56: "Configuração de durabilidade correta", `wal · synchronous=2 · foreign_keys=1`).
-2. **Spike (d), instalador:** instalar o NSIS no Windows, gerar o instalador (`wails3 package` no Windows) e testar em Windows 10 22H2 e 11 **limpos e sem internet**: WebView2 offline, regra de firewall, desinstalação sem apagar os dados.
-3. Registrar tudo em `fase-0.md`, atualizar o changelog e **pedir ao usuário que aprove a conclusão da Fase 0**. Como os testes abaixo foram adiados, o critério do plano ("P7 fechada") só é cumprido fazendo-os antes ou com o usuário aprovando, no fechamento, levá-los para depois. **Não decidir isso sozinho.**
+2. **Spike (d), instalador:** testar em Windows 11 (e, se possível, Windows 10 22H2) **limpo e sem internet**: instalação, Central abrindo, regra de firewall, desinstalação sem apagar os dados.
+   - **Gerado em 13/11 pelo WSL** (o `makensis` 3.09 está em `/usr/bin`; não precisa de NSIS, Go nem Node no Windows): `bin/sitposse7-central-amd64-installer.exe`, 222 MB, já copiado para `Downloads\sitposse7-teste`. Ver §4.
+   - **Ambiente de teste:** VM Hyper-V (Geração 2, TPM virtual, **sem placa de rede**) com o **Windows 11 Enterprise Evaluation** (ISO gratuita de 90 dias do Evaluation Center; aceita conta local sem internet). Criar um **ponto de verificação** logo após instalar o Windows, para repetir o teste do zero. O Hyper-V **não estava habilitado** no PC desktop (13/11).
+   - **Atenção:** o Windows 11 já vem com o WebView2, então o instalador **pula** o WebView2 embutido. Só um Windows 10 22H2 limpo exercita a instalação offline do WebView2.
+3. Registrar tudo em `fase-0.md`, atualizar o changelog e **pedir ao usuário que aprove a conclusão da Fase 0**. Os testes abaixo foram adiados **com aprovação do usuário** (A22, 13/11): não bloqueiam a conclusão da Fase 0, e a P7 continua aberta até o teste em Android 17.
 
 ### Adiados pelo usuário (13/11/2026): fazer depois
 1. **Hotspot do celular (cenário A):** um celular cria o hotspot (sem dados móveis); o computador da Central (PC com Wi‑Fi ou notebook) e outro celular se conectam a ele; testar a conexão dos dois celulares, inclusive o que criou o hotspot ([rede-em-campo.md](../operacao/rede-em-campo.md) §Cenário A).
@@ -91,6 +94,12 @@ go vet ./internal/... ./app/... ./cmd/...
 go test ./internal/... ./app/...
 (cd frontend && npm ci)                 # numa máquina nova
 wails3 build GOOS=windows               # → bin/sitposse7-central.exe (no Windows: wails3 build)
+
+# Instalador NSIS (pelo WSL, com o makensis do Linux). Antes, coloque o WebView2 offline
+# (Evergreen Standalone x64, https://go.microsoft.com/fwlink/?linkid=2124701; confira a assinatura
+# da Microsoft com Get-AuthenticodeSignature no Windows) em build/windows/nsis/ com o nome
+# MicrosoftEdgeWebView2RuntimeInstallerX64.exe (ignorado pelo git).
+wails3 package GOOS=windows             # → bin/sitposse7-central-amd64-installer.exe (~222 MB)
 ```
 
 Contagem esperada (13/11): domínio 8, sync 7 (`PinTest` 1 + `ClienteCentralGoTest` 6), banco 4 (`PragmasTest` 2 + `PragmaDuravelTest` 2), QR 3. Se a contagem cair, algo foi pulado.
