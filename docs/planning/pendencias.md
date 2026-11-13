@@ -11,13 +11,13 @@ Nenhuma destas decisões pode ser tomada em silêncio. Cada uma tem recomendaç�
 | P5 | Duplicidade sem UUID comum (mesma família por duas equipes) | Sugerir candidatas (nome normalizado + distância GPS); permitir **vincular** sem fundir nem apagar | Fase 4 | Aberta |
 | P6 | Reuso de aparelho em nova operação / equipe já vinculada a outra operação | "Encerrar operação" só com tudo confirmado; nova equipe | Fase 3 | Aberta |
 | P7 | Distribuição do APK e `targetSdk` | Sideload; `targetSdk 37` + `ACCESS_LOCAL_NETWORK` | Fase 0 | Parcial: app configurado assim (`fase-0.md`); falta o teste em aparelho com Android 17 |
-| P8 | Hotspot do Windows sem internet e com a tampa fechada | Teste de bancada ([rede-em-campo.md](../operacao/rede-em-campo.md)) | Fase 0 | Aberta |
 | P9 | Versões exatas (Compose BOM, Kotlin, AGP, Go, leitor de QR, PrimeVue, ECharts, Leaflet, lib PDF) | Fixar as estáveis mais recentes no spike | Fase 0 | Parcial: ver [fase-0.md](fase-0.md); PrimeVue/ECharts/Leaflet/PDF nas fases de uso |
 | P10 | `applicationId` / pacote definitivo do app | Provisório `br.gov.ro.pm.sitposse7.campo`. Trocar depois da primeira instalação em campo faz o Android tratá-lo como **outro app** (dados não migram), então decidir antes disso | Antes do 1º uso em campo (Fase 7) | Aberta |
 
 ## Resolvidas
 | # | Pendência | Decisão | Data |
 |---|---|---|---|
+| P8 | Hotspot do Windows sem internet e com a tampa fechada | Não será usado assim: hotspot do Windows só com internet e computador ligado; sem teste de bancada (A21, ADR-0016) | 2026-11-13 |
 | — | TLS 1.3 indisponível no Android 8/9 (conflito entre A15 e o transporte aprovado) | TLS 1.2 restrito como mínimo (A19, ADR-0014) | 2026-11-13 |
 | — | ML Kit envia métricas de uso ao Google | Trocar por ZXing (A20, ADR-0015) | 2026-11-13 |
 | — | Política de conflitos | Sentido único + conflito manual (A9) | 2026-11-13 |

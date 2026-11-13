@@ -22,11 +22,12 @@ Fonte: prompt-mestre e respostas do usuário em 13/11/2026; recomendações R1�
 | A13 | Volume pequeno (~5 equipes, ~300 propriedades, ~1.500 fotos); testes 3× | usuário | RNF-07 |
 | A14 | Fotos reduzidas (~2560 px, JPEG 85) | usuário | ADR-0011 |
 | A15 | Android 8+ (minSdk 26); Windows 10 22H2+ 64 bits | usuário | RNF-10 |
-| A16 | Rede: hotspot de celular e hotspot nativo do Windows (este condicionado ao teste); sem roteador por ora | usuário | rede-em-campo.md |
+| A16 | Rede: hotspot de celular e hotspot nativo do Windows; sem roteador por ora. **A condição "hotspot do Windows condicionado ao teste" foi substituída pela A21 em 13/11/2026** | usuário | rede-em-campo.md, ADR-0016 |
 | A17 | Central sem login na v1 | usuário | segurança |
 | A18 | Segurança moderada; foco em integridade | prompt §20 | segurança |
 | A19 | Transporte: TLS 1.3 preferido; TLS 1.2 só com ECDHE + AEAD, para Android 8/9 (13/11/2026) | usuário (Fase 0) | ADR-0014 |
 | A20 | Leitor de QR: ZXing no lugar do ML Kit, que traz telemetria do Google (13/11/2026) | usuário (Fase 0) | ADR-0015 |
+| A21 | Hotspot do Windows só com internet na origem e com o computador (PC ou notebook) ligado; sem internet, hotspot do celular ou pacote USB. Sem teste de hotspot sem internet nem de tampa fechada; P8 encerrada (13/11/2026) | usuário (Fase 0) | ADR-0016 |
 | R1 | Stack: Room 3 + BundledSQLiteDriver; Compose/M3; Wails v3.1 + Vue 3 + TS; modernc SQLite; JSON Schema | plano | ADR-0002..0004 |
 | R2 | `rev` por entidade + `rev_confirmada` | plano | ADR-0005 |
 | R3 | Unidade de conflito = cadastro | plano | ADR-0006 |

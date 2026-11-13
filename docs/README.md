@@ -21,5 +21,5 @@ A documentação raiz contém **requisitos e contratos compartilhados**. As espe
 | | [planning/matriz-decisoes.md](planning/matriz-decisoes.md) | Aprovado / Recomendado / Pendente |
 | | [planning/pendencias.md](planning/pendencias.md) | Decisões em aberto |
 | | [planning/riscos.md](planning/riscos.md) | Riscos e mitigação |
-| Operação | [operacao/rede-em-campo.md](operacao/rede-em-campo.md) | Como montar a rede local sem internet |
+| Operação | [operacao/rede-em-campo.md](operacao/rede-em-campo.md) | Como montar a rede local (hotspot do celular sem internet ou do Windows com internet) |
 | Histórico | [changelog.md](changelog.md) | Mudanças de documentação, esquema e protocolo |

@@ -48,7 +48,7 @@ Licença do Android SDK aceita pelo usuário em 13/11 (`~/Android/Sdk/licenses`)
 | Spike | Situação | Resultado |
 |---|---|---|
 | (a) HTTPS com pin via QR | **Central e cliente prontos; teste cruzado JVM×Go passando**; falta o aparelho real | Go: pin SPKI base64url (43 caracteres), pin estável ao reemitir o certificado com IP novo, pin errado recusado, cliente sem pin recusa o certificado autoassinado, só rede local (RFC 1918 / link-local / loopback). Contratos validados por JSON Schema. **Kotlin** (`:core:sync`): `TrustManager` e `HostnameVerifier` pelo pin; mesmo pin que Go e OpenSSL (fixture `tls/pin.json`); contra o servidor Go real: TLS 1.3, TLS 1.2 forçado (Android 8/9), pin de outra Central recusado, porta fechada. TLS 1.2 restrito adotado (ADR-0014). **App de diagnóstico** (`:app`): lê o QR (CameraX + ZXing), pede `ACCESS_LOCAL_NETWORK` no Android 17, usa `requestNetwork(TRANSPORT_WIFI)` sem exigir internet e mostra o resultado de `/v1/status` |
-| (b) Hotspot Windows / tampa | Pendente (usuário, notebook real) | Roteiro em `rede-em-campo.md`. Executável: `desktop/bin/sitposse7-central.exe` |
+| (b) Hotspot Windows / tampa | **Cancelado** (A21, ADR-0016, 13/11) | O hotspot do Windows só será usado com internet na origem e com o computador ligado, e isso já foi validado duas vezes (ver §Testes em aparelho real). Os testes sem internet, com Adaptador de Loopback e com tampa fechada saíram do escopo. P8 encerrada |
 | (c) PRAGMAs Room 3 | **Concluído:** JVM e aparelho real (moto g56, Android 16, 13/11: escrita e leitura `wal / 2 / 1`, SQLite 3.50.1, "Configuração de durabilidade correta") | **Hipótese confirmada:** Room 3.0.3 + WAL deixava todas as conexões com `synchronous=1` (NORMAL) e `foreign_keys=0`. O código do Room (`RoomConnectionManager`) executa `PRAGMA synchronous = NORMAL` em cada conexão do pool depois do `driver.open()`, e `Callback.onOpen` só roda na primeira conexão. **Correção:** `DriverDuravel` envolve o `BundledSQLiteDriver`, liga `foreign_keys=ON` e `synchronous=FULL` na abertura e eleva para FULL qualquer `PRAGMA synchronous` menor. Resultado (`PragmasTest`, escrita + 4 leituras + reabertura): `wal / 2 / 1`, SQLite 3.50.1. `setJournalMode(WRITE_AHEAD_LOGGING)` fixo |
 | (d) Instalador NSIS | Script pronto; teste pendente (Windows) | WebView2 **offline** (Evergreen Standalone x64 em `build/windows/nsis/`), regra de firewall `localsubnet` na porta 38807 (perfis Privado e Público) e remoção na desinstalação. Dados da Central nunca são apagados. Falta: instalar NSIS no Windows, gerar e testar em Windows 10 22H2 e 11 limpos sem internet |
 
@@ -81,7 +81,7 @@ Lista ordenada e atualizada: [continuacao.md](continuacao.md) §2.
 1. ~~Projeto Android~~ · ~~teste cruzado Kotlin × Go~~ · ~~app de diagnóstico~~ (13/11).
 2. **Usuário, em aparelho real** (APK: `mobile/app/build/outputs/apk/debug/app-debug.apk`; instalar com `adb install -r`):
    - ~~a tela de diagnóstico mostra "Configuração de durabilidade correta" (`wal / 2 / 1`)~~ (13/11, moto g56);
-   - ler o QR da Central e testar a conexão: hotspot do celular e hotspot do Windows, sem internet; anotar a versão TLS e o tempo;
+   - ler o QR da Central e testar a conexão no **hotspot do celular** (sem internet); anotar a versão TLS e o tempo. O hotspot do Windows com internet já foi validado (13/11), e sem internet não será usado (A21);
    - um aparelho com Android 17 (permissão de rede local) e, se houver, um com Android 8 ou 9 (TLS 1.2);
-   - roteiro de rede/tampa ([rede-em-campo.md](../operacao/rede-em-campo.md)) e instalador NSIS em Windows 10 22H2 e 11 limpos.
-3. Com os resultados: fechar P7 e P8, registrar aqui e dar a Fase 0 por concluída.
+   - instalador NSIS em Windows 10 22H2 e 11 limpos. ~~Roteiro de rede/tampa~~ cancelado (A21, ADR-0016).
+3. Com os resultados: fechar P7 (P8 já encerrada pela A21), registrar aqui e dar a Fase 0 por concluída.

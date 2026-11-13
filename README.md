@@ -16,7 +16,7 @@ Coleta, em campo e **sem internet**, informações sobre propriedades rurais (fa
 
 ## Estado atual
 
-**Fase 0 (fundação e spikes de risco) em andamento.** Esqueletos da Central e do app Android prontos; primeira conexão real celular → Central validada em 13/11/2026. Faltam os testes de bancada (hotspot sem internet, Android 17, instalador). Ver [`docs/planning/continuacao.md`](docs/planning/continuacao.md).
+**Fase 0 (fundação e spikes de risco) em andamento.** Esqueletos da Central e do app Android prontos; primeira conexão real celular → Central validada em 13/11/2026. Faltam os testes de bancada (hotspot do celular, Android 17, instalador); o hotspot do Windows só é usado com internet (ADR-0016). Ver [`docs/planning/continuacao.md`](docs/planning/continuacao.md).
 
 ## Por onde começar
 

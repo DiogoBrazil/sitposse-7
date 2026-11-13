@@ -2,6 +2,11 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-13 (Fase 0) — hotspot do Windows só com internet (A21, ADR-0016)
+- **docs** · Decisão do usuário: o hotspot do Windows é usado **somente com internet na origem** e com o computador (PC ou notebook) **ligado**; sem internet, hotspot do celular ou pacote USB. ADR-0016 substitui a condição "hotspot do Windows condicionado ao teste" da A16; matriz com A21.
+- **docs** · P8 encerrada sem teste de bancada (`pendencias.md`); spike (b) cancelado (`plano.md`, `fase-0.md`); `operacao/rede-em-campo.md` reescrito no cenário B (passo a passo com internet, tampa aberta, economia de energia desativada, queda de internet durante o uso); risco K2 reavaliado (`riscos.md`); `continuacao.md` sem o item P8; `README.md`.
+- Sem mudança de código, esquema ou protocolo. A Central continua sem depender de internet em nenhuma função (A2): a internet é requisito operacional apenas do cenário B.
+
 ## 2026-11-13 (Fase 0) — segunda máquina e cartão "Banco de dados" no aparelho
 - **docs** · `planning/fase-0.md`: spike (c) concluído no aparelho (moto g56, Android 16: `wal · synchronous=2 · foreign_keys=1`, SQLite 3.50.1); nova conexão pelo hotspot do Windows em TLSv1.3, 92 ms. Achado: o celular alcançou a Central pelo IP da origem (Ethernet), encaminhado pelo compartilhamento de internet do Windows. Ambiente da 2ª máquina registrado.
 - **docs** · `planning/continuacao.md`: item 1 da Fase 0 concluído; P8 com o passo "Atualizar e reler o QR depois de desligar a origem"; armadilhas novas (`--no-metrics` só no binário `android`, ausência de `unzip`, chave de debug por máquina).

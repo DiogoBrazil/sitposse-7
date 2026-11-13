@@ -21,24 +21,18 @@
 | Spike (a) HTTPS + pin via QR | Cliente Kotlin × servidor Go real: TLS 1.3, TLS 1.2, pin divergente. **Aparelho real OK:** moto g56, Android 16, hotspot do Windows **com** internet na origem, TLSv1.3, 108 ms | `ClienteCentralGoTest`; `fase-0.md` §Testes em aparelho real |
 | Spike (c) PRAGMAs Room 3 | Room rebaixava `synchronous` para NORMAL e deixava `foreign_keys` desligado; corrigido com `DriverDuravel`. **Aparelho real OK** (moto g56, 13/11: `wal · 2 · 1`, SQLite 3.50.1); na mesma sessão, nova conexão em TLSv1.3, 92 ms | `PragmasTest` (JVM); `fase-0.md` §Testes em aparelho real |
 | Spike (d) Instalador NSIS | Script pronto (WebView2 offline, firewall na porta 38807) | **Não testado** |
-| Decisões novas | A19/ADR-0014 (TLS 1.2 restrito), A20/ADR-0015 (ZXing no lugar do ML Kit), porta 38807 | [matriz-decisoes.md](matriz-decisoes.md) |
+| Spike (b) Hotspot do Windows / tampa | **Cancelado** (A21/ADR-0016): hotspot do Windows só com internet e computador ligado, já validado 2× (notebook com Wi‑Fi, PC com Ethernet). P8 encerrada | `fase-0.md`; `rede-em-campo.md` |
+| Decisões novas | A19/ADR-0014 (TLS 1.2 restrito), A20/ADR-0015 (ZXing no lugar do ML Kit), porta 38807, A21/ADR-0016 (hotspot do Windows só com internet) | [matriz-decisoes.md](matriz-decisoes.md) |
 
 ## 2. O que falta para fechar a Fase 0 (em ordem)
 
-Quase tudo depende do **usuário com aparelho e notebook reais**. O agente prepara os builds, orienta e registra os resultados em `fase-0.md`.
+Quase tudo depende do **usuário com aparelhos e computador reais**. O P8 (hotspot do Windows sem internet e tampa fechada) foi **encerrado sem teste** pela A21/ADR-0016: o hotspot do Windows só é usado com internet e com o computador ligado. O agente prepara os builds, orienta e registra os resultados em `fase-0.md`.
 
 1. ~~**Cartão "Banco de dados" no aparelho**~~: **feito em 13/11** (moto g56: "Configuração de durabilidade correta", `wal · synchronous=2 · foreign_keys=1`).
-2. **P8, hotspot do Windows sem internet** ([rede-em-campo.md](../operacao/rede-em-campo.md), testes 1 a 7):
-   - com o celular conectado, desligar a origem (no notebook, o "Wi‑Fi 2"; no PC desktop, o cabo Ethernet), manter o hotspot ligado e verificar por 30 min se ele continua ativo e se o **Testar conexão** funciona;
-   - depois de desligar a origem, clicar em **Atualizar** na Central e **ler o QR de novo**: o IP da origem (ex.: `192.168.0.24`) some, e o celular chegava à Central por ele (achado de 13/11);
-   - com a "Economia de energia" do hotspot já **desativada**;
-   - se o hotspot cair: testar o Adaptador de Loopback da Microsoft como origem;
-   - tampa fechada com "Não fazer nada", e com a tela apagada.
-   - Preencher a tabela de `rede-em-campo.md` e decidir o cenário B conforme a seção "Decisão após o teste".
-3. **Cenário A, hotspot do celular:** um celular cria o hotspot (sem dados móveis); o notebook e outro celular se conectam a ele; testar a conexão.
-4. **P7, Android 17:** testar em um aparelho com Android 17 (a permissão de rede local é pedida antes de conectar). Se houver, testar também Android 8 ou 9 (deve conectar em **TLSv1.2**).
-5. **Spike (d), instalador:** instalar o NSIS no Windows, gerar o instalador (`wails3 package` no Windows) e testar em Windows 10 22H2 e 11 **limpos e sem internet**: WebView2 offline, regra de firewall, desinstalação sem apagar os dados.
-6. Registrar tudo em `fase-0.md`, fechar P7 e P8 em [pendencias.md](pendencias.md), atualizar o changelog e **pedir ao usuário que aprove a conclusão da Fase 0**.
+2. **Cenário A, hotspot do celular:** um celular cria o hotspot (sem dados móveis); o computador da Central (PC com Wi‑Fi ou notebook) e outro celular se conectam a ele; testar a conexão dos dois celulares, inclusive o que criou o hotspot ([rede-em-campo.md](../operacao/rede-em-campo.md) §Cenário A).
+3. **P7, Android 17:** testar em um aparelho com Android 17 (a permissão de rede local é pedida antes de conectar). Se houver, testar também Android 8 ou 9 (deve conectar em **TLSv1.2**).
+4. **Spike (d), instalador:** instalar o NSIS no Windows, gerar o instalador (`wails3 package` no Windows) e testar em Windows 10 22H2 e 11 **limpos e sem internet**: WebView2 offline, regra de firewall, desinstalação sem apagar os dados.
+5. Registrar tudo em `fase-0.md`, fechar P7 em [pendencias.md](pendencias.md), atualizar o changelog e **pedir ao usuário que aprove a conclusão da Fase 0**.
 
 ### Melhorias já identificadas (não bloqueiam a Fase 0; fazer quando o usuário aprovar ou na Fase 2)
 - A Central permite várias janelas abertas ao mesmo tempo; deveria aceitar só uma (instância única do Wails). A segunda janela mostra "porta em uso".
