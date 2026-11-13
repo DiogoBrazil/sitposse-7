@@ -37,7 +37,7 @@ Unicode true
 !define INFO_PROJECTNAME    "sitposse7-central"
 !define INFO_PRODUCTVERSION "0.0.1"
 !define INFO_COPYRIGHT      "© 2026 7º BPM/PMRO"
-!define SITPOSSE_PORTA      "47807"
+!define SITPOSSE_PORTA      "38807"
 !define SITPOSSE_REGRA_FW   "SITPOSSE-7 Central (sincronizacao local)"
 # WebView2: o bootstrapper padrão do Wails exige internet (RNF-15 exige instalação
 # offline). Usamos o "Evergreen Standalone Installer" x64, colocado nesta pasta como

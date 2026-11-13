@@ -10,7 +10,7 @@ import kotlin.test.assertNull
 
 class DecodificadorQrTest {
     private val json = """{"v":1,"central_id":"3f1c9a52-6a0e-4c1b-9d55-2f7f1f0b8e21","ips":["192.168.137.1"],""" +
-        """"porta":47807,"spki_sha256":"LebAdzGYtDPoyDIJZAO3bxa_zvkK8dw6lhVmgEsPdfk","operacao_nome":"Reintegração Gleba Ação"}"""
+        """"porta":38807,"spki_sha256":"LebAdzGYtDPoyDIJZAO3bxa_zvkK8dw6lhVmgEsPdfk","operacao_nome":"Reintegração Gleba Ação"}"""
 
     /** Gera o plano Y de um "quadro" com o QR, com bytes extras no fim de cada linha (rowStride > largura). */
     private fun quadro(texto: String, lado: Int, sobra: Int): Triple<ByteArray, Int, Int> {

@@ -45,13 +45,15 @@ Licença do Android SDK aceita pelo usuário em 13/11 (`~/Android/Sdk/licenses`)
 | (a) HTTPS com pin via QR | **Central e cliente prontos; teste cruzado JVM×Go passando**; falta o aparelho real | Go: pin SPKI base64url (43 caracteres), pin estável ao reemitir o certificado com IP novo, pin errado recusado, cliente sem pin recusa o certificado autoassinado, só rede local (RFC 1918 / link-local / loopback). Contratos validados por JSON Schema. **Kotlin** (`:core:sync`): `TrustManager` e `HostnameVerifier` pelo pin; mesmo pin que Go e OpenSSL (fixture `tls/pin.json`); contra o servidor Go real: TLS 1.3, TLS 1.2 forçado (Android 8/9), pin de outra Central recusado, porta fechada. TLS 1.2 restrito adotado (ADR-0014). **App de diagnóstico** (`:app`): lê o QR (CameraX + ZXing), pede `ACCESS_LOCAL_NETWORK` no Android 17, usa `requestNetwork(TRANSPORT_WIFI)` sem exigir internet e mostra o resultado de `/v1/status` |
 | (b) Hotspot Windows / tampa | Pendente (usuário, notebook real) | Roteiro em `rede-em-campo.md`. Executável: `desktop/bin/sitposse7-central.exe` |
 | (c) PRAGMAs Room 3 | **Resolvido na JVM**; falta conferir no aparelho (tela de diagnóstico) | **Hipótese confirmada:** Room 3.0.3 + WAL deixava todas as conexões com `synchronous=1` (NORMAL) e `foreign_keys=0`. O código do Room (`RoomConnectionManager`) executa `PRAGMA synchronous = NORMAL` em cada conexão do pool depois do `driver.open()`, e `Callback.onOpen` só roda na primeira conexão. **Correção:** `DriverDuravel` envolve o `BundledSQLiteDriver`, liga `foreign_keys=ON` e `synchronous=FULL` na abertura e eleva para FULL qualquer `PRAGMA synchronous` menor. Resultado (`PragmasTest`, escrita + 4 leituras + reabertura): `wal / 2 / 1`, SQLite 3.50.1. `setJournalMode(WRITE_AHEAD_LOGGING)` fixo |
-| (d) Instalador NSIS | Script pronto; teste pendente (Windows) | WebView2 **offline** (Evergreen Standalone x64 em `build/windows/nsis/`), regra de firewall `localsubnet` na porta 47807 (perfis Privado e Público) e remoção na desinstalação. Dados da Central nunca são apagados. Falta: instalar NSIS no Windows, gerar e testar em Windows 10 22H2 e 11 limpos sem internet |
+| (d) Instalador NSIS | Script pronto; teste pendente (Windows) | WebView2 **offline** (Evergreen Standalone x64 em `build/windows/nsis/`), regra de firewall `localsubnet` na porta 38807 (perfis Privado e Público) e remoção na desinstalação. Dados da Central nunca são apagados. Falta: instalar NSIS no Windows, gerar e testar em Windows 10 22H2 e 11 limpos sem internet |
 
 ## Achados
 - O template do Wails gera artefatos para várias plataformas. Mantido só Windows; a geração de ícones precisa de `-macfilename ""`.
 - O bootstrapper padrão do WebView2 no Wails é **online**; foi trocado pelo instalador offline (RNF-15).
 - O gerador de bindings do Wails expõe **todos** os métodos públicos do serviço. Por isso o ciclo de vida fica em `app.Central`, e só `SincronizacaoService` (leitura) é exposto.
-- Porta padrão da sincronização: **47807**.
+- Porta padrão da sincronização: **38807**. A anterior (47807) ficou inacessível no primeiro teste real (13/11): a rede espelhada do WSL reserva no Windows a faixa 44620–48715 (portas efêmeras do Linux), e o `netsh ... excludedportrange` **não** mostra essa reserva. `porta_test.go` impede voltar para uma faixa reservada.
+- A Central aceita várias instâncias abertas; a segunda mostra "porta em uso". Corrigir com instância única (Fase 2).
+- O QR inclui IPs de adaptadores virtuais (WSL/Hyper-V/Docker, ex.: 172.18.0.1); o app tenta os IPs em sequência, com até 5 s por IP que não responde. Corrigir: filtrar adaptadores virtuais e tentar os IPs em paralelo.
 - **TLS 1.3 × Android 8/9:** a plataforma só tem TLS 1.3 a partir do Android 10, e o `minSdk` é 26. Resolvido com TLS 1.2 restrito (ECDHE + AEAD) como mínimo (A19, ADR-0014).
 - **ML Kit traz telemetria:** `barcode-scanning:17.3.0` (empacotado) depende de `transport-backend-cct` (métricas de uso do Google), `play-services-*` e Firebase. Trocado por ZXing (A20, ADR-0015). APK de debug sem nenhuma dessas dependências (conferido em `:app:dependencies` e no manifesto final).
 - **Room 3 rebaixa `synchronous`:** ver spike (c).
@@ -61,6 +63,11 @@ Licença do Android SDK aceita pelo usuário em 13/11 (`~/Android/Sdk/licenses`)
 ## Testes automatizados (13/11)
 - Kotlin: `./gradlew test :core:dados:jvmTest :app:testDebugUnitTest` → 22 testes passando (domínio com fixtures 8, sync 7, banco 4, QR 3).
 - Go: `go test ./internal/... ./app/...` passando (novos: `TestPinFixtureTLS`, `tls_test.go`). O pacote raiz (`main` do Wails) só compila para Windows.
+
+## Testes em aparelho real
+| Data | Aparelho | Rede | Resultado |
+|---|---|---|---|
+| 13/11 | Motorola moto g56 5G | Hotspot do Windows 11 (origem com internet: "Wi‑Fi 2"); Central `sitposse7-central-38807.exe` | **Conectado em TLSv1.3** pela leitura do QR da Central. Pendentes: versão do Android, tempo (ms) e o cartão "Banco de dados" |
 
 ## Próximos passos
 1. ~~Projeto Android~~ · ~~teste cruzado Kotlin × Go~~ · ~~app de diagnóstico~~ (13/11).

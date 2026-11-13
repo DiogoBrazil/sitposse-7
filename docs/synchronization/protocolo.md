@@ -5,7 +5,7 @@ Regras de negócio: RN-70 a RN-74. Integridade: [integridade.md](integridade.md)
 
 ## 1. Transporte
 - HTTPS na rede Wi‑Fi local, sem internet, por IP: TLS 1.3 preferido; TLS 1.2 só com ECDHE + AEAD, para Android 8/9 (ADR-0014). Pinning do SPKI vindo do QR (ADR-0007).
-- Porta padrão **47807**.
+- Porta padrão **38807** (fora das faixas reservadas pelo Windows/Hyper-V, ≥ 49152, e pela rede espelhada do WSL, 44620–48715). O Android não fixa a porta: ela vem no QR.
 - JSON UTF‑8 (gzip opcional). Fotos em binário (`application/octet-stream`).
 - Autenticação: `Authorization: Bearer <credencial_dispositivo>`, exceto em `/v1/pareamento`, que usa o token do QR.
 - Todo payload JSON leva `protocolo_versao` e `schema_versao`.

@@ -9,6 +9,7 @@ Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** 
 - **desktop** · `syncserver` com TLS 1.2 restrito e testes (`tls_test.go`, `pin_fixture_test.go`); `cmd/central-teste` (servidor sem interface para os testes cruzados do Android).
 - **shared** · Fixture `tls/pin.json` + `tls/central-fixture.crt.pem` (pin calculado com OpenSSL; Go e Kotlin conferem).
 - **dependências** · ZXing core 3.5.4 no lugar do ML Kit, que traz telemetria (ADR-0015). Novas: OkHttp 5.5.1, kotlinx.serialization 1.13.0, JUnit 6.1.3 (só testes). Todas fixadas em `mobile/gradle/libs.versions.toml`.
+- **protocolo** · Porta padrão da Central passa de 47807 para **38807**: a 47807 cai na faixa que a rede espelhada do WSL reserva no Windows (44620–48715). Regra de firewall do instalador e fixtures atualizadas; teste `porta_test.go`.
 - **docs** · ADRs 0014 e 0015; matriz (A19, A20); pendências (P7 parcial, P10 nova; duas resolvidas); textos de transporte e stack atualizados.
 
 ## 2026-11-13 (Fase 0, em andamento)

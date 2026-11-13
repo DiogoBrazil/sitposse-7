@@ -29,7 +29,7 @@ desktop/
 - `logs/`
 
 ## Servidor de sincronização
-- `net/http` + `crypto/tls` (TLS 1.3 preferido; TLS 1.2 só com ECDHE-ECDSA + AEAD, ADR-0014), certificado ECDSA P‑256 autoassinado, SAN com os IPs locais, porta fixa configurável (padrão **47807**).
+- `net/http` + `crypto/tls` (TLS 1.3 preferido; TLS 1.2 só com ECDHE-ECDSA + AEAD, ADR-0014), certificado ECDSA P‑256 autoassinado, SAN com os IPs locais, porta fixa (padrão **38807**; ver `porta_test.go`).
 - `cmd/central-teste`: só o servidor de sincronização, sem interface, usado pelos testes cruzados do Android (`mobile/core/sync`). Não faz parte do produto.
 - Escuta em todas as interfaces; recusa clientes de fora de faixas privadas (RFC 1918 e link-local).
 - `SetThreadExecutionState(ES_CONTINUOUS|ES_SYSTEM_REQUIRED)` durante a recepção (não impede a suspensão pela tampa).

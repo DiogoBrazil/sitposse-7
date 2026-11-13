@@ -15,7 +15,7 @@ import (
 const (
 	ProtocoloVersao = 1
 	SchemaVersao    = 1
-	PortaPadrao     = 47807
+	PortaPadrao     = 38807
 )
 
 // Status é a resposta de GET /v1/status (shared/schemas/status.v1.schema.json).
@@ -111,7 +111,7 @@ func configTLS(cert tls.Certificate) *tls.Config {
 	}
 }
 
-// Iniciar escuta em endereco (ex.: ":47807") com TLS (ADR-0007/0014) e retorna imediatamente.
+// Iniciar escuta em endereco (ex.: ":38807") com TLS (ADR-0007/0014) e retorna imediatamente.
 func (s *Servidor) Iniciar(endereco string) error {
 	cfg := configTLS(s.Identidade.Certificado)
 	ln, err := net.Listen("tcp", endereco)
