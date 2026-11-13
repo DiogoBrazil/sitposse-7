@@ -70,6 +70,8 @@ Licença do Android SDK aceita pelo usuário em 13/11 (`~/Android/Sdk/licenses`)
 | 13/11 | Motorola moto g56 5G, **Android 16** | Hotspot do Windows 11 (origem com internet: "Wi‑Fi 2"); Central `sitposse7-central-38807.exe` | **Conectado em TLSv1.3, 108 ms** pela leitura do QR da Central. No Android 16 não há a permissão de rede local (só no 17). Pendente: o cartão "Banco de dados" |
 
 ## Próximos passos
+Lista ordenada e atualizada: [continuacao.md](continuacao.md) §2.
+
 1. ~~Projeto Android~~ · ~~teste cruzado Kotlin × Go~~ · ~~app de diagnóstico~~ (13/11).
 2. **Usuário, em aparelho real** (APK: `mobile/app/build/outputs/apk/debug/app-debug.apk`; instalar com `adb install -r`):
    - a tela de diagnóstico mostra "Configuração de durabilidade correta" (`wal / 2 / 1`);

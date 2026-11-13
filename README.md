@@ -16,10 +16,11 @@ Coleta, em campo e **sem internet**, informações sobre propriedades rurais (fa
 
 ## Estado atual
 
-**Planejamento aprovado em 13/11/2026; implementação não iniciada.** Próximo passo: Fase 0 (fundação e spikes de risco). Ver [`docs/planning/plano.md`](docs/planning/plano.md).
+**Fase 0 (fundação e spikes de risco) em andamento.** Esqueletos da Central e do app Android prontos; primeira conexão real celular → Central validada em 13/11/2026. Faltam os testes de bancada (hotspot sem internet, Android 17, instalador). Ver [`docs/planning/continuacao.md`](docs/planning/continuacao.md).
 
 ## Por onde começar
 
+1. [`docs/planning/continuacao.md`](docs/planning/continuacao.md): onde parou e como continuar.
 1. [`AGENTS.md`](AGENTS.md): regras globais para quem desenvolve, humano ou agente.
 2. [`docs/README.md`](docs/README.md): índice da documentação.
 3. [`docs/planning/matriz-decisoes.md`](docs/planning/matriz-decisoes.md): o que está aprovado, recomendado e pendente.

@@ -2,6 +2,9 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-13 (Fase 0) — passagem de bastão
+- **docs** · `planning/continuacao.md`: estado, pendências da Fase 0 em ordem, preparo de máquina nova, armadilhas, comandos de teste e proteções contra regressão. Links no `AGENTS.md`, `README.md` e `docs/README.md`; READMEs de `desktop/` e `mobile/` com o estado atual.
+
 ## 2026-11-13 (Fase 0, em andamento) — Android e testes cruzados
 - **mobile** · Projeto Gradle 9.9.1 (AGP 9.5.1, Kotlin 2.4.21): `:core:dominio` (área, normalização e leitura do QR com as fixtures `shared`), `:core:dados` (KMP android+jvm, Room 3.0.3 + `BundledSQLiteDriver` + `DriverDuravel`, banco v1 só com `meta`, esquema exportado em `core/dados/schemas`), `:core:sync` (OkHttp com pinning SPKI, `GET /v1/status`), `:app` (tela de diagnóstico: PRAGMAs, leitura do QR, conexão pela rede Wi‑Fi). `allowBackup=false`, `dataExtractionRules` excluindo tudo, `targetSdk 37` com `ACCESS_LOCAL_NETWORK`.
 - **mobile** · Achado: o Room 3 rebaixa `synchronous` para NORMAL em WAL e deixa `foreign_keys` desligado. Corrigido pelo `DriverDuravel` (ADR-0002 mantido; ver `mobile/docs/persistencia-offline.md`).

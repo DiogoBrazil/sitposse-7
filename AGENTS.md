@@ -1,5 +1,7 @@
 # AGENTS.md — Regras globais do SITPOSSE-7
 
+> **Retomando o trabalho?** Leia primeiro [`docs/planning/continuacao.md`](docs/planning/continuacao.md): estado atual, próximos passos, preparo do ambiente e proteções contra regressão.
+
 Estas regras valem para todo o monorepositório. `mobile/AGENTS.md` e `desktop/AGENTS.md` **acrescentam** detalhes de plataforma e **nunca podem contradizer** este arquivo. Em caso de conflito, prevalece este arquivo e a divergência deve ser corrigida.
 
 ## 1. Prioridade do projeto

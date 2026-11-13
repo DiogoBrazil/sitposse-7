@@ -10,6 +10,8 @@ source ~/.config/sitposse7-env.sh     # JDK 21, Go, ANDROID_HOME
 ./gradlew test :core:dados:jvmTest :app:testDebugUnitTest   # testes JVM (inclui o teste cruzado com o servidor Go)
 ./gradlew :app:assembleDebug          # APK em app/build/outputs/apk/debug/
 ```
+Preparo do ambiente, roteiro de teste no aparelho e armadilhas: [`docs/planning/continuacao.md`](../docs/planning/continuacao.md).
+
 O teste cruzado (`ClienteCentralGoTest`) compila `desktop/cmd/central-teste` e **falha** se o Go não estiver no `PATH` (ou em `SITPOSSE7_GO`).
 
 - Regras de plataforma: [AGENTS.md](AGENTS.md)

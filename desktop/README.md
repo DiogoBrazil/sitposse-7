@@ -2,7 +2,16 @@
 
 App desktop de recepção, consolidação, consulta, correção, estatísticas, relatórios, backup e (online) mapas e cartas-imagem.
 
-**Estado:** projeto ainda não criado (Fase 0).
+**Estado:** esqueleto e tela de diagnóstico da Fase 0 (banco, servidor HTTPS na porta 38807, QR de conexão).
+
+## Compilar e testar
+```bash
+source ~/.config/sitposse7-env.sh
+go test ./internal/... ./app/...       # a raiz (main do Wails) só compila para Windows
+(cd frontend && npm ci)                # numa máquina nova
+wails3 build GOOS=windows              # → bin/sitposse7-central.exe
+```
+Detalhes e armadilhas: [`docs/planning/continuacao.md`](../docs/planning/continuacao.md).
 
 - Regras de plataforma: [AGENTS.md](AGENTS.md)
 - Arquitetura: [docs/arquitetura.md](docs/arquitetura.md)

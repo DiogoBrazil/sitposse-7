@@ -15,7 +15,9 @@ A documentação raiz contém **requisitos e contratos compartilhados**. As espe
 | | [synchronization/conflitos.md](synchronization/conflitos.md) | Política de conflitos aprovada |
 | Segurança | [security/seguranca-e-privacidade.md](security/seguranca-e-privacidade.md) | TLS, pinning, credenciais, privacidade, backup |
 | Testes | [testing/estrategia.md](testing/estrategia.md) | Estratégia e critérios de aceite |
-| Planejamento | [planning/plano.md](planning/plano.md) | Fases, entregas e estimativas |
+| Planejamento | [planning/continuacao.md](planning/continuacao.md) | **Comece por aqui ao retomar:** estado, próximos passos, ambiente, proteções |
+| | [planning/plano.md](planning/plano.md) | Fases, entregas e estimativas |
+| | [planning/fase-0.md](planning/fase-0.md) | Diário da Fase 0 (versões, spikes, achados, testes em aparelho) |
 | | [planning/matriz-decisoes.md](planning/matriz-decisoes.md) | Aprovado / Recomendado / Pendente |
 | | [planning/pendencias.md](planning/pendencias.md) | Decisões em aberto |
 | | [planning/riscos.md](planning/riscos.md) | Riscos e mitigação |
