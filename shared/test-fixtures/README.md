@@ -7,6 +7,8 @@ Executadas pelos testes **Kotlin e Go**. Se um lado divergir, o teste falha.
 | `area/conversao.json` | RN-40..45, ADR-0009 | `entrada` (texto digitado), `unidade`, `milesimos` esperado ou `erro`; `dm2`; `ha_exibicao` (2 casas, HALF_UP, vírgula) |
 | `area/somas.json` | RN-45 | lista de propriedades e total esperado em dm²/ha, contagem "sem área" |
 | `normalizacao/nomes.json` | RN-35 | `original` → `normalizado`, `valido` |
+| `contratos/qr-pareamento.v1.json` | protocolo §2 | `validos` e `invalidos` (com `motivo`) do QR |
+| `tls/pin.json` + `tls/central-fixture.crt.pem` | ADR-0007 | certificado → pin SPKI esperado (calculado com OpenSSL; Go e Kotlin conferem) |
 
 **Fórmulas de referência:**
 - ha: `dm2 = milesimos × 1000`; alqueire paulista: `dm2 = milesimos × 2420`.

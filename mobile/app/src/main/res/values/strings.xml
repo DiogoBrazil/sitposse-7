@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_nome">SITPOSSE-7 Campo</string>
+    <string name="diag_titulo">Diagnóstico (Fase 0)</string>
+    <string name="diag_aparelho">Android %1$s (API %2$d)</string>
+
+    <string name="diag_banco_titulo">Banco de dados</string>
+    <string name="diag_banco_lendo">Verificando o banco…</string>
+    <string name="diag_banco_escrita">Escrita: journal=%1$s · synchronous=%2$d · foreign_keys=%3$d</string>
+    <string name="diag_banco_leitura">Leitura: journal=%1$s · synchronous=%2$d · foreign_keys=%3$d</string>
+    <string name="diag_banco_versao">SQLite %1$s</string>
+    <string name="diag_banco_ok">Configuração de durabilidade correta</string>
+    <string name="diag_banco_falha">Configuração de durabilidade INCORRETA</string>
+    <string name="diag_banco_erro">Não foi possível abrir o banco: %1$s</string>
+
+    <string name="diag_central_titulo">Conexão com a Central</string>
+    <string name="diag_ler_qr">Ler QR da Central</string>
+    <string name="diag_cancelar">Cancelar</string>
+    <string name="diag_qr_aponte">Aponte a câmera para o QR exibido na Central.</string>
+    <string name="diag_qr_invalido">Este QR não é de uma Central SITPOSSE-7 (%1$s).</string>
+    <string name="diag_qr_lido">Central %1$s · IPs %2$s · porta %3$d</string>
+    <string name="diag_qr_sem_ips">nenhum</string>
+    <string name="diag_testar">Testar conexão</string>
+    <string name="diag_conectando">Conectando pela rede Wi‑Fi…</string>
+    <string name="diag_sem_wifi">Nenhuma rede Wi‑Fi disponível. Conecte o celular ao Wi‑Fi da Central e tente de novo.</string>
+    <string name="diag_conectado">Conectado a %1$s (%2$s) em %3$d ms</string>
+    <string name="diag_conectado_operacao">Operação: %1$s</string>
+    <string name="diag_conectado_sem_operacao">Nenhuma operação ativa</string>
+    <string name="diag_conectado_horario">Horário da Central: %1$s</string>
+    <string name="diag_incompativel">Versão de protocolo incompatível com este aplicativo.</string>
+    <string name="diag_pin_divergente">O computador respondeu, mas NÃO é a Central pareada. Leia o QR novamente.</string>
+    <string name="diag_sem_conexao">Não foi possível conectar em %1$s: %2$s</string>
+    <string name="diag_resposta_invalida">Resposta inesperada de %1$s: %2$s</string>
+
+    <string name="perm_camera_negada">Sem permissão da câmera não é possível ler o QR.</string>
+    <string name="perm_rede_local_explicacao">Para enviar os cadastros, o aplicativo precisa acessar a rede local onde está a Central. Nada é enviado para a internet.</string>
+    <string name="perm_rede_local_negada">Sem a permissão de rede local não é possível conectar à Central.</string>
+    <string name="perm_permitir">Permitir</string>
+</resources>

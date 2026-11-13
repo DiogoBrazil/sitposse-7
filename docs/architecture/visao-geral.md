@@ -34,9 +34,9 @@ Android "Campo"                                  Windows "Central"
 | Android | Kotlin ≥ 2.2, Jetpack Compose + Material 3, Coroutines/Flow, ViewModel, Navigation Compose | — |
 | Persistência Android | Room 3 (`androidx.room3`, 3.0.3 estável) + `BundledSQLiteDriver` + KSP | [0002](decisions/0002-room3-bundled-sqlite.md) |
 | Câmera | CameraX ImageCapture | — |
-| QR Code | ML Kit Barcode, variante empacotada (offline) | — |
+| QR Code | ZXing core (offline, sem Play Services nem telemetria) | [0015](decisions/0015-zxing-leitor-qr.md) |
 | Localização | `LocationManager` / GNSS (sem Google Play Services) | — |
-| HTTP Android | OkHttp + TrustManager com pinning SPKI | [0007](decisions/0007-tls-pinning-qr.md) |
+| HTTP Android | OkHttp + TrustManager com pinning SPKI; TLS 1.3/1.2 restrito | [0007](decisions/0007-tls-pinning-qr.md), [0014](decisions/0014-tls12-minimo-android8.md) |
 | Desktop | Go (estável atual) + Wails v3.1 + Vue 3 + TypeScript + Vite | [0003](decisions/0003-wails3-nucleo-go.md) |
 | SQLite Go | modernc.org/sqlite (Go puro, sem CGO) | [0004](decisions/0004-modernc-sqlite.md) |
 | UI Desktop | PrimeVue (tabelas), Apache ECharts (gráficos), Leaflet 1.9 (mapa), todos empacotados localmente | — |

@@ -17,7 +17,8 @@ var ErrPinDivergente = errors.New("certificado da Central não corresponde ao pa
 // Usada pelos testes e por ferramentas de diagnóstico; o Android implementa o mesmo.
 func ConfigClienteComPin(pin string) *tls.Config {
 	return &tls.Config{
-		MinVersion:         tls.VersionTLS13,
+		MinVersion:         tls.VersionTLS12,
+		CipherSuites:       SuitesTLS12,
 		InsecureSkipVerify: true, // substituído por VerifyConnection abaixo
 		VerifyConnection: func(cs tls.ConnectionState) error {
 			if len(cs.PeerCertificates) == 0 {

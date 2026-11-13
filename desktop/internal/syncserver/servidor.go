@@ -20,14 +20,14 @@ const (
 
 // Status é a resposta de GET /v1/status (shared/schemas/status.v1.schema.json).
 type Status struct {
-	ProtocoloVersao    int        `json:"protocolo_versao"`
-	ProtocoloVersaoMin int        `json:"protocolo_versao_min"`
-	ProtocoloVersaoMax int        `json:"protocolo_versao_max"`
-	SchemaVersaoMin    int        `json:"schema_versao_min"`
-	SchemaVersaoMax    int        `json:"schema_versao_max"`
-	CentralID          string     `json:"central_id"`
-	Operacao           *Operacao  `json:"operacao"`
-	Horario            string     `json:"horario"`
+	ProtocoloVersao    int       `json:"protocolo_versao"`
+	ProtocoloVersaoMin int       `json:"protocolo_versao_min"`
+	ProtocoloVersaoMax int       `json:"protocolo_versao_max"`
+	SchemaVersaoMin    int       `json:"schema_versao_min"`
+	SchemaVersaoMax    int       `json:"schema_versao_max"`
+	CentralID          string    `json:"central_id"`
+	Operacao           *Operacao `json:"operacao"`
+	Horario            string    `json:"horario"`
 }
 
 // Operacao identifica a operação ativa.
@@ -38,14 +38,14 @@ type Operacao struct {
 
 // PayloadQR é o conteúdo do QR de pareamento (shared/schemas/qr-pareamento.v1.schema.json).
 type PayloadQR struct {
-	V             int      `json:"v"`
-	CentralID     string   `json:"central_id"`
-	IPs           []string `json:"ips"`
-	Porta         int      `json:"porta"`
-	SPKISHA256    string   `json:"spki_sha256"`
-	Token         string   `json:"token_pareamento,omitempty"`
-	OperacaoUUID  string   `json:"operacao_uuid,omitempty"`
-	OperacaoNome  string   `json:"operacao_nome,omitempty"`
+	V            int      `json:"v"`
+	CentralID    string   `json:"central_id"`
+	IPs          []string `json:"ips"`
+	Porta        int      `json:"porta"`
+	SPKISHA256   string   `json:"spki_sha256"`
+	Token        string   `json:"token_pareamento,omitempty"`
+	OperacaoUUID string   `json:"operacao_uuid,omitempty"`
+	OperacaoNome string   `json:"operacao_nome,omitempty"`
 }
 
 // Servidor é o servidor HTTPS local da Central.
@@ -93,12 +93,27 @@ func escreverJSON(w http.ResponseWriter, code int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-// Iniciar escuta em endereco (ex.: ":47807") com TLS 1.3 e retorna imediatamente.
-func (s *Servidor) Iniciar(endereco string) error {
-	cfg := &tls.Config{
-		MinVersion:   tls.VersionTLS13,
-		Certificates: []tls.Certificate{s.Identidade.Certificado},
+// SuitesTLS12 são as únicas suítes aceitas em TLS 1.2 (ADR-0014): ECDHE (sigilo
+// futuro) com AEAD, para o certificado ECDSA da Central. TLS 1.3 tem suítes fixas.
+var SuitesTLS12 = []uint16{
+	tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+}
+
+// configTLS: TLS 1.3 preferido; TLS 1.2 restrito como mínimo porque Android 8 e 9
+// (minSdk 26, A15) não têm TLS 1.3 na plataforma (ADR-0014).
+func configTLS(cert tls.Certificate) *tls.Config {
+	return &tls.Config{
+		MinVersion:   tls.VersionTLS12,
+		CipherSuites: SuitesTLS12,
+		Certificates: []tls.Certificate{cert},
 	}
+}
+
+// Iniciar escuta em endereco (ex.: ":47807") com TLS (ADR-0007/0014) e retorna imediatamente.
+func (s *Servidor) Iniciar(endereco string) error {
+	cfg := configTLS(s.Identidade.Certificado)
 	ln, err := net.Listen("tcp", endereco)
 	if err != nil {
 		return err

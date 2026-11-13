@@ -20,5 +20,7 @@ Um ADR aprovado **não é editado** para mudar a decisão: cria-se um novo ADR q
 | [0011](0011-fotos-reduzidas.md) | Fotos reduzidas a ~2560 px | Aprovado |
 | [0012](0012-entidade-operacao.md) | Entidade operação | Aprovado |
 | [0013](0013-cartografia-plugavel.md) | Cartografia online com provedor plugável | Aprovado (provedor pendente: P1) |
+| [0014](0014-tls12-minimo-android8.md) | TLS 1.2 restrito como mínimo (Android 8 e 9) | Aprovado |
+| [0015](0015-zxing-leitor-qr.md) | ZXing para ler o QR da Central (substitui o ML Kit) | Aprovado |
 
 Modelo para novos ADRs: copie [`template.md`](template.md).

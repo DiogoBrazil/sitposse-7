@@ -2,7 +2,15 @@
 
 App de coleta **100% offline**: equipe, propriedades/famílias, quantitativos, itens, área, GNSS, fotos e envio à Central (Wi‑Fi local ou pacote USB).
 
-**Estado:** projeto Android ainda não criado (Fase 0).
+**Estado:** esqueleto e app de diagnóstico da Fase 0.
+
+## Compilar e testar (WSL/Linux)
+```bash
+source ~/.config/sitposse7-env.sh     # JDK 21, Go, ANDROID_HOME
+./gradlew test :core:dados:jvmTest :app:testDebugUnitTest   # testes JVM (inclui o teste cruzado com o servidor Go)
+./gradlew :app:assembleDebug          # APK em app/build/outputs/apk/debug/
+```
+O teste cruzado (`ClienteCentralGoTest`) compila `desktop/cmd/central-teste` e **falha** se o Go não estiver no `PATH` (ou em `SITPOSSE7_GO`).
 
 - Regras de plataforma: [AGENTS.md](AGENTS.md)
 - Arquitetura: [docs/arquitetura.md](docs/arquitetura.md)

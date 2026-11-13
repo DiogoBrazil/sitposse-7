@@ -4,7 +4,8 @@ Status: **Aprovado com o plano (13/11/2026).** Mudanças exigem ADR, incremento 
 Regras de negócio: RN-70 a RN-74. Integridade: [integridade.md](integridade.md). Conflitos: [conflitos.md](conflitos.md).
 
 ## 1. Transporte
-- HTTPS (TLS 1.3) na rede Wi‑Fi local, sem internet, por IP. Pinning do SPKI vindo do QR (ADR-0007).
+- HTTPS na rede Wi‑Fi local, sem internet, por IP: TLS 1.3 preferido; TLS 1.2 só com ECDHE + AEAD, para Android 8/9 (ADR-0014). Pinning do SPKI vindo do QR (ADR-0007).
+- Porta padrão **47807**.
 - JSON UTF‑8 (gzip opcional). Fotos em binário (`application/octet-stream`).
 - Autenticação: `Authorization: Bearer <credencial_dispositivo>`, exceto em `/v1/pareamento`, que usa o token do QR.
 - Todo payload JSON leva `protocolo_versao` e `schema_versao`.

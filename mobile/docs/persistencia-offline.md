@@ -2,7 +2,9 @@
 
 ## Banco
 - Room 3 + `BundledSQLiteDriver`, arquivo no diretório privado do app.
-- Na abertura: `PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;` (verificado por teste instrumentado com leitura dos PRAGMAs).
+- Na abertura: `PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;` em **toda** conexão do pool.
+  - Achado da Fase 0 (Room 3.0.3): em WAL, o Room executa `PRAGMA synchronous = NORMAL` em cada conexão depois que o driver a abre, e `RoomDatabase.Callback.onOpen` só roda na primeira conexão. Por isso o `DriverDuravel` envolve o `BundledSQLiteDriver`: liga `foreign_keys` e `synchronous=FULL` na abertura e eleva para FULL qualquer `PRAGMA synchronous` menor.
+  - Verificação: `PragmasTest` (JVM, mesmo driver empacotado; conexão de escrita e várias de leitura) e a tela de diagnóstico no aparelho.
 - Escrita sempre em transação (`withWriteTransaction`). O retorno com sucesso é o único gatilho de "Salvo no aparelho ✓".
 - Erros (`SQLiteFullException`, I/O): mensagem "Não foi possível salvar: armazenamento cheio. Nada foi perdido do formulário." O estado do formulário permanece.
 - Migrações: escritas à mão ou `AutoMigration`, testadas; **nunca destrutivas**.

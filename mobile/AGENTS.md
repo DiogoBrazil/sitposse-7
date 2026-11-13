@@ -2,8 +2,8 @@
 
 Complementa o [`AGENTS.md`](../AGENTS.md) raiz, **sem contradizê-lo**.
 
-- **Nenhuma** dependência que exija internet ou Google Play Services em runtime: ML Kit só na variante empacotada; localização via `LocationManager`.
-- Room 3 (`androidx.room3`) com `BundledSQLiteDriver`; PRAGMAs `WAL`, `synchronous=FULL` e `foreign_keys=ON` aplicados na abertura e verificados em teste.
+- **Nenhuma** dependência que exija internet, Google Play Services ou que envie telemetria (ex.: `datatransport`/Firebase): QR com ZXing (ADR-0015); localização via `LocationManager`. Conferir com `./gradlew :app:dependencies` ao adicionar biblioteca.
+- Room 3 (`androidx.room3`) com `BundledSQLiteDriver` envolto pelo `DriverDuravel` (`:core:dados`); PRAGMAs `WAL`, `synchronous=FULL` e `foreign_keys=ON` em **toda** conexão, verificados em teste (`PragmasTest`). Abrir o banco só por `configurarPadrao()`.
 - **Proibido** `fallbackToDestructiveMigration*`. Todo `@Database(version = N)` novo exige migração e teste com `MigrationTestHelper`. A pasta `schemas/` é versionada.
 - Toda escrita de entidade sincronizável incrementa `rev` **na mesma transação**.
 - Toda operação de banco e de arquivo fica fora da main thread (coroutines com dispatcher de I/O).
