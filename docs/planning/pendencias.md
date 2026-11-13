@@ -12,7 +12,7 @@ Nenhuma destas decisões pode ser tomada em silêncio. Cada uma tem recomendaç�
 | P6 | Reuso de aparelho em nova operação / equipe já vinculada a outra operação | "Encerrar operação" só com tudo confirmado; nova equipe | Fase 3 | Aberta |
 | P7 | Distribuição do APK e `targetSdk` | Sideload; `targetSdk 37` + `ACCESS_LOCAL_NETWORK` | Fase 0 | Aberta |
 | P8 | Hotspot do Windows sem internet e com a tampa fechada | Teste de bancada ([rede-em-campo.md](../operacao/rede-em-campo.md)) | Fase 0 | Aberta |
-| P9 | Versões exatas (Compose BOM, Kotlin, AGP, Go, ML Kit, PrimeVue, ECharts, Leaflet, lib PDF) | Fixar as estáveis mais recentes no spike | Fase 0 | Aberta |
+| P9 | Versões exatas (Compose BOM, Kotlin, AGP, Go, ML Kit, PrimeVue, ECharts, Leaflet, lib PDF) | Fixar as estáveis mais recentes no spike | Fase 0 | Parcial: ver [fase-0.md](fase-0.md); PrimeVue/ECharts/Leaflet/PDF nas fases de uso |
 
 ## Resolvidas
 | # | Pendência | Decisão | Data |
