@@ -1,108 +1,99 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import QRCode from 'qrcode'
-import { SincronizacaoService as Central } from '../bindings/sitposse7/desktop/app'
-import type { Info } from '../bindings/sitposse7/desktop/app/models'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { SincronizacaoService as Sinc } from '../bindings/sitposse7/desktop/app'
+import type { PedidoResumo } from '../bindings/sitposse7/desktop/internal/pareamento/models'
+import Painel from './telas/Painel.vue'
+import Propriedades from './telas/Propriedades.vue'
+import Equipes from './telas/Equipes.vue'
+import Sincronizacao from './telas/Sincronizacao.vue'
+import { mensagem } from './formato'
 
-// Fase 0: tela de diagnóstico para o spike de rede (docs/operacao/rede-em-campo.md).
-const info = ref<Info | null>(null)
-const qr = ref('')
-const payload = ref('')
-const erro = ref('')
+type Tela = 'painel' | 'propriedades' | 'equipes' | 'sincronizacao'
+const menu: { id: Tela; rotulo: string }[] = [
+  { id: 'painel', rotulo: 'Painel' },
+  { id: 'propriedades', rotulo: 'Propriedades' },
+  { id: 'equipes', rotulo: 'Equipes' },
+  { id: 'sincronizacao', rotulo: 'Sincronização' },
+]
+const tela = ref<Tela>('painel')
+const versao = ref('')
 
-async function atualizar() {
-  erro.value = ''
-  try {
-    info.value = await Central.Info()
-    const p = await Central.QRPareamento()
-    payload.value = JSON.stringify(p)
-    qr.value = await QRCode.toDataURL(payload.value, { errorCorrectionLevel: 'M', margin: 2, width: 320 })
-  } catch (e) {
-    qr.value = ''
-    erro.value = e instanceof Error ? e.message : String(e)
-  }
+// Pedidos de pareamento: aparecem em qualquer tela (o aparelho espera até 90 s).
+const pedidos = ref<PedidoResumo[]>([])
+const erroPedido = ref('')
+let timer: number | undefined
+async function verificarPedidos() {
+  try { pedidos.value = (await Sinc.Pendentes()) ?? [] } catch { /* a Central continua utilizável */ }
 }
-
-async function copiar() {
-  await navigator.clipboard.writeText(payload.value)
+async function decidir(id: string, aceitar: boolean) {
+  erroPedido.value = ''
+  try { await Sinc.Decidir(id, aceitar); await verificarPedidos() } catch (e) { erroPedido.value = mensagem(e) }
 }
-
-onMounted(atualizar)
+onMounted(async () => {
+  verificarPedidos()
+  timer = window.setInterval(verificarPedidos, 1500)
+  try { versao.value = (await Sinc.Info()).versao } catch { /* */ }
+})
+onUnmounted(() => window.clearInterval(timer))
 </script>
 
 <template>
-  <main>
-    <header>
-      <h1>SITPOSSE-7 Central</h1>
-      <span class="sub">7º BPM/PMRO · versão {{ info?.versao }}</span>
-    </header>
-
-    <section class="cartao">
-      <h2>Sincronização — diagnóstico (Fase 0)</h2>
-      <p class="ajuda">
-        Conecte o notebook e os celulares à mesma rede Wi-Fi (hotspot do celular ou do Windows).
-        Não é preciso internet.
-      </p>
-
-      <div class="grade">
-        <dl>
-          <dt>Servidor</dt>
-          <dd :class="info?.servidor_ativo ? 'ok' : 'erro'">
-            {{ info?.servidor_ativo ? `Ativo na porta ${info?.porta}` : 'Inativo' }}
-          </dd>
-          <dt>Endereços na rede local</dt>
-          <dd>
-            <template v-if="info?.ips?.length">{{ info.ips.join(' · ') }}</template>
-            <span v-else class="erro">Nenhuma rede Wi-Fi/local ativa. Conecte-se ao hotspot.</span>
-          </dd>
-          <dt>Impressão digital (pin)</dt>
-          <dd class="mono">{{ info?.pin }}</dd>
-          <dt>ID da Central</dt>
-          <dd class="mono">{{ info?.central_id }}</dd>
-          <dt>Pasta de dados</dt>
-          <dd class="mono">{{ info?.pasta_dados }}</dd>
-          <dt>Versão do esquema</dt>
-          <dd>{{ info?.versao_esquema }}</dd>
-        </dl>
-
-        <figure v-if="qr">
-          <img :src="qr" alt="QR Code de conexão com a Central" width="320" height="320" />
-          <figcaption>Leia este QR no SITPOSSE-7 Campo (tela de diagnóstico).</figcaption>
-        </figure>
+  <div class="app">
+    <nav class="lateral">
+      <div class="marca">
+        <img src="/appicon.png" alt="" width="36" height="36" />
+        <div>
+          <strong>SITPOSSE-7</strong>
+          <span class="suave">Central · 7º BPM/PMRO</span>
+        </div>
       </div>
+      <button v-for="m in menu" :key="m.id" :class="{ ativo: tela === m.id }" @click="tela = m.id">{{ m.rotulo }}</button>
+      <span class="versao suave">versão {{ versao }}</span>
+    </nav>
+    <main>
+      <Painel v-if="tela === 'painel'" @ir="(t: Tela) => (tela = t)" />
+      <Propriedades v-else-if="tela === 'propriedades'" />
+      <Equipes v-else-if="tela === 'equipes'" />
+      <Sincronizacao v-else />
+    </main>
 
-      <p v-if="info?.erro_servidor" class="erro">{{ info.erro_servidor }}</p>
-      <p v-if="erro" class="erro">{{ erro }}</p>
-
-      <div class="acoes">
-        <button @click="atualizar">Atualizar</button>
-        <button class="secundario" :disabled="!payload" @click="copiar">Copiar dados do QR</button>
+    <div v-if="pedidos.length" class="modal-fundo">
+      <div class="modal pilha">
+        <h2>Aparelho pedindo pareamento</h2>
+        <div v-for="p in pedidos" :key="p.id" class="pilha">
+          <dl class="dados">
+            <dt>Equipe</dt><dd><strong>{{ p.equipe_nome }}</strong></dd>
+            <dt>Responsável</dt><dd>{{ p.responsavel }}</dd>
+            <dt v-if="p.identificacao_area">Área</dt><dd v-if="p.identificacao_area">{{ p.identificacao_area }}</dd>
+            <dt>Aparelho</dt><dd>{{ p.rotulo_aparelho || '—' }}</dd>
+          </dl>
+          <p class="suave">{{ p.equipe_conhecida ? 'Equipe já conhecida: um novo aparelho dela será liberado.' : 'Equipe nova: será incluída na operação ativa.' }}</p>
+          <div class="linha" style="justify-content: flex-end">
+            <button class="perigo" @click="decidir(p.id, false)">Recusar</button>
+            <button class="primario" @click="decidir(p.id, true)">Confirmar pareamento</button>
+          </div>
+        </div>
+        <p v-if="erroPedido" class="erro">{{ erroPedido }}</p>
       </div>
-    </section>
-  </main>
+    </div>
+  </div>
 </template>
 
 <style scoped>
-main { max-width: 1100px; margin: 0 auto; padding: 24px; }
-header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
-h1 { font-size: 1.5rem; margin: 0; }
-.sub { color: var(--texto-suave); }
-.cartao { background: var(--superficie); border: 1px solid var(--borda); border-radius: 12px; padding: 24px; }
-h2 { margin: 0 0 4px; font-size: 1.15rem; }
-.ajuda { color: var(--texto-suave); margin: 0 0 20px; }
-.grade { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: start; }
-dl { display: grid; grid-template-columns: max-content 1fr; gap: 10px 16px; margin: 0; }
-dt { color: var(--texto-suave); }
-dd { margin: 0; word-break: break-all; }
-.mono { font-family: ui-monospace, Consolas, monospace; font-size: 0.9rem; }
-figure { margin: 0; text-align: center; }
-figure img { background: #fff; border-radius: 8px; }
-figcaption { color: var(--texto-suave); font-size: 0.85rem; max-width: 320px; }
-.ok { color: var(--ok); font-weight: 600; }
-.erro { color: var(--erro); }
-.acoes { display: flex; gap: 12px; margin-top: 20px; }
-button { font: inherit; padding: 10px 18px; border-radius: 8px; border: 1px solid var(--primaria); background: var(--primaria); color: #fff; cursor: pointer; }
-button.secundario { background: transparent; color: var(--primaria); }
-button:disabled { opacity: 0.5; cursor: default; }
-@media (max-width: 900px) { .grade { grid-template-columns: 1fr; } }
+.app { display: grid; grid-template-columns: 230px 1fr; min-height: 100vh; }
+.lateral { background: var(--superficie); border-right: 1px solid var(--borda); padding: 1rem .75rem; display: flex; flex-direction: column; gap: .35rem; position: sticky; top: 0; height: 100vh; }
+.marca { display: flex; gap: .65rem; align-items: center; padding: .25rem .4rem 1rem; }
+.marca div { display: flex; flex-direction: column; line-height: 1.2; }
+.marca span { font-size: .8rem; }
+.lateral button { text-align: left; border: none; background: transparent; padding: .7rem .9rem; font-weight: 500; }
+.lateral button.ativo { background: var(--primaria-clara); color: var(--primaria); font-weight: 700; }
+.versao { margin-top: auto; font-size: .78rem; padding: 0 .9rem; }
+main { padding: 1.5rem 2rem; max-width: 1500px; width: 100%; }
+@media (max-width: 1000px) {
+  .app { grid-template-columns: 1fr; }
+  .lateral { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; border-right: none; border-bottom: 1px solid var(--borda); padding: .5rem; }
+  .marca { padding: 0 .5rem; }
+  .marca span, .versao { display: none; }
+  main { padding: 1rem; }
+}
 </style>

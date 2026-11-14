@@ -2,6 +2,11 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-14 (MVP) — telas da Central e roteiro do teste em campo
+- **desktop** · Frontend novo (Vue, sem biblioteca nova): painel, propriedades (busca, filtro por equipe, detalhe com itens, área, coordenadas e fotos servidas por `/fotos/{uuid}.jpg`), equipes, sincronização (criar operação, QR de pareamento com token de 10 min e uso único, confirmação do pareamento em qualquer tela, lotes recebidos ao vivo com recusas e diagnóstico da Central). Layout adaptável (barra lateral → barra superior abaixo de 1000 px; detalhe lateral → abaixo em janelas menores), tema claro/escuro, janela mínima 900×600. Versão `0.1.0-mvp`; bindings regenerados.
+- **desktop** · Instalador `99706c25…` (inclui o WebView2 offline, como antes).
+- **docs** · `operacao/teste-de-campo-mvp.md` (antes de sair, no campo, na volta); `continuacao.md` com o próximo passo.
+
 ## 2026-11-14 (MVP) — telas do app de campo
 - **mobile** · App `0.1.0-mvp` (versionCode 2): `CampoApp` (dependências e reconciliador de fotos na abertura), navegação por pilha salva (sem biblioteca nova), tema claro de alto contraste com modo escuro, layout adaptável pela largura (grade na lista; conteúdo centralizado em telas largas), ícones vetoriais locais (Material Icons, Apache 2.0).
 - **mobile** · Telas: configurar/editar equipe; início (números, rascunhos para retomar, última sincronização confirmada, alarme de foto sem arquivo); lista com busca sem acento e filtros (pendentes, sem GPS, sem foto, erro); detalhe com excluir; formulário por seções com rascunho automático (~1 s), quantidades com +/−, itens do catálogo e vários "Outros" (aviso de repetido e somar, RN-33), área com conversão, GPS (GNSS sem internet com progresso, melhor precisão, meta de 15 m e 90 s; ou digitado sem precisão) e fotos (CameraX, redução a 2560 px/JPEG 85, `.part` + fsync + rename antes do registro); sincronização (pareamento pelo QR com espera do operador, envio com progresso de fotos, resultado e recusas). Diagnóstico continua acessível.
