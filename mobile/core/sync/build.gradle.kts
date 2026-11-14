@@ -15,10 +15,14 @@ kotlin {
 }
 
 dependencies {
+    api(project(":core:dados")) // Sincronizador lê e confirma no banco (variante jvm nos testes, android no app)
+    api(project(":core:dominio"))
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(platform(libs.junit.bom))
     testRuntimeOnly(libs.junit.platform.launcher)
 }

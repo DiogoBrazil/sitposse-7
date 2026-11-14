@@ -29,6 +29,7 @@ kotlin {
         }
         jvmTest.dependencies {
             implementation(kotlin("test"))
+            implementation(libs.room3.testing)
             implementation(libs.kotlinx.coroutines.test)
         }
     }
@@ -47,4 +48,6 @@ room3 {
 
 tasks.named<Test>("jvmTest") {
     useJUnitPlatform()
+    systemProperty("sitposse7.schemas", "$projectDir/schemas")
+    systemProperty("sitposse7.fixtures", rootProject.file("../shared/test-fixtures").absolutePath)
 }

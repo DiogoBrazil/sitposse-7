@@ -2,6 +2,13 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-14 (MVP) — banco v2 e sincronização no celular (ADR-0018)
+- **mobile** · **Esquema:** banco Room v2 com a migração não destrutiva `MIGRACAO_1_2` (SQL exportado pelo Room; testada com `MigrationTestHelper`): equipe, propriedades, itens, fotografias, rascunhos, lotes de envio (JSON congelado), itens do lote e pareamento.
+- **mobile** · `:core:dominio`: `Catalogo` (conferido com a fixture compartilhada), modelo do formulário `CadastroPropriedade` (serializável para o rascunho) e `ValidacaoCadastro` (RN-11..55, RN-32/33/34).
+- **mobile** · `:core:dados`: `RepositorioCampo` (equipe e instalação, salvar/editar/excluir com `rev` na mesma transação e tombstones, foto só com arquivo existente, rascunhos).
+- **mobile** · `:core:sync`: contratos v1 (`ContratosTest` com as mesmas fixtures do Go), `ApiCentral`, `Pareador` e `Sincronizador` (lote congelado, fotos em blocos com retomada, recibo conferido e gravado em transação). `SincronizacaoGoTest`: banco Room real × Central Go real. `ClienteCentralGoTest` lê o `central_id` real.
+- **Dependência nova (só testes):** `androidx.room3:room3-testing:3.0.3`, oficial, exigida pelo `mobile/AGENTS.md` para testar migrações (`MigrationTestHelper`, variante JVM). `:core:sync` passa a usar `kotlinx-coroutines-core` (já fixada).
+
 ## 2026-11-14 (MVP) — contratos v1 e recepção na Central (ADR-0017)
 - **shared** · Schemas v1 `comum`, `pareamento`, `lote`, `estado-lote` e `recibo`; fixtures válidas e inválidas em `test-fixtures/contratos` (com o `recibo_sha256` esperado) e o catálogo inicial em `test-fixtures/catalogo/itens.v1.json`.
 - **desktop** · **Esquema:** migração `0002_mvp_recepcao.sql` (não destrutiva; testada a partir de um banco da Fase 0 com dados): operações, equipes, tokens, dispositivos, propriedades, catálogo semeado, itens, fotografias, lotes recebidos, fotos esperadas, aplicações, auditoria somente acréscimo e visões vigentes.

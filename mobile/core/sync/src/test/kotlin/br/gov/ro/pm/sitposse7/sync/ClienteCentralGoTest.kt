@@ -34,7 +34,7 @@ class ClienteCentralGoTest {
         val r = ClienteCentral(c.pin).status("127.0.0.1", c.porta)
         assertIs<ResultadoStatus.Conectado>(r, "resultado: $r")
         assertEquals("TLSv1.3", r.versaoTls)
-        assertEquals("central-teste", r.status.centralId)
+        assertEquals(c.centralId, r.status.centralId)
         assertEquals("Operação de teste", r.status.operacao?.nome)
         assertTrue(r.compativel)
         assertTrue(Regex("""^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$""").matches(r.status.horario))
@@ -75,33 +75,5 @@ class ClienteCentralGoTest {
     fun portaFechadaEhSemConexao() {
         val porta = ServerSocket(0).use { it.localPort }
         assertIs<ResultadoStatus.SemConexao>(ClienteCentral(pinFixture).status("127.0.0.1", porta))
-    }
-}
-
-/** Processo `central-teste` em execução. */
-class CentralGo private constructor(private val processo: Process, val porta: Int, val pin: String) : AutoCloseable {
-    override fun close() {
-        processo.outputStream.close() // o servidor encerra ao fechar a entrada padrão
-        if (!processo.waitFor(10, TimeUnit.SECONDS)) processo.destroyForcibly()
-    }
-
-    companion object {
-        private val binario: File by lazy {
-            val desktop = File(checkNotNull(System.getProperty("sitposse7.desktop")))
-            val saida = Files.createTempDirectory("central-teste").toFile().resolve("central-teste")
-            val go = System.getenv("SITPOSSE7_GO") ?: "go"
-            val p = ProcessBuilder(go, "build", "-o", saida.absolutePath, "./cmd/central-teste")
-                .directory(desktop).redirectErrorStream(true).start()
-            val log = p.inputStream.bufferedReader().readText()
-            check(p.waitFor(300, TimeUnit.SECONDS) && p.exitValue() == 0) { "go build falhou:\n$log" }
-            saida
-        }
-
-        fun iniciar(): CentralGo {
-            val p = ProcessBuilder(binario.absolutePath).redirectError(ProcessBuilder.Redirect.INHERIT).start()
-            val linha = checkNotNull(p.inputStream.bufferedReader().readLine()) { "central-teste não respondeu" }
-            val o = Json.parseToJsonElement(linha).jsonObject
-            return CentralGo(p, o.getValue("porta").jsonPrimitive.int, o.getValue("pin").jsonPrimitive.content)
-        }
     }
 }

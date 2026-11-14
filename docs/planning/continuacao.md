@@ -30,11 +30,11 @@
 
 ### MVP para teste em campo (A24, aprovado em 14/11): etapas
 A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-decisoes.md) A24 e [plano.md](plano.md). Ordem de trabalho (marque ao concluir):
-1. **Contratos:** `shared/schemas` do pareamento, do lote e do recibo (v1) + fixtures válidas e inválidas. **Go: feito (14/11, ADR-0017, Proposto)**; falta a checagem no Kotlin.
-2. **Celular, dados:** banco Room v2 (migração 1→2 testada), catálogo de itens, repositórios com `rev` na mesma transação, rascunhos, fotos (arquivo antes do registro) e reconciliador.
+1. ~~**Contratos**~~ **feito (14/11, ADR-0017):** schemas v1 + fixtures, conferidos no Go e no Kotlin.
+2. **Celular, dados:** **feito (14/11, ADR-0018):** banco v2 com migração testada (`MigrationTestHelper`), catálogo, `RepositorioCampo` (rev na mesma transação, tombstones, foto só com arquivo), rascunhos. Falta: gravação do arquivo da foto e reconciliador (no `:app`, com a câmera).
 3. **Celular, telas:** configurar equipe, início, lista e busca, cadastro e edição por seções, detalhes, GNSS, câmera, rascunho; responsivas (celular pequeno, grande e tablet).
 4. ~~**Central, recepção:**~~ **feito (14/11):** migração 0002, operação, pareamento com confirmação do operador, `PUT/GET /v1/lotes`, `PUT/GET /v1/fotos`, importação com recibo, reconciliador, consultas; `central-teste` com a API completa. Testes Go de ponta a ponta (`internal/nucleo`) nos cenários 1, 4, 5, 6, 7 e 8.
-5. **Celular, sincronização:** pareamento, máquina de estados do lote, envio e recibo; teste cruzado com o servidor Go real (cenários 1, 4, 5, 6, 7 e 8).
+5. **Celular, sincronização:** **núcleo feito (14/11):** `Pareador`, `Sincronizador` e `ApiCentral` no `:core:sync`; `SincronizacaoGoTest` (banco Room real × Central Go real) nos cenários 1, 4, 5, 6 e 8 + queda de rede. Falta a tela e a rede Wi‑Fi do aparelho (`requestNetwork`).
 6. **Central, telas:** operação, QR de pareamento, recepção ao vivo, propriedades e fotos (consulta); responsivas.
 7. **Builds e roteiro do teste em campo** (APK e instalador; passo a passo de ida a campo e descarga).
 
@@ -95,6 +95,8 @@ export PATH="$HOME/.local/go/bin:$HOME/go/bin:$JAVA_HOME/bin:$ANDROID_HOME/cmdli
 - **Chave de debug por máquina:** o APK gerado em outra máquina não instala por cima do anterior ("conflito com pacote existente"). Desinstale o app no celular antes (só há dados de diagnóstico na Fase 0).
 - **Meça a rede antes de baixar:** na 2ª máquina o WSL em NAT fez ~15 MB/s e não precisou da rede espelhada.
 - **WSL com `networkingMode=mirrored`:** deixa a rede rápida, mas **reserva no Windows as portas 44620–48715**. Por isso a Central usa a porta 38807 (`porta_test.go` impede regressão). O `netsh ... excludedportrange` não mostra essa reserva.
+- **JUnit 5 ignora em silêncio teste que não devolve `Unit`:** `fun x() = runBlocking { …; assertNotNull(y) }` devolve valor e o teste **não roda**. Use `runBlocking<Unit> { }` e confira a contagem de testes.
+- **Comentário aninhado no Kotlin:** `/* … schemas/*.v1 … */` abre outro comentário dentro do primeiro e "some" com o resto do arquivo (erros de referência não resolvida em outro arquivo).
 - **Testes de porta no Windows:** use só `127.0.0.1`. Abrir um socket em `0.0.0.0` dispara o pedido de permissão do Firewall, e o clique em "Permitir" cria uma regra de entrada (aconteceu com o `powershell.exe`).
 - **Sem emulador** nesta máquina (sem acesso a `/dev/kvm`). Teste em aparelho real.
 - O USB do celular não chega ao WSL: instale o APK pelo Windows (`adb` do Windows) ou copie o arquivo para o aparelho.
@@ -132,7 +134,7 @@ cp $W/appicon.png build/appicon.png
 (cd build && wails3 generate icons -input appicon.png -windowsfilename windows/icon.ico -macfilename "")
 ```
 
-Contagem esperada (13/11): domínio 8, sync 7 (`PinTest` 1 + `ClienteCentralGoTest` 6), banco 4 (`PragmasTest` 2 + `PragmaDuravelTest` 2), QR 3. Se a contagem cair, algo foi pulado.
+Contagem esperada (14/11): domínio 13 (área/normalização/QR 8 + `CadastroTest` 5), sync 14 (`PinTest` 1, `ClienteCentralGoTest` 6, `ContratosTest` 4, `SincronizacaoGoTest` 3), banco 9 (`PragmasTest` 2, `PragmaDuravelTest` 2, `MigracaoTest` 1, `RepositorioCampoTest` 4), QR 3. Se a contagem cair, algo foi pulado.
 
 Observações:
 - O `ClienteCentralGoTest` compila `desktop/cmd/central-teste` e **falha** (não é pulado) sem Go no `PATH` (ou em `SITPOSSE7_GO`).

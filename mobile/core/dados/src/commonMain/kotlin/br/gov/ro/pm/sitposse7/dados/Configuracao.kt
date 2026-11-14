@@ -15,3 +15,4 @@ fun RoomDatabase.Builder<BancoCampo>.configurarPadrao(): RoomDatabase.Builder<Ba
     setDriver(DriverDuravel(BundledSQLiteDriver()))
         .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
         .setQueryCoroutineContext(Dispatchers.IO)
+        .addMigrations(*MIGRACOES)

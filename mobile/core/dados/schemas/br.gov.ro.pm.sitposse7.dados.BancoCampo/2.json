@@ -1,0 +1,755 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "267780b5edadf2796fe583f3910f640a",
+    "entities": [
+      {
+        "tableName": "meta",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`chave` TEXT NOT NULL, `valor` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, PRIMARY KEY(`chave`))",
+        "fields": [
+          {
+            "fieldPath": "chave",
+            "columnName": "chave",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "valor",
+            "columnName": "valor",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "created_at",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updated_at",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "chave"
+          ]
+        }
+      },
+      {
+        "tableName": "equipe",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` TEXT NOT NULL, `nome` TEXT NOT NULL, `responsavel` TEXT NOT NULL, `identificacao_area` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `rev` INTEGER NOT NULL, `rev_confirmada` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`uuid`))",
+        "fields": [
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nome",
+            "columnName": "nome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "responsavel",
+            "columnName": "responsavel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "identificacaoArea",
+            "columnName": "identificacao_area",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rev",
+            "columnName": "rev",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revConfirmada",
+            "columnName": "rev_confirmada",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uuid"
+          ]
+        }
+      },
+      {
+        "tableName": "propriedades",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` TEXT NOT NULL, `equipe_uuid` TEXT NOT NULL, `nome_propriedade` TEXT NOT NULL, `responsavel_familia` TEXT, `pessoas_adultos` INTEGER NOT NULL DEFAULT 0, `pessoas_jovens` INTEGER NOT NULL DEFAULT 0, `pessoas_criancas` INTEGER NOT NULL DEFAULT 0, `veic_caminhoes` INTEGER NOT NULL DEFAULT 0, `veic_automoveis_utilitarios` INTEGER NOT NULL DEFAULT 0, `veic_motos_ciclomotores` INTEGER NOT NULL DEFAULT 0, `bov_adultos` INTEGER NOT NULL DEFAULT 0, `bov_bezerros` INTEGER NOT NULL DEFAULT 0, `equ_adultos` INTEGER NOT NULL DEFAULT 0, `equ_potros` INTEGER NOT NULL DEFAULT 0, `area_valor_milesimos` INTEGER, `area_unidade` TEXT, `lat` REAL, `lon` REAL, `gps_origem` TEXT, `gps_precisao_m` REAL, `gps_capturado_em` INTEGER, `gps_satelites` INTEGER, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `rev` INTEGER NOT NULL, `rev_confirmada` INTEGER NOT NULL DEFAULT 0, `excluido_em` INTEGER, PRIMARY KEY(`uuid`), FOREIGN KEY(`equipe_uuid`) REFERENCES `equipe`(`uuid`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "equipeUuid",
+            "columnName": "equipe_uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nomePropriedade",
+            "columnName": "nome_propriedade",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "responsavelFamilia",
+            "columnName": "responsavel_familia",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "pessoasAdultos",
+            "columnName": "pessoas_adultos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "pessoasJovens",
+            "columnName": "pessoas_jovens",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "pessoasCriancas",
+            "columnName": "pessoas_criancas",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "veicCaminhoes",
+            "columnName": "veic_caminhoes",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "veicAutomoveisUtilitarios",
+            "columnName": "veic_automoveis_utilitarios",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "veicMotosCiclomotores",
+            "columnName": "veic_motos_ciclomotores",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "bovAdultos",
+            "columnName": "bov_adultos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "bovBezerros",
+            "columnName": "bov_bezerros",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "equAdultos",
+            "columnName": "equ_adultos",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "equPotros",
+            "columnName": "equ_potros",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "areaValorMilesimos",
+            "columnName": "area_valor_milesimos",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "areaUnidade",
+            "columnName": "area_unidade",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lat",
+            "columnName": "lat",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "lon",
+            "columnName": "lon",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "gpsOrigem",
+            "columnName": "gps_origem",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "gpsPrecisaoM",
+            "columnName": "gps_precisao_m",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "gpsCapturadoEm",
+            "columnName": "gps_capturado_em",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "gpsSatelites",
+            "columnName": "gps_satelites",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rev",
+            "columnName": "rev",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revConfirmada",
+            "columnName": "rev_confirmada",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "excluidoEm",
+            "columnName": "excluido_em",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uuid"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_propriedades_equipe_uuid",
+            "unique": false,
+            "columnNames": [
+              "equipe_uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_propriedades_equipe_uuid` ON `${TABLE_NAME}` (`equipe_uuid`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "equipe",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "equipe_uuid"
+            ],
+            "referencedColumns": [
+              "uuid"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "itens_propriedade",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` TEXT NOT NULL, `propriedade_uuid` TEXT NOT NULL, `categoria` TEXT NOT NULL, `codigo_catalogo` TEXT NOT NULL, `nome_personalizado` TEXT, `nome_normalizado` TEXT, `quantidade` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `rev` INTEGER NOT NULL, `rev_confirmada` INTEGER NOT NULL DEFAULT 0, `excluido_em` INTEGER, PRIMARY KEY(`uuid`), FOREIGN KEY(`propriedade_uuid`) REFERENCES `propriedades`(`uuid`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "propriedadeUuid",
+            "columnName": "propriedade_uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "categoria",
+            "columnName": "categoria",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "codigoCatalogo",
+            "columnName": "codigo_catalogo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nomePersonalizado",
+            "columnName": "nome_personalizado",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nomeNormalizado",
+            "columnName": "nome_normalizado",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "quantidade",
+            "columnName": "quantidade",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rev",
+            "columnName": "rev",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revConfirmada",
+            "columnName": "rev_confirmada",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "excluidoEm",
+            "columnName": "excluido_em",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uuid"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_itens_propriedade_propriedade_uuid",
+            "unique": false,
+            "columnNames": [
+              "propriedade_uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_itens_propriedade_propriedade_uuid` ON `${TABLE_NAME}` (`propriedade_uuid`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "propriedades",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "propriedade_uuid"
+            ],
+            "referencedColumns": [
+              "uuid"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "fotografias",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` TEXT NOT NULL, `propriedade_uuid` TEXT NOT NULL, `caminho_relativo` TEXT NOT NULL, `mime` TEXT NOT NULL, `tamanho_bytes` INTEGER NOT NULL, `sha256` TEXT NOT NULL, `largura` INTEGER NOT NULL, `altura` INTEGER NOT NULL, `capturada_em` INTEGER NOT NULL, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `rev` INTEGER NOT NULL, `rev_confirmada` INTEGER NOT NULL DEFAULT 0, `excluido_em` INTEGER, `arquivo_presente` INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(`uuid`), FOREIGN KEY(`propriedade_uuid`) REFERENCES `propriedades`(`uuid`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "propriedadeUuid",
+            "columnName": "propriedade_uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "caminhoRelativo",
+            "columnName": "caminho_relativo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mime",
+            "columnName": "mime",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tamanhoBytes",
+            "columnName": "tamanho_bytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "largura",
+            "columnName": "largura",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "altura",
+            "columnName": "altura",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capturadaEm",
+            "columnName": "capturada_em",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updated_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rev",
+            "columnName": "rev",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revConfirmada",
+            "columnName": "rev_confirmada",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "excluidoEm",
+            "columnName": "excluido_em",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "arquivoPresente",
+            "columnName": "arquivo_presente",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uuid"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_fotografias_propriedade_uuid",
+            "unique": false,
+            "columnNames": [
+              "propriedade_uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fotografias_propriedade_uuid` ON `${TABLE_NAME}` (`propriedade_uuid`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "propriedades",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "propriedade_uuid"
+            ],
+            "referencedColumns": [
+              "uuid"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "rascunhos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` TEXT NOT NULL, `propriedade_uuid` TEXT, `json` TEXT NOT NULL, `atualizado_em` INTEGER NOT NULL, PRIMARY KEY(`uuid`))",
+        "fields": [
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "propriedadeUuid",
+            "columnName": "propriedade_uuid",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "json",
+            "columnName": "json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizado_em",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uuid"
+          ]
+        }
+      },
+      {
+        "tableName": "lotes_envio",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` TEXT NOT NULL, `status` TEXT NOT NULL, `canal` TEXT NOT NULL, `payload_json` TEXT NOT NULL, `criado_em` INTEGER NOT NULL, `atualizado_em` INTEGER NOT NULL, `recibo_json` TEXT, `erro` TEXT, PRIMARY KEY(`uuid`))",
+        "fields": [
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "canal",
+            "columnName": "canal",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadJson",
+            "columnName": "payload_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "criado_em",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEm",
+            "columnName": "atualizado_em",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reciboJson",
+            "columnName": "recibo_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "erro",
+            "columnName": "erro",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uuid"
+          ]
+        }
+      },
+      {
+        "tableName": "lote_itens",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`lote_uuid` TEXT NOT NULL, `entidade` TEXT NOT NULL, `entidade_uuid` TEXT NOT NULL, `rev` INTEGER NOT NULL, `resultado` TEXT, `motivo` TEXT, PRIMARY KEY(`lote_uuid`, `entidade`, `entidade_uuid`), FOREIGN KEY(`lote_uuid`) REFERENCES `lotes_envio`(`uuid`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "loteUuid",
+            "columnName": "lote_uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entidade",
+            "columnName": "entidade",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entidadeUuid",
+            "columnName": "entidade_uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rev",
+            "columnName": "rev",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resultado",
+            "columnName": "resultado",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "motivo",
+            "columnName": "motivo",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "lote_uuid",
+            "entidade",
+            "entidade_uuid"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "lotes_envio",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "lote_uuid"
+            ],
+            "referencedColumns": [
+              "uuid"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "pareamento",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`central_id` TEXT NOT NULL, `spki_sha256` TEXT NOT NULL, `ips_json` TEXT NOT NULL, `porta` INTEGER NOT NULL, `credencial` TEXT NOT NULL, `operacao_uuid` TEXT NOT NULL, `operacao_nome` TEXT NOT NULL, `pareado_em` INTEGER NOT NULL, PRIMARY KEY(`central_id`))",
+        "fields": [
+          {
+            "fieldPath": "centralId",
+            "columnName": "central_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spkiSha256",
+            "columnName": "spki_sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ipsJson",
+            "columnName": "ips_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "porta",
+            "columnName": "porta",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "credencial",
+            "columnName": "credencial",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operacaoUuid",
+            "columnName": "operacao_uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operacaoNome",
+            "columnName": "operacao_nome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pareadoEm",
+            "columnName": "pareado_em",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "central_id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '267780b5edadf2796fe583f3910f640a')"
+    ]
+  }
+}

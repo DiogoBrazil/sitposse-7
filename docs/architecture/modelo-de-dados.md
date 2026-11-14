@@ -79,6 +79,7 @@ Status: **Recomendado R1/R2, aprovado com o plano em 13/11/2026.** O DDL definit
 ## Controle de sincronização
 
 ### Android
+- **Implementado no MVP (banco v2, ADR-0018):** `equipe`, `propriedades`, `itens_propriedade`, `fotografias`, `rascunhos`, `lotes_envio` (+ `payload_json` congelado), `lote_itens` (+ `resultado`, `motivo`), `pareamento`; UUID da instalação em `meta`. Sem `CHECK` nem índice parcial (limite do Room): regras no domínio e no repositório. Catálogo no código (`Catalogo`), conferido com a fixture.
 - Em cada entidade sincronizável: `rev INTEGER NOT NULL` (incrementado **na mesma transação** de toda criação, edição ou exclusão) e `rev_confirmada INTEGER NOT NULL DEFAULT 0`. Pendente: `rev > rev_confirmada`.
 - `lotes_envio(uuid, status, canal [wifi|usb], criado_em, atualizado_em, recibo_json NULL, erro NULL)`.
 - `lote_itens(lote_uuid, entidade, entidade_uuid, rev, PRIMARY KEY(lote_uuid, entidade, entidade_uuid))`.
