@@ -1,15 +1,16 @@
 # Continuação do trabalho (passagem de bastão)
 
 > **Leia isto primeiro** ao retomar o projeto em outra máquina ou com outro agente.
-> Atualizado em **13/11/2026 (noite)**, ao encerrar a sessão. Mantenha este arquivo em dia ao final de cada sessão.
-> **Próxima sessão: no mesmo PC desktop** (ambiente da §3 já pronto, VM de teste já criada). Comece pela §2 "Para a próxima sessão".
+> Atualizado em **14/11/2026 (tarde)**. Mantenha este arquivo em dia ao final de cada sessão.
+> Ambiente da §3 pronto no PC desktop, com a VM de teste. Comece pela §2.
 
 ## 1. Onde estamos
 
 - **Fase atual:** Fase 0 (fundação e spikes de risco). O plano está em [plano.md](plano.md); o diário detalhado da fase, em [fase-0.md](fase-0.md).
 - **Branch de trabalho:** `development`. A `main` só recebe o que for aprovado.
 - **Últimos commits relevantes** (o mais recente primeiro; confira com `git log --oneline -5`):
-  - `fix(fase-0)`: correções do teste do instalador, ícone da Central e do app Android (13/11, noite)
+  - `fix(fase-0)`: reteste do instalador na VM e mensagens próprias do firewall no log do NSIS (14/11)
+  - `8681b87` fix(fase-0): correções do teste do instalador, ícone da Central e do app Android (13/11, noite)
   - `8911bc0` docs(fase-0): instalador gerado pelo WSL e adiamento aprovado dos testes de rede/Android (A22)
   - `02752bb` feat(mobile): projeto Android, teste cruzado com a Central e spikes da Fase 0
 - **Nenhuma funcionalidade da Fase 1 foi iniciada, e não deve ser** até a Fase 0 ser dada como concluída pelo usuário (AGENTS.md §2).
@@ -21,34 +22,28 @@
 | App Android | Esqueleto (`:app`, `:core:dominio`, `:core:dados`, `:core:sync`), tela de diagnóstico e ícone adaptativo (mesmo desenho da Central, com camada monocromática) | `./gradlew test ...` (22 testes) |
 | Spike (a) HTTPS + pin via QR | Cliente Kotlin × servidor Go real: TLS 1.3, TLS 1.2, pin divergente. **Aparelho real OK:** moto g56, Android 16, hotspot do Windows **com** internet na origem, TLSv1.3, 108 ms | `ClienteCentralGoTest`; `fase-0.md` §Testes em aparelho real |
 | Spike (c) PRAGMAs Room 3 | Room rebaixava `synchronous` para NORMAL e deixava `foreign_keys` desligado; corrigido com `DriverDuravel`. **Aparelho real OK** (moto g56, 13/11: `wal · 2 · 1`, SQLite 3.50.1); na mesma sessão, nova conexão em TLSv1.3, 92 ms | `PragmasTest` (JVM); `fase-0.md` §Testes em aparelho real |
-| Spike (d) Instalador NSIS | **Testado no Windows 11** (13/11, VM Hyper-V sem rede): instalação, Central sem rede, firewall, desinstalação preservando os dados, reinstalação com o mesmo ID e pin. Achados 1–4 corrigidos no instalador `9d120cce…`, **ainda sem reteste**. Windows 10 22H2 não testado | `fase-0.md` §Teste do instalador |
+| Spike (d) Instalador NSIS | **Testado no Windows 11** (13/11, VM Hyper-V sem rede) e **retestado em 14/11** com o build `01040f2b…6aa8f1f`: achados 1–4 corrigidos (o 3 só na 2ª tentativa). Teste do zero dispensado pelo usuário. Windows 10 22H2 não testado | `fase-0.md` §Teste e §Reteste do instalador |
 | Spike (b) Hotspot do Windows / tampa | **Cancelado** (A21/ADR-0016): hotspot do Windows só com internet e computador ligado, já validado 2× (notebook com Wi‑Fi, PC com Ethernet). P8 encerrada | `fase-0.md`; `rede-em-campo.md` |
 | Decisões novas | A19/ADR-0014 (TLS 1.2 restrito), A20/ADR-0015 (ZXing no lugar do ML Kit), porta 38807, A21/ADR-0016 (hotspot do Windows só com internet) | [matriz-decisoes.md](matriz-decisoes.md) |
 
 ## 2. O que falta para fechar a Fase 0 (em ordem)
 
-### Para a próxima sessão (14/11, mesmo PC desktop)
-1. **Repetir o teste do instalador na VM** com o build corrigido (`Downloads\sitposse7-teste\sitposse7-central-amd64-installer.exe`, SHA-256 `9d120cced51cbed412bb50694f2b99745a09a1d5fb16027d055509a07768f242`):
-   1. Hyper-V: aplicar o ponto de verificação **"Windows limpo"** da VM `SITPOSSE7-Win11-teste`, ligar e conectar (sessão avançada, senha da conta `teste`).
-   2. Colar o instalador na área de trabalho da VM e conferir `Get-FileHash` (começa com `9D120CCE`).
-   3. Instalar: o log deve mostrar "critérios"/"excluída" **com acento**; atalho, instalador e barra de tarefas com o **ícone novo**.
-   4. Abrir a Central ("Nenhuma rede Wi‑Fi/local ativa"), **fechar e abrir de novo**: deve continuar "Nenhuma rede", **sem `127.0.0.1`**.
-   5. Desinstalar: a pasta `C:\Program Files\7º BPMPMRO` deve **sumir**; `AppData\Local\SITPOSSE-7` deve **continuar**.
-   6. Registrar em `fase-0.md` §Teste do instalador (riscar "falta repetir o teste na VM").
-2. **(Opcional) Ícone no celular:** instalar `Downloads\sitposse7-teste\sitposse7-campo-debug.apk` no moto g56 e conferir o ícone na tela inicial (e o ícone temático, se ativado).
-3. **(Opcional) Limpeza do Windows:** apagar a ISO `Downloads\26300.9457…pt-br.iso` (8,2 GB) depois de tirá-la da unidade de DVD da VM; excluir o "Ponto de Verificação Automática… 20:09" (anterior à instalação). **Não** excluir o "Windows limpo".
-4. **Pedir ao usuário que aprove a conclusão da Fase 0** (item 3 abaixo). Só depois disso começa a Fase 1.
+### Para a próxima sessão
+1. **Aprovação da conclusão da Fase 0 pelo usuário** (resumo apresentado em 14/11). Só depois começa a construção do app e da Central.
+2. **Pedido do usuário (14/11): acelerar até um MVP para teste real em área rural.** Cadastrar offline no celular com armazenamento seguro, voltar e descarregar na Central (transferência segura e armazenamento seguro na Central), pelo **hotspot do Windows com internet** (A21). Telas responsivas e agradáveis desde já. O recorte (o que entra no MVP e o que fica para depois) muda a ordem do `plano.md` e precisa ser aprovado e registrado (matriz + `plano.md`) antes de codificar.
+3. **(Opcional) Ícone no celular:** instalar `Downloads\sitposse7-teste\sitposse7-campo-debug.apk` no moto g56. Não feito em 14/11.
+4. **(Opcional) Limpeza do Windows:** a VM não usa mais a ISO (unidade de DVD sem mídia desde 14/11), então `Downloads\26300.9457…pt-br.iso` (8,2 GB) pode ser apagada. Para recriar a VM do zero seria preciso baixá-la de novo.
 
 ### Situação dos itens da Fase 0
 
 Quase tudo depende do **usuário com aparelhos e computador reais**. O P8 (hotspot do Windows sem internet e tampa fechada) foi **encerrado sem teste** pela A21/ADR-0016: o hotspot do Windows só é usado com internet e com o computador ligado. O agente prepara os builds, orienta e registra os resultados em `fase-0.md`.
 
 1. ~~**Cartão "Banco de dados" no aparelho**~~: **feito em 13/11** (moto g56: "Configuração de durabilidade correta", `wal · synchronous=2 · foreign_keys=1`).
-2. ~~**Spike (d), instalador**~~: **feito em 13/11 no Windows 11** (VM limpa, sem rede): tudo OK. Achados não bloqueantes em `fase-0.md` §Teste do instalador e em "Melhorias" abaixo. Windows 10 22H2 (único que exercita o WebView2 offline) não testado: fazer se houver uma máquina ou ISO.
-   - **Gerado pelo WSL** (o `makensis` 3.09 está em `/usr/bin`; não precisa de NSIS, Go nem Node no Windows): `bin/sitposse7-central-amd64-installer.exe`, 222 MB, copiado para `Downloads\sitposse7-teste`. Build atual (com as correções): `9d120cce…68f242`. Ver §4.
-   - **Ambiente de teste (pronto no PC desktop):** VM Hyper-V `SITPOSSE7-Win11-teste` (Geração 2, 4 GB, 2 vCPUs, TPM virtual, adaptador **não conectado**) com o **Windows 11 Enterprise Evaluation** ativado até ~11/02/2027, conta local `teste`. Para repetir: reverter ao ponto de verificação **"Windows limpo"** e colar o instalador pela sessão avançada (área de transferência; não usa rede). Sem ativação online a avaliação nasce vencida (0xC004F009); se recriar a VM, ligue-a ao *Default Switch* só para `slmgr.vbs /ato` e desconecte antes do ponto de verificação.
+2. ~~**Spike (d), instalador**~~: **feito em 13/11 no Windows 11** (VM limpa, sem rede) e **retestado em 14/11** (achados 1–4 corrigidos). Achados não bloqueantes em `fase-0.md` §Teste do instalador e em "Melhorias" abaixo. Windows 10 22H2 (único que exercita o WebView2 offline) não testado: fazer se houver uma máquina ou ISO.
+   - **Gerado pelo WSL** (o `makensis` 3.09 está em `/usr/bin`; não precisa de NSIS, Go nem Node no Windows): `bin/sitposse7-central-amd64-installer.exe`, 222 MB, copiado para `Downloads\sitposse7-teste`. Build atual: `01040f2b…6aa8f1f` (14/11). O anterior ficou como `…-installer-9d120cce.exe`. Ver §4.
+   - **Ambiente de teste (pronto no PC desktop):** VM Hyper-V `SITPOSSE7-Win11-teste` (Geração 2, 4 GB, 2 vCPUs, TPM virtual, adaptador **não conectado**) com o **Windows 11 Enterprise Evaluation** ativado até ~11/02/2027, conta local `teste`. Para repetir: reverter ao ponto de verificação **"Windows limpo"** (recriado em 14/11 depois de limpar a VM à mão; pontos automáticos desligados; DVD sem mídia) e colar o instalador pela sessão avançada (área de transferência; não usa rede). Sem ativação online a avaliação nasce vencida (0xC004F009); se recriar a VM, ligue-a ao *Default Switch* só para `slmgr.vbs /ato` e desconecte antes do ponto de verificação.
    - **Atenção:** o Windows 11 já vem com o WebView2, então o instalador **pula** o WebView2 embutido. Só um Windows 10 22H2 limpo exercita a instalação offline do WebView2.
-3. Registrar tudo em `fase-0.md`, atualizar o changelog e **pedir ao usuário que aprove a conclusão da Fase 0**. Os testes abaixo foram adiados **com aprovação do usuário** (A22, 13/11): não bloqueiam a conclusão da Fase 0, e a P7 continua aberta até o teste em Android 17.
+3. ~~Registrar tudo em `fase-0.md` e no changelog~~ (14/11). Falta o usuário **aprovar a conclusão da Fase 0**. Os testes abaixo foram adiados **com aprovação do usuário** (A22, 13/11): não bloqueiam a conclusão da Fase 0, e a P7 continua aberta até o teste em Android 17.
 
 ### Adiados pelo usuário (13/11/2026): fazer depois
 1. **Hotspot do celular (cenário A):** um celular cria o hotspot (sem dados móveis); o computador da Central (PC com Wi‑Fi ou notebook) e outro celular se conectam a ele; testar a conexão dos dois celulares, inclusive o que criou o hotspot ([rede-em-campo.md](../operacao/rede-em-campo.md) §Cenário A).
@@ -57,7 +52,7 @@ Quase tudo depende do **usuário com aparelhos e computador reais**. O P8 (hotsp
 ### Melhorias já identificadas (não bloqueiam a Fase 0; fazer quando o usuário aprovar ou na Fase 2)
 - A Central permite várias janelas abertas ao mesmo tempo; deveria aceitar só uma (instância única do Wails). A segunda janela mostra "porta em uso".
 - O QR inclui IPs de adaptadores virtuais (WSL/Hyper-V/Docker, ex.: `172.18.0.1`); o app tenta os IPs em sequência (até 5 s cada). Filtrar adaptadores virtuais na Central e/ou tentar os IPs em paralelo no app.
-- **Achados do teste do instalador (13/11):** os itens 1 a 4 já foram **corrigidos** (instalador `9d120cce…68f242`, copiado para `Downloads\sitposse7-teste`); falta repetir o teste na VM. (1) a tela de diagnóstico mostra `127.0.0.1` a partir da 2ª abertura, e o QR pode levar IPs antigos cobertos pelo certificado salvo (`CarregarOuCriarIdentidade` devolve os IPs do certificado, não os atuais); (2) a pasta `7º BPMPMRO` fica vazia em `Program Files` após desinstalar; (3) acentos quebrados no log do instalador (saída OEM do `netsh`); (4) ícone padrão do Wails; (5) sem assinatura de código.
+- **Achados do teste do instalador:** 1 a 4 **corrigidos e retestados em 14/11** (`fase-0.md` §Reteste). Faltam: (5) assinatura de código; (6) a desinstalação deixa o perfil do WebView2 em `%APPDATA%\sitposse7-central.exe` (`$AppData` aponta para `C:\ProgramData` no contexto de administrador do template do Wails). Corrigir no empacotamento (Fase 7).
 - P10: `applicationId` provisório `br.gov.ro.pm.sitposse7.campo`. Decidir antes do primeiro uso em campo.
 
 ## 3. Preparar uma máquina nova

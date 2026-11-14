@@ -142,8 +142,22 @@ Section
 
     # Regra de firewall: só rede local, só o executável da Central, perfis Privado e
     # Público (hotspots costumam ser classificados como Públicos). Ver rede-em-campo.md.
-    nsExec::ExecToLog /OEM 'netsh advfirewall firewall delete rule name="${SITPOSSE_REGRA_FW}"'
-    nsExec::ExecToLog /OEM 'netsh advfirewall firewall add rule name="${SITPOSSE_REGRA_FW}" dir=in action=allow program="$INSTDIR\${PRODUCT_EXECUTABLE}" enable=yes profile=private,public protocol=TCP localport=${SITPOSSE_PORTA} remoteip=localsubnet'
+    # O texto do netsh NÃO vai para o log: redirecionado, ele sai em UTF-8 e o nsExec o
+    # mostra com acentos quebrados (como ANSI ou, com /OEM, como OEM; testado em 13 e
+    # 14/11). O log usa mensagens próprias, decididas pelo código de saída.
+    nsExec::Exec 'netsh advfirewall firewall delete rule name="${SITPOSSE_REGRA_FW}"'
+    Pop $0
+    ${If} $0 == 0
+        DetailPrint "Regra de firewall anterior removida."
+    ${EndIf}
+    nsExec::Exec 'netsh advfirewall firewall add rule name="${SITPOSSE_REGRA_FW}" dir=in action=allow program="$INSTDIR\${PRODUCT_EXECUTABLE}" enable=yes profile=private,public protocol=TCP localport=${SITPOSSE_PORTA} remoteip=localsubnet'
+    Pop $0
+    ${If} $0 == 0
+        DetailPrint "Regra de firewall criada: entrada TCP ${SITPOSSE_PORTA}, só da rede local."
+    ${Else}
+        DetailPrint "Falha ao criar a regra de firewall (código $0)."
+        MessageBox MB_ICONEXCLAMATION "Não foi possível criar a regra de firewall da Central (código $0).$\r$\n$\r$\nOs celulares podem não conseguir se conectar. Ao abrir a Central, permita o acesso quando o Windows perguntar, marcando redes públicas." /SD IDOK
+    ${EndIf}
 SectionEnd
 
 Section "uninstall" 
@@ -151,7 +165,13 @@ Section "uninstall"
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
     # Os DADOS da Central (%LOCALAPPDATA%\SITPOSSE-7) NUNCA são removidos pelo desinstalador.
-    nsExec::ExecToLog /OEM 'netsh advfirewall firewall delete rule name="${SITPOSSE_REGRA_FW}"'
+    nsExec::Exec 'netsh advfirewall firewall delete rule name="${SITPOSSE_REGRA_FW}"'
+    Pop $0
+    ${If} $0 == 0
+        DetailPrint "Regra de firewall removida."
+    ${Else}
+        DetailPrint "Nenhuma regra de firewall da Central para remover (código $0)."
+    ${EndIf}
 
     RMDir /r $INSTDIR
     # Pasta da empresa (ex.: "7º BPMPMRO"): sem /r, só é removida se ficou vazia.

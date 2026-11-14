@@ -2,6 +2,10 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-14 (Fase 0) — reteste do instalador na VM
+- **desktop** · Instalador NSIS: o texto do `netsh` deixa de ir para o log. Redirecionado, o `netsh` escreve em UTF‑8, e o `nsExec` o mostrava com acentos quebrados com ou sem `/OEM` (a correção de 13/11 partia de um diagnóstico errado). Agora `nsExec::Exec` + `Pop $0`, e o log usa mensagens próprias conforme o código de saída; se a regra de firewall não puder ser criada, o instalador avisa na tela. Build `01040f2b…6aa8f1f`, com o mesmo `sitposse7-central.exe` (`39c266d1…`). Sem mudança de esquema ou de protocolo.
+- **docs** · `planning/fase-0.md` §Reteste do instalador: achados 1–4 confirmados como corrigidos (o 1 com o certificado antigo, só com `127.0.0.1`, reaproveitado); achado 6 novo (perfil do WebView2 fica em `%APPDATA%` após desinstalar); ponto "Windows limpo" recriado à mão, após exclusão por engano; teste do zero dispensado pelo usuário. `planning/continuacao.md`: estado e próximos passos (aprovação da Fase 0 e pedido de MVP para teste em campo).
+
 ## 2026-11-13 (Fase 0) — correções do teste do instalador e ícones (Central e app)
 - **desktop** · `syncserver.CarregarOuCriarIdentidade`: ao reaproveitar o certificado salvo, os IPs anunciados (tela de diagnóstico e QR) passam a ser os atuais, e não o SAN do certificado (que traz `127.0.0.1` e pode trazer IPs de redes antigas). Teste novo: `TestIdentidadeReaproveitadaAnunciaSoIPsAtuais`. Pin e certificado inalterados; sem mudança de esquema ou de protocolo.
 - **desktop** · Instalador NSIS: `nsExec::ExecToLog /OEM` nas chamadas ao `netsh` (acentos corretos no log) e remoção da pasta da empresa em `Program Files` quando ela fica vazia na desinstalação (`RMDir` sem `/r`).
