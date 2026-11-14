@@ -136,7 +136,7 @@ cp $W/appicon.png build/appicon.png
 (cd build && wails3 generate icons -input appicon.png -windowsfilename windows/icon.ico -macfilename "")
 ```
 
-Contagem esperada (14/11): domínio 13 (área/normalização/QR 8 + `CadastroTest` 5), sync 14 (`PinTest` 1, `ClienteCentralGoTest` 6, `ContratosTest` 4, `SincronizacaoGoTest` 3), banco 9 (`PragmasTest` 2, `PragmaDuravelTest` 2, `MigracaoTest` 1, `RepositorioCampoTest` 4), QR 3. Se a contagem cair, algo foi pulado.
+Contagem esperada (14/11): domínio 13 (área/normalização/QR 8 + `CadastroTest` 5), sync 14 (`PinTest` 1, `ClienteCentralGoTest` 6, `ContratosTest` 4, `SincronizacaoGoTest` 3), banco 9 (`PragmasTest` 2, `PragmaDuravelTest` 2, `MigracaoTest` 1, `RepositorioCampoTest` 4), app 6 (QR 3, `ArmazemFotosTest` 3): total 42. Se a contagem cair, algo foi pulado.
 
 Observações:
 - O `ClienteCentralGoTest` compila `desktop/cmd/central-teste` e **falha** (não é pulado) sem Go no `PATH` (ou em `SITPOSSE7_GO`).
