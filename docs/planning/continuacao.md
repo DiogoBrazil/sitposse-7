@@ -6,14 +6,14 @@
 
 ## 1. Onde estamos
 
-- **Fase atual:** Fase 0 (fundação e spikes de risco). O plano está em [plano.md](plano.md); o diário detalhado da fase, em [fase-0.md](fase-0.md).
+- **Fase atual:** **MVP para teste em campo** (A24). A Fase 0 foi concluída em 14/11 (A23); diário em [fase-0.md](fase-0.md). Plano: [plano.md](plano.md).
 - **Branch de trabalho:** `development`. A `main` só recebe o que for aprovado.
 - **Últimos commits relevantes** (o mais recente primeiro; confira com `git log --oneline -5`):
   - `fix(fase-0)`: reteste do instalador na VM e mensagens próprias do firewall no log do NSIS (14/11)
   - `8681b87` fix(fase-0): correções do teste do instalador, ícone da Central e do app Android (13/11, noite)
   - `8911bc0` docs(fase-0): instalador gerado pelo WSL e adiamento aprovado dos testes de rede/Android (A22)
   - `02752bb` feat(mobile): projeto Android, teste cruzado com a Central e spikes da Fase 0
-- **Nenhuma funcionalidade da Fase 1 foi iniciada, e não deve ser** até a Fase 0 ser dada como concluída pelo usuário (AGENTS.md §2).
+- Implementar só o que está no recorte da A24; o resto das Fases 1–3 segue no plano (AGENTS.md §2).
 
 ### Já feito e verificado
 | Item | Situação | Evidência |
@@ -28,11 +28,21 @@
 
 ## 2. O que falta para fechar a Fase 0 (em ordem)
 
-### Para a próxima sessão
-1. **Aprovação da conclusão da Fase 0 pelo usuário** (resumo apresentado em 14/11). Só depois começa a construção do app e da Central.
-2. **Pedido do usuário (14/11): acelerar até um MVP para teste real em área rural.** Cadastrar offline no celular com armazenamento seguro, voltar e descarregar na Central (transferência segura e armazenamento seguro na Central), pelo **hotspot do Windows com internet** (A21). Telas responsivas e agradáveis desde já. O recorte (o que entra no MVP e o que fica para depois) muda a ordem do `plano.md` e precisa ser aprovado e registrado (matriz + `plano.md`) antes de codificar.
-3. **(Opcional) Ícone no celular:** instalar `Downloads\sitposse7-teste\sitposse7-campo-debug.apk` no moto g56. Não feito em 14/11.
-4. **(Opcional) Limpeza do Windows:** a VM não usa mais a ISO (unidade de DVD sem mídia desde 14/11), então `Downloads\26300.9457…pt-br.iso` (8,2 GB) pode ser apagada. Para recriar a VM do zero seria preciso baixá-la de novo.
+### MVP para teste em campo (A24, aprovado em 14/11): etapas
+A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-decisoes.md) A24 e [plano.md](plano.md). Ordem de trabalho (marque ao concluir):
+1. **Contratos:** `shared/schemas` do pareamento, do lote e do recibo (v1) + fixtures válidas e inválidas, validadas em Go e Kotlin.
+2. **Celular, dados:** banco Room v2 (migração 1→2 testada), catálogo de itens, repositórios com `rev` na mesma transação, rascunhos, fotos (arquivo antes do registro) e reconciliador.
+3. **Celular, telas:** configurar equipe, início, lista e busca, cadastro e edição por seções, detalhes, GNSS, câmera, rascunho; responsivas (celular pequeno, grande e tablet).
+4. **Central, recepção:** migração 0002, operação, pareamento com confirmação do operador, `PUT/GET /v1/lotes`, `PUT/GET /v1/fotos`, importação com recibo, reconciliador de fotos.
+5. **Celular, sincronização:** pareamento, máquina de estados do lote, envio e recibo; teste cruzado com o servidor Go real (cenários 1, 4, 5, 6, 7 e 8).
+6. **Central, telas:** operação, QR de pareamento, recepção ao vivo, propriedades e fotos (consulta); responsivas.
+7. **Builds e roteiro do teste em campo** (APK e instalador; passo a passo de ida a campo e descarga).
+
+**Atenção (dados descartáveis, A24):** o APK é assinado com a chave de debug **desta máquina**. Gere todas as versões do teste aqui; um APK de outra máquina obriga a desinstalar o app e apaga os cadastros do celular.
+
+### Pendências menores da Fase 0
+1. **(Opcional) Ícone no celular:** instalar `Downloads\sitposse7-teste\sitposse7-campo-debug.apk` no moto g56. Não feito em 14/11.
+2. **(Opcional) Limpeza do Windows:** a VM não usa mais a ISO (unidade de DVD sem mídia desde 14/11), então `Downloads\26300.9457…pt-br.iso` (8,2 GB) pode ser apagada. Para recriar a VM do zero seria preciso baixá-la de novo.
 
 ### Situação dos itens da Fase 0
 
@@ -43,7 +53,7 @@ Quase tudo depende do **usuário com aparelhos e computador reais**. O P8 (hotsp
    - **Gerado pelo WSL** (o `makensis` 3.09 está em `/usr/bin`; não precisa de NSIS, Go nem Node no Windows): `bin/sitposse7-central-amd64-installer.exe`, 222 MB, copiado para `Downloads\sitposse7-teste`. Build atual: `01040f2b…6aa8f1f` (14/11). O anterior ficou como `…-installer-9d120cce.exe`. Ver §4.
    - **Ambiente de teste (pronto no PC desktop):** VM Hyper-V `SITPOSSE7-Win11-teste` (Geração 2, 4 GB, 2 vCPUs, TPM virtual, adaptador **não conectado**) com o **Windows 11 Enterprise Evaluation** ativado até ~11/02/2027, conta local `teste`. Para repetir: reverter ao ponto de verificação **"Windows limpo"** (recriado em 14/11 depois de limpar a VM à mão; pontos automáticos desligados; DVD sem mídia) e colar o instalador pela sessão avançada (área de transferência; não usa rede). Sem ativação online a avaliação nasce vencida (0xC004F009); se recriar a VM, ligue-a ao *Default Switch* só para `slmgr.vbs /ato` e desconecte antes do ponto de verificação.
    - **Atenção:** o Windows 11 já vem com o WebView2, então o instalador **pula** o WebView2 embutido. Só um Windows 10 22H2 limpo exercita a instalação offline do WebView2.
-3. ~~Registrar tudo em `fase-0.md` e no changelog~~ (14/11). Falta o usuário **aprovar a conclusão da Fase 0**. Os testes abaixo foram adiados **com aprovação do usuário** (A22, 13/11): não bloqueiam a conclusão da Fase 0, e a P7 continua aberta até o teste em Android 17.
+3. ~~Registrar tudo em `fase-0.md` e no changelog~~ (14/11). ~~Aprovação da conclusão~~: **aprovada em 14/11 (A23)**. Os testes abaixo foram adiados **com aprovação do usuário** (A22, 13/11): não bloqueiam a conclusão da Fase 0, e a P7 continua aberta até o teste em Android 17.
 
 ### Adiados pelo usuário (13/11/2026): fazer depois
 1. **Hotspot do celular (cenário A):** um celular cria o hotspot (sem dados móveis); o computador da Central (PC com Wi‑Fi ou notebook) e outro celular se conectam a ele; testar a conexão dos dois celulares, inclusive o que criou o hotspot ([rede-em-campo.md](../operacao/rede-em-campo.md) §Cenário A).

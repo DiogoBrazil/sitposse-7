@@ -2,6 +2,10 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-14 — Fase 0 concluída (A23) e MVP para teste em campo (A24)
+- **docs** · Matriz: A23 (Fase 0 concluída, com os adiados da A22 e o Windows 10 sem teste) e A24 (recorte do MVP: Fases 1 e 2 em fatia vertical + transferência segura da Fase 3; Central só recebe e consulta; dados de teste descartáveis). `plano.md` com a linha do MVP e a Fase 0 concluída; `continuacao.md` com as 7 etapas do MVP.
+- Sem mudança de código.
+
 ## 2026-11-14 (Fase 0) — reteste do instalador na VM
 - **desktop** · Instalador NSIS: o texto do `netsh` deixa de ir para o log. Redirecionado, o `netsh` escreve em UTF‑8, e o `nsExec` o mostrava com acentos quebrados com ou sem `/OEM` (a correção de 13/11 partia de um diagnóstico errado). Agora `nsExec::Exec` + `Pop $0`, e o log usa mensagens próprias conforme o código de saída; se a regra de firewall não puder ser criada, o instalador avisa na tela. Build `01040f2b…6aa8f1f`, com o mesmo `sitposse7-central.exe` (`39c266d1…`). Sem mudança de esquema ou de protocolo.
 - **docs** · `planning/fase-0.md` §Reteste do instalador: achados 1–4 confirmados como corrigidos (o 1 com o certificado antigo, só com `127.0.0.1`, reaproveitado); achado 6 novo (perfil do WebView2 fica em `%APPDATA%` após desinstalar); ponto "Windows limpo" recriado à mão, após exclusão por engano; teste do zero dispensado pelo usuário. `planning/continuacao.md`: estado e próximos passos (aprovação da Fase 0 e pedido de MVP para teste em campo).
