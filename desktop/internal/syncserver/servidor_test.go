@@ -86,6 +86,29 @@ func TestIdentidadePersistenteEPinEstavelAoMudarIPs(t *testing.T) {
 	}
 }
 
+// Ao reaproveitar o certificado salvo, os IPs anunciados (tela e QR) são os atuais,
+// nunca o loopback nem IPs de redes antigas que o certificado ainda cobre.
+func TestIdentidadeReaproveitadaAnunciaSoIPsAtuais(t *testing.T) {
+	dir := t.TempDir()
+	antigo, atual := net.IPv4(192, 168, 0, 24), net.IPv4(192, 168, 137, 1)
+	if _, err := CarregarOuCriarIdentidade(dir, []net.IP{antigo, atual}); err != nil {
+		t.Fatal(err)
+	}
+	casos := map[string][]net.IP{"um IP antigo some": {atual}, "sem rede": nil}
+	for nome, ips := range casos {
+		id, err := CarregarOuCriarIdentidade(dir, ips)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !cobreIPs(id.Certificado.Leaf, []net.IP{antigo, atual}) {
+			t.Fatalf("%s: certificado deveria ter sido reaproveitado", nome)
+		}
+		if len(id.IPs) != len(ips) || (len(ips) == 1 && !id.IPs[0].Equal(atual)) {
+			t.Fatalf("%s: IPs anunciados %v, esperado %v", nome, id.IPs, ips)
+		}
+	}
+}
+
 func TestSomenteRedeLocal(t *testing.T) {
 	s := &Servidor{CentralID: "x"}
 	casos := map[string]int{"192.168.1.5:5000": 200, "10.1.2.3:1": 200, "172.16.0.9:1": 200, "127.0.0.1:1": 200, "[fe80::1]:1": 200, "8.8.8.8:1": 403, "[2001:db8::1]:1": 403, "lixo": 403}

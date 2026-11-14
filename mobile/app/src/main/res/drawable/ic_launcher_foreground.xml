@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone do SITPOSSE-7 (mesmo desenho de desktop/build/appicon.svg). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="1024" android:viewportHeight="1024">
+    <group android:pivotX="512" android:pivotY="517" android:scaleX="0.86" android:scaleY="0.86">
+        <path android:fillColor="#000000" android:fillAlpha="0.3" android:pathData="M382,842A130,30 0 1,0 642,842A130,30 0 1,0 382,842Z"/>
+        <path android:strokeColor="#FF0E2A4D" android:strokeWidth="14" android:strokeLineJoin="round" android:pathData="M512,836C470,780 300,600 300,410A212,212 0 1,1 724,410C724,600 554,780 512,836Z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="linear" android:startX="512" android:startY="198" android:endX="512" android:endY="836"
+                        android:startColor="#FFFFD54F" android:endColor="#FFF2A900"/>
+            </aapt:attr>
+        </path>
+        <path android:fillColor="#FF0E2A4D" android:pathData="M390,410A122,122 0 1,0 634,410A122,122 0 1,0 390,410Z"/>
+        <path android:fillColor="#FFFFFFFF" android:pathData="M460,344L566,344L566,372L520,478L484,478L528,374L460,374Z"/>
+    </group>
+</vector>

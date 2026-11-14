@@ -2,6 +2,18 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-13 (Fase 0) — correções do teste do instalador e ícones (Central e app)
+- **desktop** · `syncserver.CarregarOuCriarIdentidade`: ao reaproveitar o certificado salvo, os IPs anunciados (tela de diagnóstico e QR) passam a ser os atuais, e não o SAN do certificado (que traz `127.0.0.1` e pode trazer IPs de redes antigas). Teste novo: `TestIdentidadeReaproveitadaAnunciaSoIPsAtuais`. Pin e certificado inalterados; sem mudança de esquema ou de protocolo.
+- **desktop** · Instalador NSIS: `nsExec::ExecToLog /OEM` nas chamadas ao `netsh` (acentos corretos no log) e remoção da pasta da empresa em `Program Files` quando ela fica vazia na desinstalação (`RMDir` sem `/r`).
+- **desktop** · Ícone próprio da Central: `build/appicon.svg` (fonte), `build/appicon.png` e `build/windows/icon.ico`. Renderizado com o Edge headless já presente no Windows; nenhuma dependência nova.
+- **mobile** · Ícone adaptativo do app (mesmo desenho da Central): `res/drawable/ic_launcher_background.xml`, `ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml` e `res/mipmap-anydpi/ic_launcher{,_round}.xml`; `android:icon`/`android:roundIcon` no manifesto. Só vetores, sem dependência nova.
+- **docs** · `fase-0.md` e `continuacao.md`: achados 1 a 4 marcados como corrigidos; reteste na VM pendente; `continuacao.md` com o roteiro da próxima sessão (reteste, ícone no celular, limpeza da ISO, aprovação da Fase 0) e o comando de regerar o ícone (§4).
+
+## 2026-11-13 (Fase 0) — instalador testado no Windows 11
+- **docs** · `planning/fase-0.md`: spike (d) concluído no Windows 11 (VM Hyper-V limpa, sem rede): instalação, Central abrindo sem rede, regra de firewall (`LocalSubnet`, TCP 38807, presa ao executável), desinstalação preservando os dados e reinstalação com o mesmo ID e pin. Nova seção §Teste do instalador com o ambiente (ativação online da avaliação antes do ponto de verificação) e cinco achados não bloqueantes, entre eles o `127.0.0.1` na tela de diagnóstico e possíveis IPs antigos no QR. Windows 10 22H2 não testado.
+- **docs** · `planning/continuacao.md`: item 2 da Fase 0 feito; roteiro para repetir o teste na VM; achados em "Melhorias".
+- Sem mudança de código, esquema ou protocolo.
+
 ## 2026-11-13 (Fase 0) — instalador gerado e A22
 - **desktop** · Instalador NSIS gerado pelo WSL (`wails3 package GOOS=windows`, `makensis` 3.09), com o WebView2 Evergreen Standalone x64 (assinatura da Microsoft conferida). Sem mudança no script; o binário do WebView2 continua fora do git. Teste em VM limpa pendente.
 - **docs** · A22 (matriz): a Fase 0 pode ser concluída com os testes de hotspot do celular e de Android 17/8/9 adiados; P7 segue aberta (prazo recomendado: Fase 3). `plano.md` (critério da Fase 0), `pendencias.md`, `continuacao.md` (§2 com o roteiro da VM; §4 com o comando do instalador) e `fase-0.md`.

@@ -142,8 +142,8 @@ Section
 
     # Regra de firewall: só rede local, só o executável da Central, perfis Privado e
     # Público (hotspots costumam ser classificados como Públicos). Ver rede-em-campo.md.
-    nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="${SITPOSSE_REGRA_FW}"'
-    nsExec::ExecToLog 'netsh advfirewall firewall add rule name="${SITPOSSE_REGRA_FW}" dir=in action=allow program="$INSTDIR\${PRODUCT_EXECUTABLE}" enable=yes profile=private,public protocol=TCP localport=${SITPOSSE_PORTA} remoteip=localsubnet'
+    nsExec::ExecToLog /OEM 'netsh advfirewall firewall delete rule name="${SITPOSSE_REGRA_FW}"'
+    nsExec::ExecToLog /OEM 'netsh advfirewall firewall add rule name="${SITPOSSE_REGRA_FW}" dir=in action=allow program="$INSTDIR\${PRODUCT_EXECUTABLE}" enable=yes profile=private,public protocol=TCP localport=${SITPOSSE_PORTA} remoteip=localsubnet'
 SectionEnd
 
 Section "uninstall" 
@@ -151,9 +151,11 @@ Section "uninstall"
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
     # Os DADOS da Central (%LOCALAPPDATA%\SITPOSSE-7) NUNCA são removidos pelo desinstalador.
-    nsExec::ExecToLog 'netsh advfirewall firewall delete rule name="${SITPOSSE_REGRA_FW}"'
+    nsExec::ExecToLog /OEM 'netsh advfirewall firewall delete rule name="${SITPOSSE_REGRA_FW}"'
 
     RMDir /r $INSTDIR
+    # Pasta da empresa (ex.: "7º BPMPMRO"): sem /r, só é removida se ficou vazia.
+    RMDir "$INSTDIR\.."
 
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"

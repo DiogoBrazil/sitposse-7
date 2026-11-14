@@ -1,37 +1,52 @@
 # Continuação do trabalho (passagem de bastão)
 
 > **Leia isto primeiro** ao retomar o projeto em outra máquina ou com outro agente.
-> Atualizado em **13/11/2026**, ao encerrar a sessão. Mantenha este arquivo em dia ao final de cada sessão.
+> Atualizado em **13/11/2026 (noite)**, ao encerrar a sessão. Mantenha este arquivo em dia ao final de cada sessão.
+> **Próxima sessão: no mesmo PC desktop** (ambiente da §3 já pronto, VM de teste já criada). Comece pela §2 "Para a próxima sessão".
 
 ## 1. Onde estamos
 
 - **Fase atual:** Fase 0 (fundação e spikes de risco). O plano está em [plano.md](plano.md); o diário detalhado da fase, em [fase-0.md](fase-0.md).
 - **Branch de trabalho:** `development`. A `main` só recebe o que for aprovado.
-- **Últimos commits relevantes:**
+- **Últimos commits relevantes** (o mais recente primeiro; confira com `git log --oneline -5`):
+  - `fix(fase-0)`: correções do teste do instalador, ícone da Central e do app Android (13/11, noite)
+  - `8911bc0` docs(fase-0): instalador gerado pelo WSL e adiamento aprovado dos testes de rede/Android (A22)
   - `02752bb` feat(mobile): projeto Android, teste cruzado com a Central e spikes da Fase 0
-  - `fb8382b` fix(desktop): porta padrão da Central 47807 → 38807
-  - `a3dc8eb` docs(fase-0): resultado do teste no moto g56
 - **Nenhuma funcionalidade da Fase 1 foi iniciada, e não deve ser** até a Fase 0 ser dada como concluída pelo usuário (AGENTS.md §2).
 
 ### Já feito e verificado
 | Item | Situação | Evidência |
 |---|---|---|
-| Central (Go + Wails 3) | Esqueleto, banco com migração 0001, servidor HTTPS `GET /v1/status`, QR na tela de diagnóstico | `go test ./internal/... ./app/...` |
-| App Android | Esqueleto (`:app`, `:core:dominio`, `:core:dados`, `:core:sync`) e tela de diagnóstico | `./gradlew test ...` (22 testes) |
+| Central (Go + Wails 3) | Esqueleto, banco com migração 0001, servidor HTTPS `GET /v1/status`, QR na tela de diagnóstico, ícone próprio (`desktop/build/appicon.svg`) | `go test ./internal/... ./app/...` |
+| App Android | Esqueleto (`:app`, `:core:dominio`, `:core:dados`, `:core:sync`), tela de diagnóstico e ícone adaptativo (mesmo desenho da Central, com camada monocromática) | `./gradlew test ...` (22 testes) |
 | Spike (a) HTTPS + pin via QR | Cliente Kotlin × servidor Go real: TLS 1.3, TLS 1.2, pin divergente. **Aparelho real OK:** moto g56, Android 16, hotspot do Windows **com** internet na origem, TLSv1.3, 108 ms | `ClienteCentralGoTest`; `fase-0.md` §Testes em aparelho real |
 | Spike (c) PRAGMAs Room 3 | Room rebaixava `synchronous` para NORMAL e deixava `foreign_keys` desligado; corrigido com `DriverDuravel`. **Aparelho real OK** (moto g56, 13/11: `wal · 2 · 1`, SQLite 3.50.1); na mesma sessão, nova conexão em TLSv1.3, 92 ms | `PragmasTest` (JVM); `fase-0.md` §Testes em aparelho real |
-| Spike (d) Instalador NSIS | Script pronto (WebView2 offline, firewall na porta 38807) | **Não testado** |
+| Spike (d) Instalador NSIS | **Testado no Windows 11** (13/11, VM Hyper-V sem rede): instalação, Central sem rede, firewall, desinstalação preservando os dados, reinstalação com o mesmo ID e pin. Achados 1–4 corrigidos no instalador `9d120cce…`, **ainda sem reteste**. Windows 10 22H2 não testado | `fase-0.md` §Teste do instalador |
 | Spike (b) Hotspot do Windows / tampa | **Cancelado** (A21/ADR-0016): hotspot do Windows só com internet e computador ligado, já validado 2× (notebook com Wi‑Fi, PC com Ethernet). P8 encerrada | `fase-0.md`; `rede-em-campo.md` |
 | Decisões novas | A19/ADR-0014 (TLS 1.2 restrito), A20/ADR-0015 (ZXing no lugar do ML Kit), porta 38807, A21/ADR-0016 (hotspot do Windows só com internet) | [matriz-decisoes.md](matriz-decisoes.md) |
 
 ## 2. O que falta para fechar a Fase 0 (em ordem)
 
+### Para a próxima sessão (14/11, mesmo PC desktop)
+1. **Repetir o teste do instalador na VM** com o build corrigido (`Downloads\sitposse7-teste\sitposse7-central-amd64-installer.exe`, SHA-256 `9d120cced51cbed412bb50694f2b99745a09a1d5fb16027d055509a07768f242`):
+   1. Hyper-V: aplicar o ponto de verificação **"Windows limpo"** da VM `SITPOSSE7-Win11-teste`, ligar e conectar (sessão avançada, senha da conta `teste`).
+   2. Colar o instalador na área de trabalho da VM e conferir `Get-FileHash` (começa com `9D120CCE`).
+   3. Instalar: o log deve mostrar "critérios"/"excluída" **com acento**; atalho, instalador e barra de tarefas com o **ícone novo**.
+   4. Abrir a Central ("Nenhuma rede Wi‑Fi/local ativa"), **fechar e abrir de novo**: deve continuar "Nenhuma rede", **sem `127.0.0.1`**.
+   5. Desinstalar: a pasta `C:\Program Files\7º BPMPMRO` deve **sumir**; `AppData\Local\SITPOSSE-7` deve **continuar**.
+   6. Registrar em `fase-0.md` §Teste do instalador (riscar "falta repetir o teste na VM").
+2. **(Opcional) Ícone no celular:** instalar `Downloads\sitposse7-teste\sitposse7-campo-debug.apk` no moto g56 e conferir o ícone na tela inicial (e o ícone temático, se ativado).
+3. **(Opcional) Limpeza do Windows:** apagar a ISO `Downloads\26300.9457…pt-br.iso` (8,2 GB) depois de tirá-la da unidade de DVD da VM; excluir o "Ponto de Verificação Automática… 20:09" (anterior à instalação). **Não** excluir o "Windows limpo".
+4. **Pedir ao usuário que aprove a conclusão da Fase 0** (item 3 abaixo). Só depois disso começa a Fase 1.
+
+### Situação dos itens da Fase 0
+
 Quase tudo depende do **usuário com aparelhos e computador reais**. O P8 (hotspot do Windows sem internet e tampa fechada) foi **encerrado sem teste** pela A21/ADR-0016: o hotspot do Windows só é usado com internet e com o computador ligado. O agente prepara os builds, orienta e registra os resultados em `fase-0.md`.
 
 1. ~~**Cartão "Banco de dados" no aparelho**~~: **feito em 13/11** (moto g56: "Configuração de durabilidade correta", `wal · synchronous=2 · foreign_keys=1`).
-2. **Spike (d), instalador:** testar em Windows 11 (e, se possível, Windows 10 22H2) **limpo e sem internet**: instalação, Central abrindo, regra de firewall, desinstalação sem apagar os dados.
-   - **Gerado em 13/11 pelo WSL** (o `makensis` 3.09 está em `/usr/bin`; não precisa de NSIS, Go nem Node no Windows): `bin/sitposse7-central-amd64-installer.exe`, 222 MB, já copiado para `Downloads\sitposse7-teste`. Ver §4.
-   - **Ambiente de teste:** VM Hyper-V (Geração 2, TPM virtual, **sem placa de rede**) com o **Windows 11 Enterprise Evaluation** (ISO gratuita de 90 dias do Evaluation Center; aceita conta local sem internet). Criar um **ponto de verificação** logo após instalar o Windows, para repetir o teste do zero. O Hyper-V **não estava habilitado** no PC desktop (13/11).
+2. ~~**Spike (d), instalador**~~: **feito em 13/11 no Windows 11** (VM limpa, sem rede): tudo OK. Achados não bloqueantes em `fase-0.md` §Teste do instalador e em "Melhorias" abaixo. Windows 10 22H2 (único que exercita o WebView2 offline) não testado: fazer se houver uma máquina ou ISO.
+   - **Gerado pelo WSL** (o `makensis` 3.09 está em `/usr/bin`; não precisa de NSIS, Go nem Node no Windows): `bin/sitposse7-central-amd64-installer.exe`, 222 MB, copiado para `Downloads\sitposse7-teste`. Build atual (com as correções): `9d120cce…68f242`. Ver §4.
+   - **Ambiente de teste (pronto no PC desktop):** VM Hyper-V `SITPOSSE7-Win11-teste` (Geração 2, 4 GB, 2 vCPUs, TPM virtual, adaptador **não conectado**) com o **Windows 11 Enterprise Evaluation** ativado até ~11/02/2027, conta local `teste`. Para repetir: reverter ao ponto de verificação **"Windows limpo"** e colar o instalador pela sessão avançada (área de transferência; não usa rede). Sem ativação online a avaliação nasce vencida (0xC004F009); se recriar a VM, ligue-a ao *Default Switch* só para `slmgr.vbs /ato` e desconecte antes do ponto de verificação.
    - **Atenção:** o Windows 11 já vem com o WebView2, então o instalador **pula** o WebView2 embutido. Só um Windows 10 22H2 limpo exercita a instalação offline do WebView2.
 3. Registrar tudo em `fase-0.md`, atualizar o changelog e **pedir ao usuário que aprove a conclusão da Fase 0**. Os testes abaixo foram adiados **com aprovação do usuário** (A22, 13/11): não bloqueiam a conclusão da Fase 0, e a P7 continua aberta até o teste em Android 17.
 
@@ -42,6 +57,7 @@ Quase tudo depende do **usuário com aparelhos e computador reais**. O P8 (hotsp
 ### Melhorias já identificadas (não bloqueiam a Fase 0; fazer quando o usuário aprovar ou na Fase 2)
 - A Central permite várias janelas abertas ao mesmo tempo; deveria aceitar só uma (instância única do Wails). A segunda janela mostra "porta em uso".
 - O QR inclui IPs de adaptadores virtuais (WSL/Hyper-V/Docker, ex.: `172.18.0.1`); o app tenta os IPs em sequência (até 5 s cada). Filtrar adaptadores virtuais na Central e/ou tentar os IPs em paralelo no app.
+- **Achados do teste do instalador (13/11):** os itens 1 a 4 já foram **corrigidos** (instalador `9d120cce…68f242`, copiado para `Downloads\sitposse7-teste`); falta repetir o teste na VM. (1) a tela de diagnóstico mostra `127.0.0.1` a partir da 2ª abertura, e o QR pode levar IPs antigos cobertos pelo certificado salvo (`CarregarOuCriarIdentidade` devolve os IPs do certificado, não os atuais); (2) a pasta `7º BPMPMRO` fica vazia em `Program Files` após desinstalar; (3) acentos quebrados no log do instalador (saída OEM do `netsh`); (4) ícone padrão do Wails; (5) sem assinatura de código.
 - P10: `applicationId` provisório `br.gov.ro.pm.sitposse7.campo`. Decidir antes do primeiro uso em campo.
 
 ## 3. Preparar uma máquina nova
@@ -100,6 +116,15 @@ wails3 build GOOS=windows               # → bin/sitposse7-central.exe (no Wind
 # da Microsoft com Get-AuthenticodeSignature no Windows) em build/windows/nsis/ com o nome
 # MicrosoftEdgeWebView2RuntimeInstallerX64.exe (ignorado pelo git).
 wails3 package GOOS=windows             # → bin/sitposse7-central-amd64-installer.exe (~222 MB)
+
+# Ícone (só se mudar build/appicon.svg). Renderiza com o Edge do Windows (sem dependência nova)
+# e gera o .ico. Confira o PNG antes: um SVG inválido vira uma página de erro sem falhar o comando.
+W=/mnt/c/Users/$USER/AppData/Local/Temp/sitposse7-icone; mkdir -p $W; cp build/appicon.svg $W/
+"/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" --headless --disable-gpu \
+  --hide-scrollbars --default-background-color=00000000 --window-size=1024,1024 \
+  --screenshot="$(wslpath -w $W/appicon.png)" "$(wslpath -w $W/appicon.svg)"
+cp $W/appicon.png build/appicon.png
+(cd build && wails3 generate icons -input appicon.png -windowsfilename windows/icon.ico -macfilename "")
 ```
 
 Contagem esperada (13/11): domínio 8, sync 7 (`PinTest` 1 + `ClienteCentralGoTest` 6), banco 4 (`PragmasTest` 2 + `PragmaDuravelTest` 2), QR 3. Se a contagem cair, algo foi pulado.

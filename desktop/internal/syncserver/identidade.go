@@ -61,7 +61,9 @@ func CarregarOuCriarIdentidade(dir string, ips []net.IP) (*Identidade, error) {
 
 	certPath := filepath.Join(dir, arquivoCert)
 	if cert, err := lerCert(certPath, chave); err == nil && cobreIPs(cert.Leaf, ips) && time.Until(cert.Leaf.NotAfter) > 365*24*time.Hour {
-		return &Identidade{Chave: chave, Certificado: cert, IPs: cert.Leaf.IPAddresses}, nil
+		// IPs anunciados (tela e QR) são os atuais, não o SAN do certificado: ele
+		// sempre traz o loopback e pode trazer IPs de redes antigas.
+		return &Identidade{Chave: chave, Certificado: cert, IPs: ips}, nil
 	}
 	cert, err := emitirCert(chave, ips)
 	if err != nil {
