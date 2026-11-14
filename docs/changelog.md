@@ -2,6 +2,15 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-14 (MVP) — correção: app fechava ao confirmar o pareamento
+- **mobile** · **Causa:** `ApiCentral.close()`/`ClienteCentral.fechar()` fechavam o socket TLS na thread que chamava (a principal, no fim do `api.use { }` do pareamento). O Android lança `NetworkOnMainThreadException`, e o OkHttp a repassa. Agora o fechamento roda na thread do OkHttp (`Conexoes.kt`, `liberarForaDaThreadAtual`). Detalhes e evidências: [`mobile/docs/incidentes/2026-11-14-crash-pareamento.md`](../mobile/docs/incidentes/2026-11-14-crash-pareamento.md).
+- **mobile** · Defesas: erro inesperado na sincronização vira mensagem na tela com referência (`sinc_erro_inesperado`), e o app não fecha; o lote fica `erro_recuperavel` com a causa. Registro local no logcat (`Sitposse7Sinc`), por tentativa, com as etapas e a duração, sem segredos.
+- **mobile** · App `0.1.1-mvp` (versionCode 3), APK `f4a7fd54…`, mesma chave de debug (`ab61d27f…`): instala por cima sem perder dados. O anterior ficou como `sitposse7-campo-debug-a0de8bde.apk`.
+- **mobile** · Testes novos: `FechamentoConexaoTest` (2, reproduzem o crash) e `PareamentoGoTest` (4: recusado, repetido, tempo esgotado, Central caída). Total 48.
+- **desktop** · `central-teste`: `-espera` e comandos `pendentes`/`aceitar`/`recusar`. A Central e o instalador não mudaram.
+- **Validado no aparelho** (moto g56, 14/11): pareamento e envio OK no notebook (2 cadastros) e no PC (1 cadastro). P12 aberta: o que fazer ao parear com outra Central.
+- **docs** · `protocolo.md` §2: o token é consumido antes da resposta (o aparelho que perde a resposta precisa de novo QR). Sem mudança de esquema, protocolo ou dependência.
+
 ## 2026-11-14 (MVP) — telas da Central e roteiro do teste em campo
 - **desktop** · Frontend novo (Vue, sem biblioteca nova): painel, propriedades (busca, filtro por equipe, detalhe com itens, área, coordenadas e fotos servidas por `/fotos/{uuid}.jpg`), equipes, sincronização (criar operação, QR de pareamento com token de 10 min e uso único, confirmação do pareamento em qualquer tela, lotes recebidos ao vivo com recusas e diagnóstico da Central). Layout adaptável (barra lateral → barra superior abaixo de 1000 px; detalhe lateral → abaixo em janelas menores), tema claro/escuro, janela mínima 900×600. Versão `0.1.0-mvp`; bindings regenerados.
 - **desktop** · Instalador `99706c25…` (inclui o WebView2 offline, como antes).

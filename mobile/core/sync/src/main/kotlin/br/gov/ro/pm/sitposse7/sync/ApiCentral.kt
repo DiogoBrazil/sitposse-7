@@ -156,10 +156,8 @@ class ApiCentral(
         runCatching { executar(http, req("v1/lotes/$lote/ack").post(ByteArray(0).toRequestBody(null)).build()) }
     }
 
-    override fun close() {
-        http.dispatcher.executorService.shutdown()
-        http.connectionPool.evictAll()
-    }
+    /** Pode ser chamado em qualquer thread, inclusive a principal (ver [liberarForaDaThreadAtual]). */
+    override fun close() = http.liberarForaDaThreadAtual()
 }
 
 internal fun Throwable.temCausaPin(): Boolean {

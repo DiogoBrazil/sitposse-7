@@ -12,6 +12,7 @@ import br.gov.ro.pm.sitposse7.dados.PropriedadeEntidade
 import br.gov.ro.pm.sitposse7.dados.RepositorioCampo
 import br.gov.ro.pm.sitposse7.dados.StatusLote
 import br.gov.ro.pm.sitposse7.dominio.PayloadQr
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
@@ -108,6 +109,12 @@ class Sincronizador(
         } catch (f: FalhaCentral) {
             db.loteDao().mudarStatus(lote.uuid, if (f.fatal) StatusLote.ERRO_FATAL else StatusLote.ERRO_RECUPERAVEL, f.message, agora())
             throw f
+        } catch (c: CancellationException) {
+            throw c // o lote fica "enviando" e é retomado na próxima vez
+        } catch (e: Exception) {
+            // Falha não prevista: o lote continua aberto para nova tentativa, com a causa registrada.
+            runCatching { db.loteDao().mudarStatus(lote.uuid, StatusLote.ERRO_RECUPERAVEL, "Erro inesperado: ${e::class.java.simpleName}", agora()) }
+            throw e
         }
     }
 

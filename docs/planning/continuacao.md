@@ -38,6 +38,8 @@ A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-d
 6. ~~**Central, telas**~~ **feito (14/11):** painel (totais das visões vigentes, área com "N sem área"), propriedades (busca sem acento, filtro por equipe, detalhe com itens, área, coordenadas e fotos ampliáveis), equipes, sincronização (criar operação, QR de pareamento com validade e uso único, confirmação do pareamento em qualquer tela, lotes recebidos ao vivo com recusas). Barra lateral que vira barra superior em janela estreita; tema claro/escuro.
 7. **Builds e roteiro:** **feito (14/11):** `Downloads\sitposse7-teste\sitposse7-central-amd64-installer.exe` (`99706c25…`) e `sitposse7-campo-debug.apk` (`a0de8bde…`, 0.1.0-mvp); versões anteriores guardadas com sufixo. Roteiro: [teste-de-campo-mvp.md](../operacao/teste-de-campo-mvp.md).
 
+**Teste de bancada (14/11, noite): o app fechava ao confirmar o pareamento.** Corrigido no `0.1.1-mvp` (`sitposse7-campo-debug.apk`, `f4a7fd54…`; instala por cima, mesma chave). Causa: socket TLS fechado na thread principal. Ver [incidente](../../mobile/docs/incidentes/2026-11-14-crash-pareamento.md). **Validado no aparelho em 14/11 às 19:28:** os 2 cadastros antigos foram enviados ao notebook e o 3º ao PC, com recibo e sem crash. Cada Central ficou com o que recebeu: ver **P12**. Decisão do usuário (14/11): por enquanto, **um só computador** como Central; usar mais de um fica para depois (alternativa sugerida: exportar e importar entre Centrais). Os reinícios do PC desktop são de hardware (WHEA 18 / MCE no Ryzen 5 5600X, desde setembro): use o notebook como Central nos testes.
+
 **Próximo passo: o usuário faz o teste em campo** seguindo o roteiro e traz os resultados. Antes, conferir na bancada (PC + moto g56): instalar, parear, 2–3 cadastros com foto e GPS, enviar, conferir na Central. Pendências de decisão: ADR-0017 e ADR-0018 (Propostos) e P11.
 
 **Atenção (dados descartáveis, A24):** o APK é assinado com a chave de debug **desta máquina**. Gere todas as versões do teste aqui; um APK de outra máquina obriga a desinstalar o app e apaga os cadastros do celular.
@@ -62,6 +64,11 @@ Quase tudo depende do **usuário com aparelhos e computador reais**. O P8 (hotsp
 2. **Android 17 (P7):** testar em um aparelho com Android 17 (a permissão de rede local é pedida antes de conectar). Se houver, testar também Android 8 ou 9 (deve conectar em **TLSv1.2**).
 
 ### Melhorias já identificadas (não bloqueiam a Fase 0; fazer quando o usuário aprovar ou na Fase 2)
+- **Diagnóstico da sincronização (propostas do incidente de 14/11, aguardam aprovação):**
+  - (a) log de eventos local na Central (arquivo na pasta de dados com rotação; hoje a Central não registra recusas nem erros da API);
+  - (b) identificador de correlação enviado pelo app num cabeçalho opcional e registrado pela Central (mudança de protocolo: exige ADR);
+  - (c) registro local de crashes no app, visível no Diagnóstico;
+  - (d) botão "Gerar QR" bloqueado enquanto gera (14/11: dois QRs com 1,5 s de diferença).
 - A Central permite várias janelas abertas ao mesmo tempo; deveria aceitar só uma (instância única do Wails). A segunda janela mostra "porta em uso".
 - O QR inclui IPs de adaptadores virtuais (WSL/Hyper-V/Docker, ex.: `172.18.0.1`); o app tenta os IPs em sequência (até 5 s cada). Filtrar adaptadores virtuais na Central e/ou tentar os IPs em paralelo no app.
 - **Achados do teste do instalador:** 1 a 4 **corrigidos e retestados em 14/11** (`fase-0.md` §Reteste). Faltam: (5) assinatura de código; (6) a desinstalação deixa o perfil do WebView2 em `%APPDATA%\sitposse7-central.exe` (`$AppData` aponta para `C:\ProgramData` no contexto de administrador do template do Wails). Corrigir no empacotamento (Fase 7).
@@ -136,7 +143,7 @@ cp $W/appicon.png build/appicon.png
 (cd build && wails3 generate icons -input appicon.png -windowsfilename windows/icon.ico -macfilename "")
 ```
 
-Contagem esperada (14/11): domínio 13 (área/normalização/QR 8 + `CadastroTest` 5), sync 14 (`PinTest` 1, `ClienteCentralGoTest` 6, `ContratosTest` 4, `SincronizacaoGoTest` 3), banco 9 (`PragmasTest` 2, `PragmaDuravelTest` 2, `MigracaoTest` 1, `RepositorioCampoTest` 4), app 6 (QR 3, `ArmazemFotosTest` 3): total 42. Se a contagem cair, algo foi pulado.
+Contagem esperada (14/11, noite): domínio 13 (área/normalização/QR 8 + `CadastroTest` 5), sync 20 (`PinTest` 1, `ClienteCentralGoTest` 6, `ContratosTest` 4, `SincronizacaoGoTest` 3, `FechamentoConexaoTest` 2, `PareamentoGoTest` 4), banco 9 (`PragmasTest` 2, `PragmaDuravelTest` 2, `MigracaoTest` 1, `RepositorioCampoTest` 4), app 6 (QR 3, `ArmazemFotosTest` 3): total 48. Se a contagem cair, algo foi pulado.
 
 Observações:
 - O `ClienteCentralGoTest` compila `desktop/cmd/central-teste` e **falha** (não é pulado) sem Go no `PATH` (ou em `SITPOSSE7_GO`).

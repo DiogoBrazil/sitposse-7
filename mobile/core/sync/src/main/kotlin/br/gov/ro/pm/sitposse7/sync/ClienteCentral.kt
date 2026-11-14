@@ -88,11 +88,8 @@ class ClienteCentral internal constructor(
         }
     }
 
-    /** Libera conexões e threads do OkHttp. */
-    fun fechar() {
-        http.dispatcher.executorService.shutdown()
-        http.connectionPool.evictAll()
-    }
+    /** Libera conexões e threads do OkHttp; pode ser chamado em qualquer thread ([liberarForaDaThreadAtual]). */
+    fun fechar() = http.liberarForaDaThreadAtual()
 }
 
 /** TLS 1.3 + TLS 1.2 ECDHE-ECDSA com AEAD (espelho de `SuitesTLS12` em desktop/internal/syncserver). */

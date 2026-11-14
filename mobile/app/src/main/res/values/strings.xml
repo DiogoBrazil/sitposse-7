@@ -180,5 +180,6 @@
     <string name="sinc_nada">Nada pendente: tudo já está confirmado na Central.</string>
     <string name="sinc_resultado">%1$d cadastro(s) confirmado(s) · %2$d em análise na Central · %3$d erro(s)</string>
     <string name="sinc_rejeitados">Registros recusados pela Central (continuam pendentes):\n%1$s</string>
+    <string name="sinc_erro_inesperado">Erro inesperado na sincronização (%1$s, ref. %2$s). Os cadastros continuam guardados no aparelho. Tente de novo.</string>
     <string name="sinc_permissoes_negadas">Sem as permissões pedidas não é possível ler o QR ou conectar à Central.</string>
 </resources>

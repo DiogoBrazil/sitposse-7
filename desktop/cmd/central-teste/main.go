@@ -29,6 +29,7 @@ import (
 func main() {
 	dir := flag.String("dir", "", "pasta de dados (padrão: temporária, apagada ao sair)")
 	confirmar := flag.Bool("confirmar", true, "confirmar automaticamente os pedidos de pareamento")
+	espera := flag.Duration("espera", 10*time.Second, "tempo máximo aguardando o operador confirmar o pareamento")
 	flag.Parse()
 
 	pasta := *dir
@@ -46,7 +47,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer n.Fechar()
-	n.Pareamento.Espera = 10 * time.Second
+	n.Pareamento.Espera = *espera
 	if op, err := n.Pareamento.OperacaoAtiva(ctx); err != nil {
 		log.Fatal(err)
 	} else if op == nil {
@@ -85,6 +86,16 @@ func main() {
 				log.Fatal(err)
 			}
 			_ = saida.Encode(map[string]string{"token": t})
+		case "pendentes": // pedidos de pareamento esperando o operador
+			_ = saida.Encode(map[string]int{"pendentes": len(n.Pareamento.Pendentes())})
+		case "aceitar", "recusar": // decide todos os pedidos pendentes, como o operador
+			d := 0
+			for _, p := range n.Pareamento.Pendentes() {
+				if n.Pareamento.Decidir(p.ID, sc.Text() == "aceitar") == nil {
+					d++
+				}
+			}
+			_ = saida.Encode(map[string]int{"decididos": d})
 		case "estado":
 			est := map[string]int{}
 			for nome, q := range map[string]string{

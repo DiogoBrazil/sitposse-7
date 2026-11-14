@@ -28,11 +28,23 @@ class CentralGo private constructor(
     /** Novo token de pareamento (uso único). */
     fun novoToken(): String = comando("token").getValue("token").jsonPrimitive.content
 
+    /** Pedidos de pareamento esperando o operador (só com `-confirmar=false`). */
+    fun pendentes(): Int = comando("pendentes").getValue("pendentes").jsonPrimitive.int
+
+    /** Faz o papel do operador: aceita ou recusa os pedidos pendentes; devolve quantos decidiu. */
+    fun decidir(aceitar: Boolean): Int = comando(if (aceitar) "aceitar" else "recusar").getValue("decididos").jsonPrimitive.int
+
+    /** Mata o processo sem encerramento limpo (computador desligado ou Central fechada à força). */
+    fun derrubar() {
+        processo.destroyForcibly()
+        processo.waitFor(10, TimeUnit.SECONDS)
+    }
+
     /** Contagens das visões vigentes na Central. */
     fun estado(): Map<String, Int> = comando("estado").mapValues { it.value.jsonPrimitive.int }
 
     override fun close() {
-        processo.outputStream.close() // o servidor encerra ao fechar a entrada padrão
+        runCatching { processo.outputStream.close() } // o servidor encerra ao fechar a entrada padrão
         if (!processo.waitFor(10, TimeUnit.SECONDS)) processo.destroyForcibly()
     }
 
@@ -48,8 +60,9 @@ class CentralGo private constructor(
             saida
         }
 
-        fun iniciar(): CentralGo {
-            val p = ProcessBuilder(binario.absolutePath).redirectError(ProcessBuilder.Redirect.INHERIT).start()
+        /** [argumentos]: opções do central-teste, por exemplo `-confirmar=false` e `-espera=2s`. */
+        fun iniciar(vararg argumentos: String): CentralGo {
+            val p = ProcessBuilder(listOf(binario.absolutePath) + argumentos).redirectError(ProcessBuilder.Redirect.INHERIT).start()
             val r = p.inputStream.bufferedReader()
             val o = Json.parseToJsonElement(checkNotNull(r.readLine()) { "central-teste não respondeu" }).jsonObject
             return CentralGo(

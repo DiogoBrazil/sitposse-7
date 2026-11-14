@@ -27,6 +27,7 @@ Operador (Central)          Central                         Android
 ```
 - Token expirado ou já usado → `410` com mensagem "Gere um novo QR na Central".
 - Equipe já vinculada a **outra** operação → `409`: o operador decide (P6).
+- A Central consome o token e grava o dispositivo **antes** de responder `200`. Se o aparelho não recebe ou não grava a resposta (queda de rede, app encerrado), ele continua sem pareamento e precisa de um **novo QR**: o mesmo responde `410`. O novo pareamento substitui a credencial do mesmo `instalacao_uuid`. Recusa (`403 recusado`) e tempo esgotado (`409 tempo_esgotado`) não consomem o token. Incidente relacionado: [crash após a confirmação](../../mobile/docs/incidentes/2026-11-14-crash-pareamento.md).
 
 ## 3. Endpoints
 | Método e rota | Função |

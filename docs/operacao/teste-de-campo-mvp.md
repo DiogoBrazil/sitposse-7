@@ -3,7 +3,7 @@
 Objetivo: cadastrar propriedades **sem internet** numa área rural, voltar e descarregar tudo na Central pelo **hotspot do Windows com internet** (A21), conferindo que nada se perdeu nem duplicou.
 
 ## Antes de sair (na base)
-1. **Central:** instale `sitposse7-central-amd64-installer.exe` no computador que vai receber os dados (não precisa desinstalar a versão anterior; os dados ficam em `%LOCALAPPDATA%\SITPOSSE-7`).
+1. **Central:** instale `sitposse7-central-amd64-installer.exe` no computador que vai receber os dados (não precisa desinstalar a versão anterior; os dados ficam em `%LOCALAPPDATA%\SITPOSSE-7`). Use **um só computador** como Central em todo o teste: o celular não reenvia a outra Central o que já foi confirmado (P12).
 2. Abra a Central → **Sincronização** → crie a **operação** (ex.: "Teste de campo — novembro/2026").
 3. **Celular:** instale `sitposse7-campo-debug.apk` por cima do app anterior (mesma chave de debug desta máquina; o banco migra sozinho para a versão 2). Abra e configure a **equipe** se pedir.
 4. **Parear** (precisa estar perto da Central uma vez):
