@@ -41,7 +41,7 @@ import br.gov.ro.pm.sitposse7.sync.ResultadoStatus
 private const val API_REDE_LOCAL = 37 // Android 17
 
 @Composable
-fun DiagnosticoTela(vm: DiagnosticoViewModel = viewModel()) {
+fun DiagnosticoTela(aoVoltar: () -> Unit = {}, vm: DiagnosticoViewModel = viewModel()) {
     val estado by vm.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
     var aviso by remember { mutableStateOf<Int?>(null) }
@@ -54,7 +54,7 @@ fun DiagnosticoTela(vm: DiagnosticoViewModel = viewModel()) {
     }
     fun temPermissao(p: String) = ContextCompat.checkSelfPermission(contexto, p) == PackageManager.PERMISSION_GRANTED
 
-    Scaffold { pad ->
+    Scaffold(topBar = { br.gov.ro.pm.sitposse7.campo.ui.BarraSuperior(stringResource(R.string.diag_titulo), aoVoltar) }) { pad ->
         Column(
             Modifier.fillMaxSize().padding(pad).padding(16.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),

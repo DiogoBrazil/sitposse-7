@@ -2,6 +2,12 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-14 (MVP) — telas do app de campo
+- **mobile** · App `0.1.0-mvp` (versionCode 2): `CampoApp` (dependências e reconciliador de fotos na abertura), navegação por pilha salva (sem biblioteca nova), tema claro de alto contraste com modo escuro, layout adaptável pela largura (grade na lista; conteúdo centralizado em telas largas), ícones vetoriais locais (Material Icons, Apache 2.0).
+- **mobile** · Telas: configurar/editar equipe; início (números, rascunhos para retomar, última sincronização confirmada, alarme de foto sem arquivo); lista com busca sem acento e filtros (pendentes, sem GPS, sem foto, erro); detalhe com excluir; formulário por seções com rascunho automático (~1 s), quantidades com +/−, itens do catálogo e vários "Outros" (aviso de repetido e somar, RN-33), área com conversão, GPS (GNSS sem internet com progresso, melhor precisão, meta de 15 m e 90 s; ou digitado sem precisão) e fotos (CameraX, redução a 2560 px/JPEG 85, `.part` + fsync + rename antes do registro); sincronização (pareamento pelo QR com espera do operador, envio com progresso de fotos, resultado e recusas). Diagnóstico continua acessível.
+- **mobile** · Permissões novas: `ACCESS_FINE_LOCATION` e `ACCESS_COARSE_LOCATION` (GNSS). `kotlinx-serialization-json` (já fixada) no `:app` para o rascunho. Teste `ArmazemFotosTest`.
+- **docs** · P11 (mensagens de erro dos módulos `:core` no código, não em `strings.xml`).
+
 ## 2026-11-14 (MVP) — banco v2 e sincronização no celular (ADR-0018)
 - **mobile** · **Esquema:** banco Room v2 com a migração não destrutiva `MIGRACAO_1_2` (SQL exportado pelo Room; testada com `MigrationTestHelper`): equipe, propriedades, itens, fotografias, rascunhos, lotes de envio (JSON congelado), itens do lote e pareamento.
 - **mobile** · `:core:dominio`: `Catalogo` (conferido com a fixture compartilhada), modelo do formulário `CadastroPropriedade` (serializável para o rascunho) e `ValidacaoCadastro` (RN-11..55, RN-32/33/34).

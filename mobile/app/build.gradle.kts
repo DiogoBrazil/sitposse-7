@@ -12,8 +12,8 @@ android {
         applicationId = "br.gov.ro.pm.sitposse7.campo"
         minSdk { version = release(26) }   // A15
         targetSdk { version = release(37) } // P7
-        versionCode = 1
-        versionName = "0.0.1-fase0"
+        versionCode = 2
+        versionName = "0.1.0-mvp"
     }
 
     buildFeatures { compose = true }
@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.zxing.core) // QR offline, sem Play Services nem telemetria (ADR-0015)
 
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json) // rascunho do formulário (JSON)
 
     testImplementation(kotlin("test-junit5"))
     testImplementation(platform(libs.junit.bom))
