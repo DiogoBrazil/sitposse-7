@@ -4,60 +4,54 @@ package app
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"path/filepath"
-	"time"
+	"regexp"
+	"strings"
 
-	"github.com/google/uuid"
-
-	"sitposse7/desktop/internal/banco"
+	"sitposse7/desktop/internal/consultas"
+	"sitposse7/desktop/internal/nucleo"
+	"sitposse7/desktop/internal/pareamento"
 	"sitposse7/desktop/internal/syncserver"
 )
 
 // Versao do aplicativo Central.
-const Versao = "0.0.1-fase0"
+const Versao = "0.1.0-mvp"
 
-// Central inicializa banco e servidor de sincronização e expõe diagnósticos.
+// Central inicializa o núcleo e mantém o servidor de sincronização.
 type Central struct {
 	PastaDados string
-	banco      *banco.Banco
-	servidor   *syncserver.Servidor
-	centralID  string
+	n          *nucleo.Nucleo
+	c          *consultas.Consultas
 	erroServ   string
 }
 
 // Info é o diagnóstico exibido na tela de Sincronização.
 type Info struct {
-	Versao         string   `json:"versao"`
-	CentralID      string   `json:"central_id"`
-	PastaDados     string   `json:"pasta_dados"`
-	IPs            []string `json:"ips"`
-	Porta          int      `json:"porta"`
-	Pin            string   `json:"pin"`
-	ServidorAtivo  bool     `json:"servidor_ativo"`
-	ErroServidor   string   `json:"erro_servidor"`
-	VersaoEsquema  int      `json:"versao_esquema"`
+	Versao             string   `json:"versao"`
+	CentralID          string   `json:"central_id"`
+	PastaDados         string   `json:"pasta_dados"`
+	IPs                []string `json:"ips"`
+	Porta              int      `json:"porta"`
+	Pin                string   `json:"pin"`
+	ServidorAtivo      bool     `json:"servidor_ativo"`
+	ErroServidor       string   `json:"erro_servidor"`
+	VersaoEsquema      int      `json:"versao_esquema"`
+	FotosSemArquivo    []string `json:"fotos_sem_arquivo"` // alarme do reconciliador
 }
 
-// Iniciar abre o banco, garante a identidade e sobe o servidor HTTPS.
+// Iniciar abre o núcleo e sobe o servidor HTTPS.
 func (c *Central) Iniciar(ctx context.Context, porta int) error {
-	b, err := banco.Abrir(ctx, filepath.Join(c.PastaDados, "sitposse7.db"))
+	n, err := nucleo.Abrir(ctx, c.PastaDados, syncserver.IPsLocaisPrivados())
 	if err != nil {
-		return fmt.Errorf("banco: %w", err)
-	}
-	c.banco = b
-	if c.centralID, err = garantirCentralID(ctx, b.Escrita); err != nil {
 		return err
 	}
-	id, err := syncserver.CarregarOuCriarIdentidade(filepath.Join(c.PastaDados, "tls"), syncserver.IPsLocaisPrivados())
-	if err != nil {
-		return fmt.Errorf("identidade TLS: %w", err)
-	}
-	c.servidor = &syncserver.Servidor{Identidade: id, CentralID: c.centralID}
-	if err := c.servidor.Iniciar(fmt.Sprintf(":%d", porta)); err != nil {
+	c.n = n
+	c.c = &consultas.Consultas{DB: n.B.Leitura}
+	if err := n.Servidor.Iniciar(fmt.Sprintf(":%d", porta)); err != nil {
 		// Não impede o uso offline da Central; só a recepção fica indisponível.
 		c.erroServ = fmt.Sprintf("Não foi possível escutar na porta %d: %v", porta, err)
 	}
@@ -66,51 +60,62 @@ func (c *Central) Iniciar(ctx context.Context, porta int) error {
 
 // Encerrar para o servidor e fecha o banco.
 func (c *Central) Encerrar() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if c.servidor != nil {
-		_ = c.servidor.Parar(ctx)
-	}
-	if c.banco != nil {
-		_ = c.banco.Fechar()
+	if c.n != nil {
+		c.n.Fechar()
 	}
 }
 
-// SincronizacaoService é o único serviço exposto ao frontend nesta fase.
-// Não expõe ciclo de vida (Iniciar/Encerrar) para que a UI não possa fechar o banco.
-type SincronizacaoService struct{ C *Central }
+var reFoto = regexp.MustCompile(`^/fotos/([0-9a-f-]{36})\.jpg$`)
 
-// Info devolve o diagnóstico atual.
-func (s *SincronizacaoService) Info() Info { return s.C.info() }
-
-// QRPareamento devolve o payload do QR de conexão.
-func (s *SincronizacaoService) QRPareamento() (syncserver.PayloadQR, error) { return s.C.qrPareamento() }
+// HandlerFotos serve à tela as fotos vigentes (/fotos/{uuid}.jpg), só leitura.
+func (c *Central) HandlerFotos() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		m := reFoto.FindStringSubmatch(r.URL.Path)
+		if m == nil || r.Method != http.MethodGet {
+			http.NotFound(w, r)
+			return
+		}
+		rel, err := c.c.CaminhoFotoVigente(r.Context(), m[1])
+		if err != nil || rel == "" || strings.Contains(rel, "..") {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Header().Set("Cache-Control", "private, max-age=86400")
+		http.ServeFile(w, r, filepath.Join(c.PastaDados, filepath.FromSlash(rel)))
+	})
+}
 
 func (c *Central) info() Info {
-	inf := Info{Versao: Versao, CentralID: c.centralID, PastaDados: c.PastaDados, ErroServidor: c.erroServ, VersaoEsquema: banco.VersaoMaxima()}
-	if c.servidor != nil {
-		inf.Pin = c.servidor.Identidade.Pin()
-		inf.Porta = c.servidor.Porta()
-		inf.ServidorAtivo = c.erroServ == "" && inf.Porta > 0
-		for _, ip := range c.servidor.Identidade.IPs {
+	inf := Info{Versao: Versao, PastaDados: c.PastaDados, ErroServidor: c.erroServ, FotosSemArquivo: []string{}}
+	if c.n == nil {
+		return inf
+	}
+	inf.CentralID = c.n.CentralID
+	inf.FotosSemArquivo = append(inf.FotosSemArquivo, c.n.Reconciliacao.RegistrosSemArquivo...)
+	var v int
+	_ = c.n.B.Leitura.QueryRow("PRAGMA user_version").Scan(&v)
+	inf.VersaoEsquema = v
+	s := c.n.Servidor
+	inf.Pin = s.Identidade.Pin()
+	inf.Porta = s.Porta()
+	inf.ServidorAtivo = c.erroServ == "" && inf.Porta > 0
+	for _, ip := range s.Identidade.IPs {
+		if !ip.IsLoopback() {
 			inf.IPs = append(inf.IPs, ip.String())
 		}
 	}
 	return inf
 }
 
-// qrPareamento monta o payload do QR (Fase 0: sem token; o pareamento entra na Fase 2).
-func (c *Central) qrPareamento() (syncserver.PayloadQR, error) {
-	if c.servidor == nil || c.erroServ != "" {
-		return syncserver.PayloadQR{}, errors.New("servidor de sincronização indisponível")
-	}
-	// Reavalia IPs (o notebook pode ter entrado em outra rede/hotspot).
-	if atuais := syncserver.IPsLocaisPrivados(); !mesmosIPs(atuais, c.servidor.Identidade.IPs) {
+// atualizarIPs reavalia os IPs (o computador pode ter ligado o hotspot depois de abrir a Central).
+func (c *Central) atualizarIPs() {
+	s := c.n.Servidor
+	if atuais := syncserver.IPsLocaisPrivados(); !mesmosIPs(atuais, s.Identidade.IPs) {
 		if id, err := syncserver.CarregarOuCriarIdentidade(filepath.Join(c.PastaDados, "tls"), atuais); err == nil {
-			c.servidor.Identidade.IPs = id.IPs
+			s.Identidade.IPs = id.IPs
 		}
 	}
-	return c.servidor.QR("", nil), nil
 }
 
 func mesmosIPs(a, b []net.IP) bool {
@@ -125,17 +130,94 @@ func mesmosIPs(a, b []net.IP) bool {
 	return true
 }
 
-func garantirCentralID(ctx context.Context, db *sql.DB) (string, error) {
-	var id string
-	err := db.QueryRowContext(ctx, `SELECT valor FROM meta WHERE chave = 'central_id'`).Scan(&id)
-	if err == nil {
-		return id, nil
+// ---------- serviços expostos ao frontend ----------
+// Não expõem ciclo de vida (Iniciar/Encerrar) para que a UI não possa fechar o banco.
+
+// SincronizacaoService: diagnóstico, QR de pareamento, pedidos pendentes e recepção.
+type SincronizacaoService struct{ C *Central }
+
+// Info devolve o diagnóstico atual.
+func (s *SincronizacaoService) Info() Info {
+	if s.C.n != nil {
+		s.C.atualizarIPs()
 	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return "", err
-	}
-	id = uuid.NewString()
-	agora := time.Now().UnixMilli()
-	_, err = db.ExecContext(ctx, `INSERT INTO meta (chave, valor, created_at, updated_at) VALUES ('central_id', ?, ?, ?)`, id, agora, agora)
-	return id, err
+	return s.C.info()
 }
+
+// QRPareamento é o QR com token de uso único e a validade.
+type QRPareamento struct {
+	Payload  syncserver.PayloadQR `json:"payload"`
+	ExpiraEm int64                `json:"expira_em"`
+}
+
+// GerarQRPareamento cria um token novo (10 min, uso único) e monta o QR.
+func (s *SincronizacaoService) GerarQRPareamento() (*QRPareamento, error) {
+	c := s.C
+	if c.n == nil || c.erroServ != "" {
+		return nil, errors.New("servidor de sincronização indisponível")
+	}
+	c.atualizarIPs()
+	token, op, expira, err := c.n.Pareamento.GerarToken(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	p := c.n.Servidor.QR(token, &syncserver.Operacao{UUID: op.UUID, Nome: op.Nome})
+	return &QRPareamento{Payload: p, ExpiraEm: expira.UnixMilli()}, nil
+}
+
+// Pendentes lista os aparelhos aguardando confirmação.
+func (s *SincronizacaoService) Pendentes() []pareamento.PedidoResumo {
+	if s.C.n == nil {
+		return []pareamento.PedidoResumo{}
+	}
+	return s.C.n.Pareamento.Pendentes()
+}
+
+// Decidir confirma (true) ou recusa (false) o pareamento.
+func (s *SincronizacaoService) Decidir(id string, aceitar bool) error {
+	return s.C.n.Pareamento.Decidir(id, aceitar)
+}
+
+// Lotes lista os últimos lotes recebidos.
+func (s *SincronizacaoService) Lotes() ([]consultas.LoteLinha, error) {
+	return s.C.c.Lotes(contexto(), 100)
+}
+
+// Rejeicoes lista os registros rejeitados de um lote.
+func (s *SincronizacaoService) Rejeicoes(lote string) ([]consultas.Rejeicao, error) {
+	return s.C.c.Rejeicoes(contexto(), lote)
+}
+
+// OperacaoService: operação ativa.
+type OperacaoService struct{ C *Central }
+
+// Ativa devolve a operação ativa (nil se não houver).
+func (s *OperacaoService) Ativa() (*pareamento.Operacao, error) {
+	return s.C.n.Pareamento.OperacaoAtiva(contexto())
+}
+
+// Criar cria e ativa a operação.
+func (s *OperacaoService) Criar(nome, descricao string) (*pareamento.Operacao, error) {
+	return s.C.n.Pareamento.CriarOperacao(contexto(), nome, descricao)
+}
+
+// ConsultaService: leituras para o painel, propriedades e equipes (somente leitura).
+type ConsultaService struct{ C *Central }
+
+// Resumo devolve os números do painel.
+func (s *ConsultaService) Resumo() (*consultas.Resumo, error) { return s.C.c.Resumo(contexto()) }
+
+// Propriedades lista as propriedades vigentes.
+func (s *ConsultaService) Propriedades(busca, equipe string) ([]consultas.PropriedadeLinha, error) {
+	return s.C.c.Propriedades(contexto(), busca, equipe)
+}
+
+// Propriedade devolve o detalhe (nil se não existir).
+func (s *ConsultaService) Propriedade(uuid string) (*consultas.PropriedadeDetalhe, error) {
+	return s.C.c.Propriedade(contexto(), uuid)
+}
+
+// Equipes lista as equipes.
+func (s *ConsultaService) Equipes() ([]consultas.EquipeLinha, error) { return s.C.c.Equipes(contexto()) }
+
+func contexto() context.Context { return context.Background() }

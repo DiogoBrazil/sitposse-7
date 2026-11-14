@@ -8,6 +8,9 @@ Executadas pelos testes **Kotlin e Go**. Se um lado divergir, o teste falha.
 | `area/somas.json` | RN-45 | lista de propriedades e total esperado em dm²/ha, contagem "sem área" |
 | `normalizacao/nomes.json` | RN-35 | `original` → `normalizado`, `valido` |
 | `contratos/qr-pareamento.v1.json` | protocolo §2 | `validos` e `invalidos` (com `motivo`) do QR |
+| `contratos/{lote,estado-lote,recibo}.v1.json` | protocolo §3–6, ADR-0017 | `validos` e `invalidos`; `recibo` traz também o `texto_canonico` e o `recibo_sha256` esperados |
+| `contratos/pareamento.v1.json` | protocolo §2 | `pedidos_validos`, `respostas_validas`, `invalidos` |
+| `catalogo/itens.v1.json` | RN-30 | catálogo inicial (códigos estáveis); o seed da Central e o do Android devem ser iguais |
 | `tls/pin.json` + `tls/central-fixture.crt.pem` | ADR-0007 | certificado → pin SPKI esperado (calculado com OpenSSL; Go e Kotlin conferem) |
 
 **Fórmulas de referência:**

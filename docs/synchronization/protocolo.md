@@ -116,7 +116,17 @@ O Android faz `rev_confirmada = max(rev_confirmada, rev)` para `aplicado`, `dupl
 ## 8. Pacote USB
 Formato e fluxo: ADR-0008. O conteúdo é o mesmo do `PUT /v1/lotes` com as fotos dentro do ZIP. A importação passa pelo mesmo núcleo, e o recibo é igual ao da seção 6.
 
-## 9. Compatibilidade de versões
+## 9. Detalhes da v1 implementada (ADR-0017)
+- **Schemas:** `shared/schemas/{comum,pareamento,lote,estado-lote,recibo}.v1.schema.json`; fixtures em `shared/test-fixtures/contratos`.
+- **Pareamento:** o `POST /v1/pareamento` espera a decisão do operador por até **90 s**. Token do QR: 10 min, uso único, marcado como usado só na confirmação.
+- **Erros:** corpo `{"codigo","erro"}`. Códigos: `invalido` 400 · `nao_autorizado` 401 · `proibido`, `recusado` 403 · `nao_encontrado` 404 · `lote_divergente`, `outra_operacao`, `tempo_esgotado`, `sem_operacao` 409 · `token_invalido` 410 · `versao_incompativel` 422 · `erro_interno` 500. **Nunca 408** (o OkHttp repete sozinho).
+- **`PUT /v1/fotos/{foto}?offset=N`:** offset diferente do já recebido → 409 `{"codigo":"offset","offset":M}`; o app continua de M. Resposta 200: `{"uuid","offset","existe"}`; `GET` igual.
+- **`POST /v1/lotes/{lote}/importar`:** com foto faltando ou hash divergente → **409 com o estado do lote** (`fotos_faltantes`); nada é aplicado.
+- **Mesmo `lote_uuid`:** bytes idênticos → aceito (e, se importado, o mesmo recibo); bytes diferentes → 409 `lote_divergente`. O Android congela o JSON do lote ao prepará-lo.
+- **`recibo_sha256`:** SHA‑256 de `lote_uuid\ncentral_id\nimportado_em\n` + uma linha `entidade|uuid|rev|resultado|motivo\n` por resultado, na ordem do recibo.
+- **A equipe vai em todo lote** (com a sua `rev`); no recibo ela vem como `duplicado` se já estava na Central com a mesma `rev` (gravada no pareamento).
+
+## 10. Compatibilidade de versões
 - A Central declara `protocolo_versao_min/max` e `schema_versao_min/max` em `/v1/status`.
 - O Android fora da faixa vê "Atualize o aplicativo (Campo vX / Central vY)". Nenhum dado é descartado.
 - Toda nova versão de protocolo é acompanhada de fixtures da versão anterior, para testes de compatibilidade.

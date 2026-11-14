@@ -1,0 +1,99 @@
+{
+  "pedidos_validos": [
+    {
+      "protocolo_versao": 1,
+      "schema_versao": 1,
+      "token_pareamento": "tKq3x9Vb2LmN8pQr4StU6vWx0YzA1bC3dE5fG7hI",
+      "instalacao_uuid": "1c7b2d3f-4e5a-4b6c-9d7e-8f9a0b1c2d3e",
+      "rotulo_aparelho": "moto g56 da equipe",
+      "equipe": {
+        "uuid": "0b6a1c2e-3d4f-4a5b-8c6d-7e8f9a0b1c2d",
+        "nome": "Equipe Linha 25",
+        "responsavel": "Sgt. Exemplo",
+        "identificacao_area": "Linha 25",
+        "created_at": "2026-11-14T11:00:00.000Z",
+        "updated_at": "2026-11-14T11:00:00.000Z",
+        "rev": 1
+      }
+    },
+    {
+      "protocolo_versao": 1,
+      "schema_versao": 1,
+      "token_pareamento": "tKq3x9Vb2LmN8pQr4StU6vWx0YzA1bC3dE5fG7hI",
+      "instalacao_uuid": "1c7b2d3f-4e5a-4b6c-9d7e-8f9a0b1c2d3e",
+      "rotulo_aparelho": null,
+      "equipe": {
+        "uuid": "0b6a1c2e-3d4f-4a5b-8c6d-7e8f9a0b1c2d",
+        "nome": "Equipe Linha 25",
+        "responsavel": "Sgt. Exemplo",
+        "identificacao_area": "Linha 25",
+        "created_at": "2026-11-14T11:00:00.000Z",
+        "updated_at": "2026-11-14T11:00:00.000Z",
+        "rev": 1
+      }
+    }
+  ],
+  "respostas_validas": [
+    {
+      "protocolo_versao": 1,
+      "central_id": "8de29eaf-bfc1-4cd3-8e4f-5a6b7c8d9eaf",
+      "credencial_dispositivo": "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ",
+      "operacao": {
+        "uuid": "9ef3afb0-c0d2-4de4-9f50-6b7c8d9eafb0",
+        "nome": "Operação Campo Novo 2026"
+      }
+    }
+  ],
+  "invalidos": [
+    {
+      "motivo": "token curto",
+      "dado": {
+        "protocolo_versao": 1,
+        "schema_versao": 1,
+        "token_pareamento": "abc",
+        "instalacao_uuid": "1c7b2d3f-4e5a-4b6c-9d7e-8f9a0b1c2d3e",
+        "rotulo_aparelho": "moto g56 da equipe",
+        "equipe": {
+          "uuid": "0b6a1c2e-3d4f-4a5b-8c6d-7e8f9a0b1c2d",
+          "nome": "Equipe Linha 25",
+          "responsavel": "Sgt. Exemplo",
+          "identificacao_area": "Linha 25",
+          "created_at": "2026-11-14T11:00:00.000Z",
+          "updated_at": "2026-11-14T11:00:00.000Z",
+          "rev": 1
+        }
+      }
+    },
+    {
+      "motivo": "equipe sem responsável",
+      "dado": {
+        "protocolo_versao": 1,
+        "schema_versao": 1,
+        "token_pareamento": "tKq3x9Vb2LmN8pQr4StU6vWx0YzA1bC3dE5fG7hI",
+        "instalacao_uuid": "1c7b2d3f-4e5a-4b6c-9d7e-8f9a0b1c2d3e",
+        "rotulo_aparelho": "moto g56 da equipe",
+        "equipe": {
+          "uuid": "0b6a1c2e-3d4f-4a5b-8c6d-7e8f9a0b1c2d",
+          "nome": "Equipe Linha 25",
+          "responsavel": "",
+          "identificacao_area": "Linha 25",
+          "created_at": "2026-11-14T11:00:00.000Z",
+          "updated_at": "2026-11-14T11:00:00.000Z",
+          "rev": 1
+        }
+      }
+    },
+    {
+      "motivo": "credencial com padding",
+      "dado": {
+        "protocolo_versao": 1,
+        "central_id": "8de29eaf-bfc1-4cd3-8e4f-5a6b7c8d9eaf",
+        "credencial_dispositivo": "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ=",
+        "operacao": {
+          "uuid": "9ef3afb0-c0d2-4de4-9f50-6b7c8d9eafb0",
+          "nome": "Operação Campo Novo 2026"
+        }
+      }
+    }
+  ]
+}

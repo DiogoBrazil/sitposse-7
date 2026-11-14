@@ -30,10 +30,10 @@
 
 ### MVP para teste em campo (A24, aprovado em 14/11): etapas
 A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-decisoes.md) A24 e [plano.md](plano.md). Ordem de trabalho (marque ao concluir):
-1. **Contratos:** `shared/schemas` do pareamento, do lote e do recibo (v1) + fixtures válidas e inválidas, validadas em Go e Kotlin.
+1. **Contratos:** `shared/schemas` do pareamento, do lote e do recibo (v1) + fixtures válidas e inválidas. **Go: feito (14/11, ADR-0017, Proposto)**; falta a checagem no Kotlin.
 2. **Celular, dados:** banco Room v2 (migração 1→2 testada), catálogo de itens, repositórios com `rev` na mesma transação, rascunhos, fotos (arquivo antes do registro) e reconciliador.
 3. **Celular, telas:** configurar equipe, início, lista e busca, cadastro e edição por seções, detalhes, GNSS, câmera, rascunho; responsivas (celular pequeno, grande e tablet).
-4. **Central, recepção:** migração 0002, operação, pareamento com confirmação do operador, `PUT/GET /v1/lotes`, `PUT/GET /v1/fotos`, importação com recibo, reconciliador de fotos.
+4. ~~**Central, recepção:**~~ **feito (14/11):** migração 0002, operação, pareamento com confirmação do operador, `PUT/GET /v1/lotes`, `PUT/GET /v1/fotos`, importação com recibo, reconciliador, consultas; `central-teste` com a API completa. Testes Go de ponta a ponta (`internal/nucleo`) nos cenários 1, 4, 5, 6, 7 e 8.
 5. **Celular, sincronização:** pareamento, máquina de estados do lote, envio e recibo; teste cruzado com o servidor Go real (cenários 1, 4, 5, 6, 7 e 8).
 6. **Central, telas:** operação, QR de pareamento, recepção ao vivo, propriedades e fotos (consulta); responsivas.
 7. **Builds e roteiro do teste em campo** (APK e instalador; passo a passo de ida a campo e descarga).

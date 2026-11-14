@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sitposse7.local/schemas/lote.v1.schema.json",
+  "title": "PUT /v1/lotes/{lote_uuid}: manifesto e registros (v1)",
+  "description": "protocolo.md §3 e §5. Cada registro leva a rev que o Android quer confirmar. Tombstone = excluido_em preenchido. Os bytes das fotos vão por PUT /v1/fotos.",
+  "type": "object",
+  "required": ["protocolo_versao", "schema_versao", "lote_uuid", "instalacao_uuid", "criado_em", "equipe", "propriedades", "itens", "fotos"],
+  "additionalProperties": false,
+  "properties": {
+    "protocolo_versao": { "const": 1 },
+    "schema_versao": { "const": 1 },
+    "lote_uuid": { "$ref": "comum.v1.schema.json#/$defs/uuid" },
+    "instalacao_uuid": { "$ref": "comum.v1.schema.json#/$defs/uuid" },
+    "criado_em": { "$ref": "comum.v1.schema.json#/$defs/instante" },
+    "equipe": { "$ref": "comum.v1.schema.json#/$defs/equipe" },
+    "propriedades": { "type": "array", "maxItems": 5000, "items": { "$ref": "#/$defs/propriedade" } },
+    "itens": { "type": "array", "maxItems": 50000, "items": { "$ref": "#/$defs/item" } },
+    "fotos": { "type": "array", "maxItems": 20000, "items": { "$ref": "#/$defs/foto" } }
+  },
+  "$defs": {
+    "q": { "$ref": "comum.v1.schema.json#/$defs/quantidade" },
+    "propriedade": {
+      "type": "object",
+      "required": ["uuid", "equipe_uuid", "nome_propriedade", "responsavel_familia",
+        "pessoas_adultos", "pessoas_jovens", "pessoas_criancas",
+        "veic_caminhoes", "veic_automoveis_utilitarios", "veic_motos_ciclomotores",
+        "bov_adultos", "bov_bezerros", "equ_adultos", "equ_potros",
+        "area_valor_milesimos", "area_unidade", "lat", "lon", "gps_origem", "gps_precisao_m", "gps_capturado_em", "gps_satelites",
+        "created_at", "updated_at", "rev", "excluido_em"],
+      "additionalProperties": false,
+      "properties": {
+        "uuid": { "$ref": "comum.v1.schema.json#/$defs/uuid" },
+        "equipe_uuid": { "$ref": "comum.v1.schema.json#/$defs/uuid" },
+        "nome_propriedade": { "$ref": "comum.v1.schema.json#/$defs/textoObrigatorio" },
+        "responsavel_familia": { "$ref": "comum.v1.schema.json#/$defs/textoOpcional" },
+        "pessoas_adultos": { "$ref": "#/$defs/q" }, "pessoas_jovens": { "$ref": "#/$defs/q" }, "pessoas_criancas": { "$ref": "#/$defs/q" },
+        "veic_caminhoes": { "$ref": "#/$defs/q" }, "veic_automoveis_utilitarios": { "$ref": "#/$defs/q" }, "veic_motos_ciclomotores": { "$ref": "#/$defs/q" },
+        "bov_adultos": { "$ref": "#/$defs/q" }, "bov_bezerros": { "$ref": "#/$defs/q" },
+        "equ_adultos": { "$ref": "#/$defs/q" }, "equ_potros": { "$ref": "#/$defs/q" },
+        "area_valor_milesimos": { "oneOf": [ { "type": "null" }, { "type": "integer", "minimum": 0 } ] },
+        "area_unidade": { "enum": [null, "ha", "alq_paulista"] },
+        "lat": { "oneOf": [ { "type": "null" }, { "type": "number", "minimum": -90, "maximum": 90 } ] },
+        "lon": { "oneOf": [ { "type": "null" }, { "type": "number", "minimum": -180, "maximum": 180 } ] },
+        "gps_origem": { "enum": [null, "gnss", "manual"] },
+        "gps_precisao_m": { "oneOf": [ { "type": "null" }, { "type": "number", "minimum": 0 } ] },
+        "gps_capturado_em": { "$ref": "comum.v1.schema.json#/$defs/instanteOuNulo" },
+        "gps_satelites": { "oneOf": [ { "type": "null" }, { "type": "integer", "minimum": 0 } ] },
+        "created_at": { "$ref": "comum.v1.schema.json#/$defs/instante" },
+        "updated_at": { "$ref": "comum.v1.schema.json#/$defs/instante" },
+        "rev": { "$ref": "comum.v1.schema.json#/$defs/rev" },
+        "excluido_em": { "$ref": "comum.v1.schema.json#/$defs/instanteOuNulo" }
+      },
+      "allOf": [
+        { "if": { "properties": { "area_valor_milesimos": { "type": "null" } } }, "then": { "properties": { "area_unidade": { "const": null } } }, "else": { "properties": { "area_unidade": { "enum": ["ha", "alq_paulista"] } } } },
+        { "if": { "properties": { "lat": { "type": "null" } } },
+          "then": { "properties": { "lon": { "const": null }, "gps_origem": { "const": null }, "gps_precisao_m": { "const": null }, "gps_capturado_em": { "const": null }, "gps_satelites": { "const": null } } },
+          "else": { "properties": { "lon": { "type": "number" }, "gps_origem": { "enum": ["gnss", "manual"] } } } },
+        { "if": { "properties": { "gps_origem": { "const": "manual" } }, "required": ["gps_origem"] }, "then": { "properties": { "gps_precisao_m": { "const": null } } } }
+      ]
+    },
+    "item": {
+      "type": "object",
+      "required": ["uuid", "propriedade_uuid", "categoria", "codigo_catalogo", "nome_personalizado", "quantidade", "created_at", "updated_at", "rev", "excluido_em"],
+      "additionalProperties": false,
+      "properties": {
+        "uuid": { "$ref": "comum.v1.schema.json#/$defs/uuid" },
+        "propriedade_uuid": { "$ref": "comum.v1.schema.json#/$defs/uuid" },
+        "categoria": { "enum": ["eletrodomestico", "movel", "ave"] },
+        "codigo_catalogo": { "type": "string", "pattern": "^(eletro|movel|ave)\\.[a-z_]+$" },
+        "nome_personalizado": { "$ref": "comum.v1.schema.json#/$defs/textoOpcional" },
+        "quantidade": { "$ref": "#/$defs/q" },
+        "created_at": { "$ref": "comum.v1.schema.json#/$defs/instante" },
+        "updated_at": { "$ref": "comum.v1.schema.json#/$defs/instante" },
+        "rev": { "$ref": "comum.v1.schema.json#/$defs/rev" },
+        "excluido_em": { "$ref": "comum.v1.schema.json#/$defs/instanteOuNulo" }
+      },
+      "if": { "properties": { "codigo_catalogo": { "pattern": "\\.outros$" } } },
+      "then": { "properties": { "nome_personalizado": { "$ref": "comum.v1.schema.json#/$defs/textoObrigatorio" } } },
+      "else": { "properties": { "nome_personalizado": { "const": null } } }
+    },
+    "foto": {
+      "type": "object",
+      "required": ["uuid", "propriedade_uuid", "mime", "tamanho_bytes", "sha256", "largura", "altura", "capturada_em", "created_at", "updated_at", "rev", "excluido_em"],
+      "additionalProperties": false,
+      "properties": {
+        "uuid": { "$ref": "comum.v1.schema.json#/$defs/uuid" },
+        "propriedade_uuid": { "$ref": "comum.v1.schema.json#/$defs/uuid" },
+        "mime": { "const": "image/jpeg" },
+        "tamanho_bytes": { "type": "integer", "minimum": 1, "maximum": 52428800 },
+        "sha256": { "$ref": "comum.v1.schema.json#/$defs/sha256" },
+        "largura": { "type": "integer", "minimum": 1 },
+        "altura": { "type": "integer", "minimum": 1 },
+        "capturada_em": { "$ref": "comum.v1.schema.json#/$defs/instante" },
+        "created_at": { "$ref": "comum.v1.schema.json#/$defs/instante" },
+        "updated_at": { "$ref": "comum.v1.schema.json#/$defs/instante" },
+        "rev": { "$ref": "comum.v1.schema.json#/$defs/rev" },
+        "excluido_em": { "$ref": "comum.v1.schema.json#/$defs/instanteOuNulo" }
+      }
+    }
+  }
+}

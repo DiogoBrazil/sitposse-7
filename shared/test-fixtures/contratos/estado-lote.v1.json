@@ -1,0 +1,100 @@
+{
+  "validos": [
+    {
+      "protocolo_versao": 1,
+      "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+      "status": "recebendo",
+      "fotos_faltantes": [
+        {
+          "uuid": "7cd18d9f-aeb0-4bc2-9d3e-4f5a6b7c8d9e",
+          "offset": 1048576
+        }
+      ],
+      "recibo": null
+    },
+    {
+      "protocolo_versao": 1,
+      "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+      "status": "importado",
+      "fotos_faltantes": [],
+      "recibo": {
+        "protocolo_versao": 1,
+        "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+        "central_id": "8de29eaf-bfc1-4cd3-8e4f-5a6b7c8d9eaf",
+        "importado_em": "2026-11-14T18:00:05.123Z",
+        "resultados": [
+          {
+            "entidade": "equipe",
+            "uuid": "0b6a1c2e-3d4f-4a5b-8c6d-7e8f9a0b1c2d",
+            "rev": 1,
+            "resultado": "aplicado"
+          },
+          {
+            "entidade": "propriedade",
+            "uuid": "3e9d4f5b-6a7c-4d8e-9f9a-0b1c2d3e4f5a",
+            "rev": 3,
+            "resultado": "aplicado"
+          },
+          {
+            "entidade": "propriedade",
+            "uuid": "4fae5a6c-7b8d-4e9f-8a0b-1c2d3e4f5a6b",
+            "rev": 1,
+            "resultado": "duplicado"
+          },
+          {
+            "entidade": "item",
+            "uuid": "5abf6b7d-8c9e-4fa0-9b1c-2d3e4f5a6b7c",
+            "rev": 1,
+            "resultado": "aplicado"
+          },
+          {
+            "entidade": "item",
+            "uuid": "6bc07c8e-9daf-4ab1-8c2d-3e4f5a6b7c8d",
+            "rev": 2,
+            "resultado": "rejeitado",
+            "motivo": "código de catálogo desconhecido: ave.emu"
+          },
+          {
+            "entidade": "foto",
+            "uuid": "7cd18d9f-aeb0-4bc2-9d3e-4f5a6b7c8d9e",
+            "rev": 1,
+            "resultado": "aplicado"
+          }
+        ],
+        "recibo_sha256": "9f7b3a5608e963aafa8c4662564f05543d163a2b7bc277a7915707850d24ab20"
+      }
+    }
+  ],
+  "invalidos": [
+    {
+      "motivo": "status desconhecido",
+      "dado": {
+        "protocolo_versao": 1,
+        "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+        "status": "pronto",
+        "fotos_faltantes": [
+          {
+            "uuid": "7cd18d9f-aeb0-4bc2-9d3e-4f5a6b7c8d9e",
+            "offset": 1048576
+          }
+        ],
+        "recibo": null
+      }
+    },
+    {
+      "motivo": "offset negativo",
+      "dado": {
+        "protocolo_versao": 1,
+        "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+        "status": "recebendo",
+        "fotos_faltantes": [
+          {
+            "uuid": "7cd18d9f-aeb0-4bc2-9d3e-4f5a6b7c8d9e",
+            "offset": -1
+          }
+        ],
+        "recibo": null
+      }
+    }
+  ]
+}

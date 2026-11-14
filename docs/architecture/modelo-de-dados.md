@@ -95,6 +95,7 @@ Status: **Recomendado R1/R2, aprovado com o plano em 13/11/2026.** O DDL definit
 - `tokens_pareamento(token_hash, operacao_uuid, expira_em, usado_em)`.
 - `aliases_itens(nome_normalizado PK, grupo_canonico, created_at, updated_at)`.
 - `backups(uuid, caminho, criado_em, verificado_em NULL, cobre_ate_recebido_em, manifesto_sha256)`.
+- **Implementado no MVP (migração 0002, ADR-0017):** `operacoes` (no máximo uma `ativa`), `equipes`, `tokens_pareamento`, `dispositivos`, `propriedades`, `catalogo_itens` (semeado; igual a `shared/test-fixtures/catalogo/itens.v1.json`), `itens_propriedade`, `fotografias`, `lotes_recebidos` (+ `manifesto_sha256`, `ack_em`), `fotos_esperadas`, `aplicacoes`, `auditoria` (somente acréscimo, por gatilhos) e as visões vigentes. Cada entidade recebida tem `registro_json` (último payload aplicado, usado como "antes" na auditoria). `conflitos`, `aliases_itens` e `backups` ficam para as fases deles.
 
 ## Índices e visões
 - `propriedades(equipe_uuid) WHERE excluido_em IS NULL`

@@ -23,5 +23,6 @@ Um ADR aprovado **não é editado** para mudar a decisão: cria-se um novo ADR q
 | [0014](0014-tls12-minimo-android8.md) | TLS 1.2 restrito como mínimo (Android 8 e 9) | Aprovado |
 | [0015](0015-zxing-leitor-qr.md) | ZXing para ler o QR da Central (substitui o ML Kit) | Aprovado |
 | [0016](0016-hotspot-windows-com-internet.md) | Hotspot do Windows só com internet de origem (encerra P8) | Aprovado |
+| [0017](0017-contratos-v1-e-esquema-central-mvp.md) | Contratos v1 de sincronização e esquema 0002 da Central (MVP) | Proposto |
 
 Modelo para novos ADRs: copie [`template.md`](template.md).

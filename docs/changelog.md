@@ -2,6 +2,14 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-14 (MVP) — contratos v1 e recepção na Central (ADR-0017)
+- **shared** · Schemas v1 `comum`, `pareamento`, `lote`, `estado-lote` e `recibo`; fixtures válidas e inválidas em `test-fixtures/contratos` (com o `recibo_sha256` esperado) e o catálogo inicial em `test-fixtures/catalogo/itens.v1.json`.
+- **desktop** · **Esquema:** migração `0002_mvp_recepcao.sql` (não destrutiva; testada a partir de um banco da Fase 0 com dados): operações, equipes, tokens, dispositivos, propriedades, catálogo semeado, itens, fotografias, lotes recebidos, fotos esperadas, aplicações, auditoria somente acréscimo e visões vigentes.
+- **desktop** · Novos pacotes: `contratos` (tipos e validação v1, conferida contra os schemas), `importacao` (lote idempotente pelo hash do manifesto, fotos em blocos de 1 MiB com fsync e retomada por offset, SHA‑256 conferido, arquivo publicado antes do registro, aplicação em `SAVEPOINT` por registro, recibo persistido, reconciliador), `pareamento` (operação ativa, token de 10 min e uso único, pedido aguardando o operador por até 90 s, credencial com hash), `consultas` (painel, propriedades com busca sem acento, detalhe, equipes, lotes) e `nucleo` (monta tudo igual para o app, o `central-teste` e os testes). API v1 completa no `syncserver`. Camada `app` com os serviços de operação, sincronização e consulta, e rota `/fotos/{uuid}.jpg` para a tela.
+- **desktop** · `cmd/central-teste` sobe a Central completa (operação criada, token, confirmação automática) para os testes cruzados do Android.
+- **docs** · ADR-0017 (Proposto): detalhes da v1 (espera longa no pareamento, códigos de erro sem 408, idempotência por hash do manifesto, hash do recibo, validação em Go, esquema 0002). `protocolo.md` §9, `modelo-de-dados.md`, `importacao-e-consolidacao.md`, READMEs de `shared/`.
+- Sem dependência nova.
+
 ## 2026-11-14 — Fase 0 concluída (A23) e MVP para teste em campo (A24)
 - **docs** · Matriz: A23 (Fase 0 concluída, com os adiados da A22 e o Windows 10 sem teste) e A24 (recorte do MVP: Fases 1 e 2 em fatia vertical + transferência segura da Fase 3; Central só recebe e consulta; dados de teste descartáveis). `plano.md` com a linha do MVP e a Fase 0 concluída; `continuacao.md` com as 7 etapas do MVP.
 - Sem mudança de código.

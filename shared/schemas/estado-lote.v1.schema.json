@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sitposse7.local/schemas/estado-lote.v1.schema.json",
+  "title": "Estado do lote: resposta de PUT/GET /v1/lotes/{lote} e do importar sem sucesso (v1)",
+  "type": "object",
+  "required": ["protocolo_versao", "lote_uuid", "status", "fotos_faltantes", "recibo"],
+  "additionalProperties": false,
+  "properties": {
+    "protocolo_versao": { "const": 1 },
+    "lote_uuid": { "$ref": "comum.v1.schema.json#/$defs/uuid" },
+    "status": { "enum": ["recebendo", "importado"] },
+    "fotos_faltantes": {
+      "type": "array",
+      "description": "Fotos cujos bytes a Central ainda não tem completos; offset = bytes já recebidos em staging.",
+      "items": {
+        "type": "object", "required": ["uuid", "offset"], "additionalProperties": false,
+        "properties": { "uuid": { "$ref": "comum.v1.schema.json#/$defs/uuid" }, "offset": { "type": "integer", "minimum": 0 } }
+      }
+    },
+    "recibo": { "oneOf": [ { "type": "null" }, { "$ref": "recibo.v1.schema.json" } ] }
+  }
+}

@@ -5,7 +5,7 @@ O núcleo único `internal/importacao` atende `PUT/POST /v1/lotes` (Wi‑Fi) e `
 ## Passos
 1. **Validar o envelope**: versões (`protocolo_versao`, `schema_versao`), dispositivo pareado e não revogado, equipe coerente com a instalação, `lote_uuid`.
 2. **Idempotência do lote**: se `lotes_recebidos.status = importado`, devolver o recibo existente.
-3. **Validar registros** contra o JSON Schema e as regras (CHECKs). Registro inválido → `rejeitado` com motivo; os demais seguem.
+3. **Validar registros** com `internal/contratos` (mesmas regras dos JSON Schemas, conferidas nos testes; ADR-0017) e com os CHECKs do banco. Registro inválido → `rejeitado` com motivo, num `SAVEPOINT`; os demais seguem.
 4. **Fotos**: conferir tamanho e SHA‑256 em staging; publicar com rename e fsync (ver [integridade](../../docs/synchronization/integridade.md)).
 5. **Transação única**:
    - para cada cadastro, aplicar a tabela de decisão de [conflitos.md](../../docs/synchronization/conflitos.md);

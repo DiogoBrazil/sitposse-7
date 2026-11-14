@@ -5,6 +5,7 @@ import (
 	"context"
 	"embed"
 	"log"
+	"net/http"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -32,9 +33,11 @@ func main() {
 		Description: "Central de consolidação do SITPOSSE-7 — 7º BPM/PMRO",
 		Services: []application.Service{
 			application.NewService(&app.SincronizacaoService{C: central}),
+			application.NewService(&app.OperacaoService{C: central}),
+			application.NewService(&app.ConsultaService{C: central}),
 		},
 		Assets: application.AssetOptions{
-			Handler: application.AssetFileServerFS(assets),
+			Handler: rotas(central, application.AssetFileServerFS(assets)),
 		},
 	})
 
@@ -42,8 +45,8 @@ func main() {
 		Title:            "SITPOSSE-7 Central",
 		Width:            1280,
 		Height:           800,
-		MinWidth:         1024,
-		MinHeight:        700,
+		MinWidth:         900,
+		MinHeight:        600,
 		BackgroundColour: application.NewRGB(248, 250, 252),
 		URL:              "/",
 	})
@@ -51,4 +54,12 @@ func main() {
 	if err := wapp.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// rotas serve as fotos da Central em /fotos/ e o frontend no resto.
+func rotas(central *app.Central, frontend http.Handler) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("/fotos/", central.HandlerFotos())
+	mux.Handle("/", frontend)
+	return mux
 }

@@ -1,0 +1,108 @@
+{
+  "versao_catalogo": 1,
+  "descricao": "Catálogo inicial (RN-30). Códigos estáveis: nunca reutilizar nem renomear; item novo ganha código novo.",
+  "itens": [
+    {
+      "codigo": "eletro.freezer",
+      "categoria": "eletrodomestico",
+      "nome_exibicao": "Freezer",
+      "ordem": 1
+    },
+    {
+      "codigo": "eletro.geladeira",
+      "categoria": "eletrodomestico",
+      "nome_exibicao": "Geladeira",
+      "ordem": 2
+    },
+    {
+      "codigo": "eletro.fogao",
+      "categoria": "eletrodomestico",
+      "nome_exibicao": "Fogão",
+      "ordem": 3
+    },
+    {
+      "codigo": "eletro.maquina_lavar",
+      "categoria": "eletrodomestico",
+      "nome_exibicao": "Máquina de lavar",
+      "ordem": 4
+    },
+    {
+      "codigo": "eletro.ar_condicionado",
+      "categoria": "eletrodomestico",
+      "nome_exibicao": "Ar-condicionado",
+      "ordem": 5
+    },
+    {
+      "codigo": "eletro.ventilador",
+      "categoria": "eletrodomestico",
+      "nome_exibicao": "Ventilador",
+      "ordem": 6
+    },
+    {
+      "codigo": "eletro.outros",
+      "categoria": "eletrodomestico",
+      "nome_exibicao": "Outros",
+      "ordem": 7
+    },
+    {
+      "codigo": "movel.sofa",
+      "categoria": "movel",
+      "nome_exibicao": "Sofá",
+      "ordem": 1
+    },
+    {
+      "codigo": "movel.mesa_jantar",
+      "categoria": "movel",
+      "nome_exibicao": "Mesa de jantar",
+      "ordem": 2
+    },
+    {
+      "codigo": "movel.armario",
+      "categoria": "movel",
+      "nome_exibicao": "Armário",
+      "ordem": 3
+    },
+    {
+      "codigo": "movel.estante",
+      "categoria": "movel",
+      "nome_exibicao": "Estante",
+      "ordem": 4
+    },
+    {
+      "codigo": "movel.guarda_roupa",
+      "categoria": "movel",
+      "nome_exibicao": "Guarda-roupa",
+      "ordem": 5
+    },
+    {
+      "codigo": "movel.outros",
+      "categoria": "movel",
+      "nome_exibicao": "Outros",
+      "ordem": 6
+    },
+    {
+      "codigo": "ave.galinha",
+      "categoria": "ave",
+      "nome_exibicao": "Galinha",
+      "ordem": 1
+    },
+    {
+      "codigo": "ave.ganso",
+      "categoria": "ave",
+      "nome_exibicao": "Ganso",
+      "ordem": 2
+    },
+    {
+      "codigo": "ave.pato",
+      "categoria": "ave",
+      "nome_exibicao": "Pato",
+      "ordem": 3
+    },
+    {
+      "codigo": "ave.outros",
+      "categoria": "ave",
+      "nome_exibicao": "Outros",
+      "ordem": 4
+    }
+  ]
+}

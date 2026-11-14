@@ -9,6 +9,9 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"sitposse7/desktop/internal/importacao"
+	"sitposse7/desktop/internal/pareamento"
 )
 
 // Versões de protocolo e esquema aceitas por esta Central.
@@ -53,14 +56,22 @@ type Servidor struct {
 	Identidade *Identidade
 	CentralID  string
 	Operacao   func() *Operacao
-	http       *http.Server
-	ln         net.Listener
+	// Pareamento e Importador habilitam a API v1 completa (nil = só /v1/status).
+	Pareamento *pareamento.Servico
+	Importador *importacao.Importador
+	// AoReceber é chamado (sem bloquear) quando chega lote, foto ou importação, para a tela ao vivo.
+	AoReceber func(evento string)
+	http      *http.Server
+	ln        net.Listener
 }
 
 // Handler devolve o roteador HTTP (exposto para testes).
 func (s *Servidor) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/status", s.status)
+	if s.Pareamento != nil && s.Importador != nil {
+		s.registrarAPI(mux)
+	}
 	return somenteRedeLocal(mux)
 }
 
