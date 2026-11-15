@@ -39,7 +39,7 @@ func TestRealAriquemes(t *testing.T) {
 		s := &Servico{Dir: dir, Catalogo: inpe.Novo()}
 		ini := time.Now()
 		var ultimo Progresso
-		comp, err := s.Preparar(context.Background(), cenarios[nome], geo.ConfigPadrao, func(p Progresso) { ultimo = p })
+		comp, err := s.Preparar(context.Background(), cenarios[nome], geo.ConfigPadrao, func(p Progresso) { ultimo = p }, false)
 		if err != nil {
 			t.Fatal(nome, err)
 		}

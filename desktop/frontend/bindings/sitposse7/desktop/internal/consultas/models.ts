@@ -77,6 +77,11 @@ export interface LoteLinha {
  */
 export interface PropriedadeDetalhe {
     "uuid": string;
+
+    /**
+     * número fixo no estudo (RN-96)
+     */
+    "numero": number;
     "nome": string;
     "responsavel": string;
     "observacoes": string | null;
@@ -119,6 +124,11 @@ export interface PropriedadeDetalhe {
  */
 export interface PropriedadeLinha {
     "uuid": string;
+
+    /**
+     * número fixo no estudo (RN-96)
+     */
+    "numero": number;
     "nome": string;
     "responsavel": string;
     "equipe_uuid": string;

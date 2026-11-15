@@ -50,6 +50,11 @@ export interface Faixa {
  */
 export interface Familia {
     "uuid": string;
+
+    /**
+     * número fixo no estudo (RN-96); 0 = ainda sem número
+     */
+    "numero": number;
     "nome": string;
     "responsavel": string;
     "observacoes": string | null;

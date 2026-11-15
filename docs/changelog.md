@@ -2,6 +2,26 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-15 (A30, E4–E5) — cartas com setores e tela nova
+- **desktop** · `CartaService` refeito:
+  - preparo assíncrono (`Preparar`/`Andamento`/`Cancelar`) com fases e contadores reais;
+  - composição guardada reaberta sem internet; "Atualizar melhor imagem" refaz a busca;
+  - reserva CDSE só com credenciais (sem elas vale a RN-91);
+  - plano com número fixo (RN-96), responsável e coordenadas suspeitas;
+  - `GerarCarta` gera a geral + setores: PDF multipágina e `carta-NN-geral.png` / `carta-NN-setor-X.png`;
+  - rota de tiles `/cartografia/composicoes/…`;
+  - "Limpar imagens guardadas" inclui blocos e composições.
+- **desktop** · `carta/`: `CartaPDF` com várias folhas e tabela de coordenadas com a folha de cada propriedade; quadro de proveniência (fontes, datas, resolução, % da área, "mosaico", nuvem estimada); índice de setores desenhado na geral; nota de resolução conforme a imagem.
+- **frontend** ·
+  - Cartas-imagem sem escolha manual de data: preparo automático com progresso e cancelamento, painel Imagem e painel Carta;
+  - legenda clicável;
+  - mapa com tiles locais (camadas geral e detalhe), folhas tracejadas e pinos com tooltip (nome e responsável, como texto) e cartão (nº, nome, responsável; fecha no ×, Esc ou clique no mapa);
+  - grupos de pinos sobrepostos com lista;
+  - "Fonte de reserva (opcional)";
+  - cartas salvas abrem o PNG da folha geral;
+  - modo demo atualizado.
+- **testes** · Go: carta com várias folhas e proveniência; serviço ponta a ponta com catálogo falso e COG sintético (setores, offline, rotas, limpar, reserva, cancelamento). Vitest: `agruparPinos` e `primeiroPNG` (16 testes no total). Conferido no Chromium (`npm run demo`, 1440 px): progresso, tooltip, cartão, Esc, grupos e cartão de grupo. O laço de replanejamento achado na revisão foi corrigido (só replaneja quando a seleção muda).
+
 ## 2026-11-15 (A30, E3) — seleção automática, cor e composição
 - **desktop** · `raster/`:
   - leitura de COG numa grade Web Mercator, com busca paralela de blocos e cache em memória;

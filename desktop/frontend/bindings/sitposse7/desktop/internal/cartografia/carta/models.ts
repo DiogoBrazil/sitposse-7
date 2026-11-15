@@ -9,8 +9,13 @@ import * as geo$0 from "../geo/models.js";
  * Marcador é uma propriedade com coordenada válida.
  */
 export interface Marcador {
+    /**
+     * número fixo da propriedade no estudo (RN-96)
+     */
     "numero": number;
+    "uuid": string;
     "nome": string;
+    "responsavel": string;
     "ponto": geo$0.Ponto;
     "precisao_m": number | null;
 

@@ -43,6 +43,9 @@ func ChaveImagem(provedor, versaoScript string, p PedidoImagem) string {
 var reChave = regexp.MustCompile(`^[0-9a-f]{32}$`)
 var reCarta = regexp.MustCompile(`^[0-9]{8}-[0-9]{6}-[0-9a-f]{8}$`)
 
+// reArquivoCarta: carta.pdf, carta.png (A27) e carta-NN-geral.png / carta-NN-setor-X.png (A30).
+var reArquivoCarta = regexp.MustCompile(`^(carta\.pdf|carta\.png|carta-[0-9]{2}-(geral|setor-[A-Z]{1,3})\.png)$`)
+
 func gravarAtomico(destino string, dados []byte) error {
 	if err := os.MkdirAll(filepath.Dir(destino), 0o755); err != nil {
 		return err
@@ -136,6 +139,11 @@ func tamanhoDir(dir string, contar func(nome string) bool) (n int, total int64) 
 func (a Armazem) Uso() Uso {
 	var u Uso
 	u.Imagens, u.BytesImagens = tamanhoDir(a.dirImagens(), func(n string) bool { return strings.HasSuffix(n, ".png") })
+	// Blocos baixados e composições (A30) também são imagens guardadas.
+	_, b := tamanhoDir(filepath.Join(a.Dir, "blocos"), func(string) bool { return false })
+	nc, c := tamanhoDir(filepath.Join(a.Dir, "composicoes"), func(n string) bool { return n == "composicao.json" })
+	u.Imagens += nc
+	u.BytesImagens += b + c
 	u.Cartas, u.BytesCartas = tamanhoDir(a.dirCartas(), func(n string) bool { return n == "carta.json" })
 	return u
 }
@@ -218,7 +226,7 @@ func (a Armazem) ListarCartas() []CartaGuardada {
 
 // CaminhoCarta de um arquivo de uma carta guardada (id e nome validados).
 func (a Armazem) CaminhoCarta(id, arquivo string) (string, error) {
-	if !reCarta.MatchString(id) || (arquivo != "carta.pdf" && arquivo != "carta.png") {
+	if !reCarta.MatchString(id) || !reArquivoCarta.MatchString(arquivo) {
 		return "", errors.New("carta inexistente")
 	}
 	p := filepath.Join(a.dirCartas(), id, arquivo)

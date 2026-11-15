@@ -40,12 +40,12 @@ onUnmounted(() => window.removeEventListener('keydown', tecla))
   <div class="modal-fundo" @click.self="!ocupado && emit('fechar')">
     <div class="modal largo pilha" role="dialog" aria-modal="true" aria-labelledby="cfg-titulo">
       <div class="linha" style="justify-content: space-between">
-        <h2 id="cfg-titulo">Acesso às imagens do Copernicus</h2>
+        <h2 id="cfg-titulo">Fonte de reserva: Copernicus (opcional)</h2>
         <button class="discreto" :disabled="ocupado" @click="emit('fechar')">Fechar</button>
       </div>
       <p class="suave">
-        As imagens Sentinel-2 vêm do Copernicus Data Space Ecosystem, gratuito. A Central envia só a área do mapa e a data
-        desejada; nenhum dado dos cadastros sai deste computador.
+        As imagens vêm do INPE, sem cadastro. O Copernicus Data Space Ecosystem (gratuito) é usado só como reserva, quando o
+        INPE não responde. A Central envia só a área do mapa e o período; nenhum dado dos cadastros sai deste computador.
       </p>
 
       <section v-if="estado" class="estado" :class="estado.configurado ? 'ok' : ''">

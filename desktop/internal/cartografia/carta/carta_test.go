@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -132,5 +133,61 @@ func TestInformacoes(t *testing.T) {
 	}
 	if info["Sem localização"] == "" || info["Fonte"] == "" || info["Referência"] == "" {
 		t.Errorf("faltam campos obrigatórios: %v", info)
+	}
+}
+
+// A30: carta com folha geral + setores (PDF multipágina), quadro de proveniência do mosaico,
+// índice de setores na geral e numeração igual em todas as folhas.
+func TestCartaMultifolhaEProveniencia(t *testing.T) {
+	g := dados(t, 9, "geral")
+	g.Partes = []Proveniencia{
+		{Rotulo: "CBERS-4A/WPM (INPE)", Periodo: "13/10/2026", ResolucaoM: 2, Fracao: 0.94, Estimada: true},
+		{Rotulo: "Sentinel-2 L2A (Copernicus/INPE)", Periodo: "16/09/2026", ResolucaoM: 10, Fracao: 0.06},
+		{Rotulo: "Mosaico Sentinel-2 trimestral (INPE)", Periodo: "01/04/2026 a 30/06/2026", ResolucaoM: 10, Fracao: 0},
+	}
+	g.Mosaico = true
+	r := g.Imagem.Ret
+	setor := geo.Retangulo{MinX: r.MinX, MaxX: (r.MinX + r.MaxX) / 2, MinY: (r.MinY + r.MaxY) / 2, MaxY: r.MaxY}
+	g.Setores = []SetorIndice{{Rotulo: "A", Retangulo: setor}}
+	info := map[string]string{}
+	for _, p := range Informacoes(g) {
+		info[p[0]] = p[1]
+	}
+	if !strings.Contains(info["Mosaico"], "não é uma fotografia de uma única data") || !strings.Contains(info["Mosaico"], "CBERS-4A/WPM (INPE), 13/10/2026, 2 m (94% da área)") ||
+		strings.Contains(info["Mosaico"], "trimestral") || info["Nuvens"] == "" || !strings.HasPrefix(info["Resolução"], "2 m") {
+		t.Fatalf("informações: %v", info)
+	}
+	if !strings.Contains(notaImagem(g), "resolução nominal de 2 m") {
+		t.Fatal(notaImagem(g))
+	}
+	mg, err := Mapa(g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := g
+	s.Imagem = &cartografia.Imagem{PNG: g.Imagem.PNG, Ret: setor, Largura: 2000, Altura: 1500}
+	s.Setores, s.Folha, s.Referencia = nil, "Setor A", "Setor A (folha 2 de 2)"
+	s.Marcadores = nil
+	for _, m := range g.Marcadores {
+		if setor.Contem(m.Ponto) {
+			s.Marcadores = append(s.Marcadores, m) // mesmos números da geral
+		}
+	}
+	ms, err := Mapa(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pdf, err := CartaPDF([]Pagina{{g, mg}, {s, ms}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := bytes.Count(pdf, []byte("/Type /Page\n")) + bytes.Count(pdf, []byte("/Type /Page ")); n < 3 {
+		t.Fatalf("PDF com %d páginas; esperado geral + setor + tabela", n)
+	}
+	// Na geral, o contorno do setor A aparece (pixel branco/escuro na borda do setor).
+	x, y := geo.Pixel(geo.LatLon(setor.MaxX, setor.MinY), r, 2000, 1500)
+	c := mg.NRGBAAt(int(x), int(y)-30)
+	if c.R != c.G || c.G != c.B {
+		t.Fatalf("contorno do setor ausente: %v", c)
 	}
 }

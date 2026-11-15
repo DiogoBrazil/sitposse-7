@@ -3,6 +3,5 @@
 
 export type {
     CartaGuardada,
-    Passagem,
     Uso
 } from "./models.js";

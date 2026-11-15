@@ -28,20 +28,43 @@ import (
 
 // Marcador é uma propriedade com coordenada válida.
 type Marcador struct {
-	Numero    int       `json:"numero"`
-	Nome      string    `json:"nome"`
-	Ponto     geo.Ponto `json:"ponto"`
-	PrecisaoM *float64  `json:"precisao_m"`
-	Origem    string    `json:"origem"` // gnss | manual
-	Equipe    string    `json:"equipe"`
-	Jornada   string    `json:"jornada"`
+	Numero      int       `json:"numero"` // número fixo da propriedade no estudo (RN-96)
+	UUID        string    `json:"uuid"`
+	Nome        string    `json:"nome"`
+	Responsavel string    `json:"responsavel"`
+	Ponto       geo.Ponto `json:"ponto"`
+	PrecisaoM   *float64  `json:"precisao_m"`
+	Origem      string    `json:"origem"` // gnss | manual
+	Equipe      string    `json:"equipe"`
+	Jornada     string    `json:"jornada"`
 }
 
-// Dados de uma carta.
+// Proveniencia de uma parte da imagem (quadro da carta; RN-97).
+type Proveniencia struct {
+	Rotulo     string  `json:"rotulo"`
+	Periodo    string  `json:"periodo"`
+	ResolucaoM float64 `json:"resolucao_m"`
+	Fracao     float64 `json:"fracao"`
+	Estimada   bool    `json:"estimada"` // nuvem estimada (sem máscara da fonte)
+}
+
+// SetorIndice: retângulo de um setor desenhado na folha geral.
+type SetorIndice struct {
+	Rotulo    string
+	Retangulo geo.Retangulo
+}
+
+// Dados de uma folha da carta.
 type Dados struct {
-	Tipo           string // individual | geral
-	Subtitulo      string // nome da propriedade ou "N propriedades"
-	Imagem         *cartografia.Imagem
+	Tipo           string              // individual | geral
+	Subtitulo      string              // nome da propriedade ou "N propriedades"
+	Imagem         *cartografia.Imagem // Ret, Largura e Altura da folha; PNG se Base for nil
+	Base           *image.NRGBA        // imagem já composta da folha (A30)
+	Partes         []Proveniencia      // fontes da imagem; vazio = dados de Imagem (A27)
+	Mosaico        bool
+	Folha          string        // "" na geral; "Setor A"…
+	Referencia     string        // "Setor A — ver a carta geral (folha 1)"
+	Setores        []SetorIndice // índice dos setores (só na geral)
 	Atribuicao     string
 	Marcadores     []Marcador
 	SemLocalizacao []string // propriedades que não podem ser representadas (RN-94)
@@ -152,9 +175,13 @@ func formatarDistancia(m float64) string {
 
 // Mapa desenha a imagem de satélite com os pinos, o norte, a escala e a atribuição.
 func Mapa(d Dados) (*image.NRGBA, error) {
-	img, err := png.Decode(bytes.NewReader(d.Imagem.PNG))
-	if err != nil {
-		return nil, fmt.Errorf("imagem de satélite ilegível: %w", err)
+	var img image.Image = d.Base
+	if d.Base == nil {
+		var err error
+		img, err = png.Decode(bytes.NewReader(d.Imagem.PNG))
+		if err != nil {
+			return nil, fmt.Errorf("imagem de satélite ilegível: %w", err)
+		}
 	}
 	w, h := d.Imagem.Largura, d.Imagem.Altura
 	m := image.NewNRGBA(image.Rect(0, 0, w, h))
@@ -167,6 +194,25 @@ func Mapa(d Dados) (*image.NRGBA, error) {
 	fNome := face(fontesCarta.negrito, 26*u)
 	fPeq := face(fontesCarta.normal, 20*u)
 	fNorte := face(fontesCarta.negrito, 30*u)
+
+	// Índice dos setores (na geral): contorno com halo e a letra no canto.
+	for _, st := range d.Setores {
+		x0, y0 := geo.Pixel(geo.LatLon(st.Retangulo.MinX, st.Retangulo.MaxY), d.Imagem.Ret, w, h)
+		x1, y1 := geo.Pixel(geo.LatLon(st.Retangulo.MaxX, st.Retangulo.MinY), d.Imagem.Ret, w, h)
+		for _, c := range []struct {
+			cor color.Color
+			e   float64
+		}{{corBorda, 5 * u}, {corBranca, 2.5 * u}} {
+			retangulo(m, x0-c.e/2, y0-c.e/2, x1+c.e/2, y0+c.e/2, c.cor)
+			retangulo(m, x0-c.e/2, y1-c.e/2, x1+c.e/2, y1+c.e/2, c.cor)
+			retangulo(m, x0-c.e/2, y0-c.e/2, x0+c.e/2, y1+c.e/2, c.cor)
+			retangulo(m, x1-c.e/2, y0-c.e/2, x1+c.e/2, y1+c.e/2, c.cor)
+		}
+		fSet := face(fontesCarta.negrito, 30*u)
+		lw := largura(fSet, st.Rotulo)
+		retangulo(m, x0, y0, x0+lw+24*u, y0+42*u, corCaixa)
+		texto(m, fSet, st.Rotulo, x0+12*u, y0+32*u, corTinta, nil, 0)
+	}
 
 	// Pinos: primeiro todos os círculos, depois rótulos (o rótulo não some sob outro pino).
 	for _, mk := range d.Marcadores {

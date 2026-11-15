@@ -9,13 +9,30 @@ import * as cartografia$0 from "../internal/cartografia/models.js";
 import * as carta$0 from "../internal/cartografia/carta/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as composicao$0 from "../internal/cartografia/composicao/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as geo$0 from "../internal/cartografia/geo/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as syncserver$0 from "../internal/syncserver/models.js";
 
 /**
- * EstadoConexao: credenciais configuradas e uso do disco (sem expor o segredo).
+ * Andamento de uma tarefa de preparo (consultado pela tela).
+ */
+export interface Andamento {
+    "fase": string;
+    "feito": number;
+    "total": number;
+    "bytes_rede": number;
+    "concluida": boolean;
+    "erro": string;
+    "sem_conexao": boolean;
+    "resultado": ResultadoPreparo | null;
+}
+
+/**
+ * EstadoConexao: fonte de reserva configurada e uso do disco (sem expor o segredo).
  */
 export interface EstadoConexao {
     "configurado": boolean;
@@ -29,20 +46,13 @@ export interface EstadoConexao {
 }
 
 /**
- * ImagemPrevia: imagem para a prévia (servida em /cartografia/imagens/{chave}.png).
+ * FolhaPrevia: uma folha da carta (para desenhar o contorno na prévia).
  */
-export interface ImagemPrevia {
-    "url": string;
-    "retangulo": geo$0.Retangulo;
+export interface FolhaPrevia {
+    "rotulo": string;
     "so": geo$0.Ponto;
     "ne": geo$0.Ponto;
-    "periodo": string;
-    "sem_dados": number;
-
-    /**
-     * veio do armazém local (não gastou cota)
-     */
-    "guardada": boolean;
+    "propriedades": number;
 }
 
 /**
@@ -71,59 +81,51 @@ export interface Info {
 }
 
 /**
- * PassagensResposta: dias com imagem sobre a área e a sugestão.
- */
-export interface PassagensResposta {
-    "passagens": cartografia$0.Passagem[] | null;
-    "sugerida": string | null;
-}
-
-/**
- * PedidoCarta: tipo, propriedades (UUIDs na ordem dos números), área, data e filtros.
+ * PedidoCarta: tipo, propriedades (UUIDs), composição preparada e filtros.
  */
 export interface PedidoCarta {
-    "retangulo": geo$0.Retangulo;
-    "data": string | null;
-    "de": string | null;
-    "ate": string | null;
-
     /**
      * individual | geral
      */
     "tipo": string;
     "uuids": string[] | null;
+    "composicao_id": string;
     "criterios": string[] | null;
 }
 
 /**
- * PedidoTela: a área e a data escolhidas na tela (Data ou período De–Ate).
+ * PedidoPreparo: as propriedades (UUIDs do plano) e se a busca deve ser refeita.
  */
-export interface PedidoTela {
-    "retangulo": geo$0.Retangulo;
-    "data": string | null;
-    "de": string | null;
-    "ate": string | null;
+export interface PedidoPreparo {
+    /**
+     * individual | geral
+     */
+    "tipo": string;
+    "uuids": string[] | null;
+
+    /**
+     * "Atualizar melhor imagem": ignora a composição guardada
+     */
+    "atualizar": boolean;
 }
 
 /**
- * Plano: propriedades representáveis (numeradas), as sem localização e o enquadramento.
+ * Plano: propriedades representáveis (com o número fixo do estudo) e as sem localização.
  */
 export interface Plano {
     "marcadores": carta$0.Marcador[] | null;
     "uuids": string[] | null;
     "sem_localizacao": string[] | null;
+
+    /**
+     * coordenadas fora do Brasil ou muito distantes das demais
+     */
+    "suspeitas": string[] | null;
     "retangulo": geo$0.Retangulo;
     "so": geo$0.Ponto;
     "ne": geo$0.Ponto;
     "extensao_km": number;
-    "resolucao_m": number;
-
-    /**
-     * índices em Marcadores, quando convém dividir
-     */
-    "grupos": (number[] | null)[] | null;
-    "largura": number;
-    "altura": number;
+    "individual": boolean;
 }
 
 /**
@@ -132,4 +134,28 @@ export interface Plano {
 export interface QRPareamento {
     "payload": syncserver$0.PayloadQR;
     "expira_em": number;
+}
+
+/**
+ * ResultadoPreparo: a composição pronta para a prévia e a carta.
+ */
+export interface ResultadoPreparo {
+    "composicao_id": string;
+
+    /**
+     * modelo de URL dos tiles
+     */
+    "tiles": string;
+    "z_min": number;
+    "z_geral": number;
+    "z_nativo": number;
+    "geral": FolhaPrevia;
+    "setores": FolhaPrevia[] | null;
+    "partes": composicao$0.Parte[] | null;
+    "mosaico": boolean;
+    "resolucao_m": number;
+    "guardada": boolean;
+    "reserva": boolean;
+    "criada_em": string;
+    "avisos": string[] | null;
 }

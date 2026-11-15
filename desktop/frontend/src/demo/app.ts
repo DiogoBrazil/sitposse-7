@@ -161,27 +161,45 @@ function planoDe(ps: any[]) {
   const m = 1500
   const r = quadro({ min_x: Math.min(...pts.map((p) => p.x)) - m, max_x: Math.max(...pts.map((p) => p.x)) + m, min_y: Math.min(...pts.map((p) => p.y)) - m, max_y: Math.max(...pts.map((p) => p.y)) + m })
   return {
-    marcadores: com.map((p, i) => ({ numero: i + 1, nome: p.nome, ponto: { lat: p.lat, lon: p.lon }, precisao_m: p.gps_precisao_m, origem: p.gps_origem, equipe: p.equipe, jornada: p.jornada })),
+    marcadores: com.map((p, i) => ({ numero: i + 1, uuid: p.uuid, nome: p.nome, responsavel: p.responsavel, ponto: { lat: p.lat, lon: p.lon }, precisao_m: p.gps_precisao_m, origem: p.gps_origem, equipe: p.equipe, jornada: p.jornada })),
     uuids: com.map((p) => p.uuid), sem_localizacao: ps.filter((p) => p.lat == null).map((p) => p.nome),
-    retangulo: r, so: graus(r.min_x, r.min_y), ne: graus(r.max_x, r.max_y), extensao_km: (r.max_x - r.min_x) / 1000 * Math.cos(10.4 * Math.PI / 180), resolucao_m: 6, grupos: [], largura: 2000, altura: 1500,
+    suspeitas: [], individual: com.length === 1, retangulo: r, so: graus(r.min_x, r.min_y), ne: graus(r.max_x, r.max_y), extensao_km: (r.max_x - r.min_x) / 1000 * Math.cos(10.4 * Math.PI / 180),
   }
 }
 let imagemDemo = ''
+const tarefasDemo: Record<string, number> = {}
+function resultadoDemo(pl: any) {
+  imagemDemo ||= satelite()
+  const r = pl.retangulo
+  const meio = (r.min_x + r.max_x) / 2
+  const setores = pl.marcadores.length > 6 ? [
+    { rotulo: 'A', so: graus(r.min_x + 300, (r.min_y + r.max_y) / 2 - 200), ne: graus(meio, r.max_y - 300), propriedades: Math.ceil(pl.marcadores.length / 2) },
+    { rotulo: 'B', so: graus(meio, r.min_y + 300), ne: graus(r.max_x - 300, (r.min_y + r.max_y) / 2 + 200), propriedades: Math.floor(pl.marcadores.length / 2) },
+  ] : []
+  return {
+    composicao_id: 'demo', tiles: imagemDemo, z_min: 11, z_geral: 14, z_nativo: 16, geral: { rotulo: '', so: pl.so, ne: pl.ne, propriedades: pl.marcadores.length }, setores,
+    partes: [
+      { rotulo: 'CBERS-4A/WPM (INPE)', periodo: '13/10/2026', resolucao_m: 2, fracao: 0.94, nuvem_estimada: true, atribuicao: 'Imagem CBERS-4A/WPM © INPE (CC BY 4.0)', fonte: 'cbers4a-wpm' },
+      { rotulo: 'Sentinel-2 L2A (Copernicus/INPE)', periodo: '16/09/2026', resolucao_m: 10, fracao: 0.06, nuvem_estimada: false, atribuicao: 'Contains modified Copernicus Sentinel data 2026', fonte: 'sentinel2-l2a' },
+    ],
+    mosaico: true, resolucao_m: 2, guardada: false, reserva: false, criada_em: new Date().toISOString(), avisos: [],
+  }
+}
+let ultimoPlano: any = null
 export const CartaService = {
-  Estado: () => espera({ configurado: true, client_id: 'sh-1•••••••a9f2', provedor: 'Copernicus', uso: { imagens: 3, bytes_imagens: 14_200_000, cartas: 1, bytes_cartas: 2_100_000 } }),
-  PlanejarGeral: (f: any) => espera(planoDe(propriedades.filter((p) => (!f.equipes?.length || f.equipes.includes(p.equipe_uuid))))),
-  PlanejarIndividual: (u: string) => espera(planoDe(propriedades.filter((p) => p.uuid === u))),
-  EnquadrarGrupo: (pts: any[]) => espera(quadro({ min_x: 0, min_y: 0, max_x: 1, max_y: 1, ...pts })),
-  Passagens: () => espera({ passagens: [
-    { data: '2026-11-07T00:00:00Z', nuvens: 64.2, tiles: 2 }, { data: '2026-11-02T00:00:00Z', nuvens: 38.5, tiles: 2 },
-    { data: '2026-10-28T00:00:00Z', nuvens: 4.1, tiles: 2 }, { data: '2026-10-13T00:00:00Z', nuvens: 12.7, tiles: 1 }, { data: '2026-09-18T00:00:00Z', nuvens: 0.8, tiles: 2 },
-  ], sugerida: '2026-10-28T00:00:00Z' }),
-  Imagem: (t: any) => new Promise((ok) => setTimeout(() => {
-    imagemDemo ||= satelite()
-    const r = quadro(t.retangulo)
-    ok({ url: imagemDemo, retangulo: r, so: graus(r.min_x, r.min_y), ne: graus(r.max_x, r.max_y), periodo: t.data ? 'Aquisição de 28/10/2026' : 'Mosaico de aquisições', sem_dados: 0, guardada: false })
-  }, 500)),
-  GerarCarta: () => new Promise((ok) => setTimeout(() => ok({ id: '20261114-221500-abcd1234', titulo: 'Carta-imagem de localização das propriedades — 12 propriedade(s)', tipo: 'geral', propriedades: 12, periodo: 'Aquisição de 28/10/2026', criterios: [], gerada_em: new Date().toISOString(), arquivos: ['carta.pdf', 'carta.png'] }), 900)),
+  Estado: () => espera({ configurado: false, client_id: '', provedor: 'INPE', uso: { imagens: 3, bytes_imagens: 34_200_000, cartas: 1, bytes_cartas: 2_100_000 } }),
+  PlanejarGeral: (f: any) => espera(ultimoPlano = planoDe(propriedades.filter((p) => (!f.equipes?.length || f.equipes.includes(p.equipe_uuid))))),
+  PlanejarIndividual: (u: string) => espera(ultimoPlano = planoDe(propriedades.filter((p) => p.uuid === u))),
+  Preparar: () => { const id = String(Date.now()); tarefasDemo[id] = Date.now(); return espera(id) },
+  Andamento: (id: string) => {
+    const t = (Date.now() - tarefasDemo[id]) / 1000
+    if (t < 0.8) return espera({ fase: 'Buscando imagens disponíveis', feito: 0, total: 0, bytes_rede: 0, concluida: false, erro: '', sem_conexao: false, resultado: null })
+    if (t < 1.8) return espera({ fase: 'Avaliando a qualidade das imagens', feito: Math.floor((t - 0.8) * 12), total: 15, bytes_rede: 12_400_000 * t, concluida: false, erro: '', sem_conexao: false, resultado: null })
+    if (t < 2.6) return espera({ fase: 'Preparando a imagem da região', feito: Math.floor((t - 1.8) * 200), total: 186, bytes_rede: 31_000_000, concluida: false, erro: '', sem_conexao: false, resultado: null })
+    return espera({ fase: '', feito: 0, total: 0, bytes_rede: 0, concluida: true, erro: '', sem_conexao: false, resultado: resultadoDemo(ultimoPlano) })
+  },
+  Cancelar: () => espera(undefined),
+  GerarCarta: () => new Promise((ok) => setTimeout(() => ok({ id: '20261115-221500-abcd1234', titulo: 'Carta-imagem de localização das propriedades — 12 propriedade(s)', tipo: 'geral', propriedades: 12, periodo: '13/10/2026; 16/09/2026', criterios: [], gerada_em: new Date().toISOString(), arquivos: ['carta-01-geral.png', 'carta-02-setor-A.png', 'carta-03-setor-B.png', 'carta.pdf'] }), 900)),
   Cartas: () => espera([{ id: '20261114-201000-abcd1234', titulo: 'Carta-imagem de localização das propriedades — Fazenda Jaraguá', tipo: 'individual', propriedades: 1, periodo: 'Aquisição de 28/10/2026', criterios: [], gerada_em: '2026-11-14T20:10:00Z', arquivos: ['carta.pdf', 'carta.png'] }]),
   AbrirCarta: () => espera(undefined), MostrarCarta: () => espera(undefined), SalvarCopia: () => espera(''),
   SalvarCredenciais: () => espera(undefined), TestarConexao: () => espera(undefined), RemoverCredenciais: () => espera(undefined), LimparImagens: () => espera(3),

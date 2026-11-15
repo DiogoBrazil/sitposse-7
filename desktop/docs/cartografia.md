@@ -1,30 +1,49 @@
-# Cartas-imagem (Sentinel-2 / Copernicus)
+# Cartas-imagem (INPE CBERS-4A / Sentinel-2; Copernicus como reserva)
 
-Decisões: **A27** e **[ADR-0022](../../docs/architecture/decisions/0022-cartas-imagem-sentinel2-cdse.md)** (altera RN-90), sobre o [ADR-0013](../../docs/architecture/decisions/0013-cartografia-plugavel.md).
+Decisões:
+- **A30** e **[ADR-0027](../../docs/architecture/decisions/0027-cartas-imagem-inpe-selecao-automatica.md)**, que alteram a A27 e o [ADR-0022](../../docs/architecture/decisions/0022-cartas-imagem-sentinel2-cdse.md);
+- [ADR-0013](../../docs/architecture/decisions/0013-cartografia-plugavel.md);
+- RN-90 a RN-97.
 
 ## O que faz
-O operador escolhe as propriedades: uma, pela página dela ("Carta-imagem"), ou várias, pelos mesmos filtros do Painel. Depois busca as datas de imagem Sentinel-2 disponíveis para a área, ajusta o enquadramento na prévia e gera a carta em **PDF** (A4 paisagem; A3 com mais de 25 propriedades) e **PNG**.
+1. **Escolha das propriedades:** o operador escolhe uma propriedade (pela página dela, "Carta-imagem") ou várias, pelos mesmos filtros do Painel.
+2. **Preparo da imagem:** a Central prepara **sozinha** a imagem da área:
+   - busca as cenas no INPE;
+   - avalia cada uma sobre a área das propriedades;
+   - escolhe a melhor composição: CBERS-4A de 2 m até 12 meses, depois Sentinel-2 de 10 m, depois o mosaico trimestral;
+   - harmoniza as cores;
+   - gera a prévia e as folhas.
 
-As cartas e as imagens consultadas ficam na pasta de dados (`cartografia/`), **sem validade**, e reabrem sem internet.
+   Se a mesma área já foi preparada, a composição guardada abre na hora e sem internet. **Atualizar melhor imagem** refaz a busca.
+3. **Mapa:**
+   - **Tiles e enquadramento:** mostra os tiles locais da composição e abre sempre no enquadramento das propriedades (há o botão "Ajustar às propriedades").
+   - **Pinos:** têm o **número fixo do estudo** (RN-96). Passar o mouse mostra nome e responsável; clicar abre o cartão (nº, nome, responsável), que fecha no ×, no Esc ou ao clicar no mapa.
+   - **Pinos sobrepostos:** viram um selo com a contagem, cujo cartão lista todas as propriedades.
+   - **Folhas da carta:** aparecem tracejadas (geral e setores).
+4. **Gerar carta:**
+   - **PDF:** a folha geral (com o índice dos setores), uma folha por setor e a tabela de coordenadas.
+   - **PNG:** um por folha (`carta-01-geral.png`, `carta-02-setor-A.png`…).
+   - Tudo fica guardado em `cartografia/cartas/<id>/` e abre sem internet.
 
-## Arquitetura
+## Fluxo e componentes
 | Parte | Onde | Papel |
 |---|---|---|
-| Geoespacial | `internal/cartografia/geo` | Validação de coordenadas, Web Mercator (EPSG:3857), enquadramento 4:3, `Pixel` (posição do pino), escala (só válida se variar < 1%), barra de escala, agrupamento de pontos distantes |
-| Provedor | `internal/cartografia` (`Provedor`) + `internal/cartografia/cdse` | OAuth2 `client_credentials` (token só em memória, renovado 1 min antes de vencer), Catalog API (dias de passagem com nuvens), Process API (PNG em EPSG:3857, cores reais + `dataMask` no alfa) |
-| Armazém | `internal/cartografia/armazem.go` | Imagens por chave (área, tamanho, data/período, versão do script) e cartas (`cartas/<id>/carta.pdf`, `carta.png`, `carta.json`); gravação atômica; "Limpar imagens" não apaga cartas |
-| Carta | `internal/cartografia/carta` | Mapa (imagem + pinos + norte + escala + atribuição) desenhado uma vez e usado no PNG e no PDF; quadro de informações; tabela de coordenadas |
-| Credenciais | `internal/credenciais` | Gerenciador de Credenciais do Windows (`advapi32`), alvo `SITPOSSE-7/Copernicus-CDSE` |
-| App | `app/cartas.go` (`CartaService`) | Planejar, passagens, prévia, gerar, cartas salvas; rota local `/cartografia/` (só imagens e PNG das cartas, nomes validados) |
-| Tela | `frontend/src/telas/Cartas.vue`, `componentes/MapaCarta.vue`, `ConfigCopernicus.vue` | Leaflet 1.9.4 sem mapa-base de terceiros; imagem e pinos em camadas separadas |
+| Plano | `app/cartas.go` (`PlanejarGeral`, `PlanejarIndividual`) | Propriedades com número fixo, nome, responsável e coordenada; sem localização; coordenadas suspeitas (fora do Brasil ou a mais de 50 km da mediana) |
+| Preparo | `app/cartas.go` (`Preparar`, `Andamento`, `Cancelar`) → `composicao.Servico.Preparar` | Tarefa em segundo plano com fases e contadores reais ("Buscando imagens disponíveis", "Avaliando a qualidade das imagens", "Preparando a imagem da região"), bytes baixados e cancelamento |
+| Carta | `app/cartas.go` (`GerarCarta`) + `carta/` | Folhas a partir das imagens guardadas da composição; recusa folha com área sem imagem (RN-93); quadro de proveniência (fonte, data, resolução e % de cada parte; "mosaico"; nuvem estimada) |
+| Rotas locais | `HandlerCartografia` | `/cartografia/composicoes/<id>/<z>/<x>/<y>.jpg` (tile gerado e guardado na 1ª vez; fora da composição, PNG transparente), PNG das cartas e imagens antigas; nomes validados por expressão regular |
+| Tela | `telas/Cartas.vue`, `componentes/MapaCarta.vue`, `CartaoPropriedade.vue`, `src/cartas.ts` | Leaflet com duas camadas de tiles locais (geral até o zoom da carta geral; detalhe nos setores até a resolução nativa); `agruparPinos` (testado no Vitest); textos do cadastro nos tooltips sempre como texto, nunca HTML |
+| Reserva | `cdse/` + `ConfigCopernicus.vue` ("Fonte de reserva (opcional)") | Só quando o INPE não responde e há credenciais; sem credenciais vale a mensagem da RN-91 |
+| Armazém | `armazem.go` | Cartas (`carta.pdf` + PNGs; as da A27 continuam abrindo); "Limpar imagens guardadas" apaga imagens brutas, `blocos/` e `composicoes/`, nunca as cartas |
 
-**O mesmo pino na tela e no arquivo:** a imagem é pedida em EPSG:3857, a projeção do Leaflet. Na tela, o Leaflet projeta a coordenada; no arquivo, `geo.Pixel` faz a mesma conta. O teste `TestPinoNoPixelDaProjecao` confere o centro de cada pino desenhado.
+**Enquadramento:** a carta geral cobre todos os pontos, com margem de 8% da extensão (mínimo de 300 m) e proporção 4:3.
 
-**Data da imagem:** a sugestão é a passagem de menos nuvens entre as dos últimos 45 dias com até 20% de nuvens; senão, a de menos nuvens de todas. A mais recente não é presumida a melhor. Com uma passagem única, a carta cita a data; com mosaico, cita o período. Imagem com área sem dados (mais de 0,05%) não gera carta (RN-93).
+**Setores:** são criados quando a geral passa de 2,5 × a resolução da imagem por pixel ou tem pinos sobrepostos que um setor separa.
+- **Escala:** todos têm a mesma escala (1,5 × a resolução: 3 m/px com 2 m; 15 m/px com 10 m).
+- **Montagem:** são determinísticos; grupos distantes viram setores próprios.
+- **Imagens:** a área buscada é só a união dos setores, mais a geral em baixa resolução.
 
-**Limites de zoom e área:** a prévia vai até o zoom 16 (≈ 2,4 m por pixel de tela). Acima disso, cada pixel de 10 m do Sentinel-2 viraria um borrão (visto no teste real de 14/11). Nenhuma imagem é pedida com menos de 1,5 km de largura (`geo.GarantirLargura`). O enquadramento automático só é aplicado depois que o mapa tem tamanho real (`ResizeObserver` + `invalidateSize`).
-
-**Pontos distantes:** se a carta geral passar de 20 m por pixel, a tela propõe dividi-la em grupos de até 40 km.
+**Mesmo pino na tela e no arquivo:** tudo é EPSG:3857; o Leaflet e `geo.Pixel` fazem a mesma conta (`TestPinoNoPixelDaProjecao`).
 
 ## Imagens do INPE, seleção e composição (A30, ADR-0027)
 | Parte | Onde | Papel |
@@ -42,29 +61,35 @@ As cartas e as imagens consultadas ficam na pasta de dados (`cartografia/`), **s
 - **Ajuste de cor afim:** no CBERS, o ajuste afim irrestrito chegou a R² = 0,69, mas apagava o detalhe (soma dos ganhos de 0,17) e escondia nuvens. Por isso a transformação exige soma dos ganhos ≥ 0,6, e nessa cena valeu o casamento de percentis.
 
 ## O que sai para a internet
-Só para o Copernicus: o token (identificador e segredo do cliente), o retângulo da área em EPSG:3857 (ou em graus, no catálogo), o período e os parâmetros da imagem. **Nenhum dado de cadastro** (teste `TestNadaDeCadastroSaiParaAInternet`).
+- **INPE:** a pesquisa STAC (retângulo, coleções e período) e pedidos de faixas de bytes dos arquivos públicos de imagem.
+- **Copernicus (só como reserva):** token, retângulo, período e parâmetros.
+- **Nenhum dado de cadastro** (AGENTS.md §8).
 
-## Cadastro gratuito (uma vez)
+## Fonte de reserva (Copernicus, opcional)
 1. Criar uma conta em `dataspace.copernicus.eu` (de preferência com e-mail institucional).
 2. Abrir `shapps.dataspace.copernicus.eu/dashboard` → **User Settings → OAuth clients → Create**, dar um nome e escolher a validade.
 3. Copiar o **Client ID** e o **Client secret** (o segredo aparece uma vez só).
-4. Na Central: **Cartas-imagem → Configurar acesso** → colar → **Salvar e testar**.
+4. Na Central: **Cartas-imagem → Fonte de reserva (opcional)** → colar → **Salvar e testar**.
 
-Não contratar planos pagos. A cota gratuita é de 10.000 unidades e 10.000 requisições por mês, e 300 por minuto; cada carta de 2000 × 1500 px custa cerca de 11 unidades. Quando a cota acaba, o serviço responde 429 e a tela informa quando tentar de novo.
+Não contratar planos pagos. Cota gratuita: 10.000 unidades e 10.000 requisições por mês, e 300 por minuto.
 
 ## Limitações (explicadas na carta)
-- **Resolução:** 10 m por pixel. Aproximar a imagem não aumenta a resolução.
+- **Resolução nominal:** 2 m (CBERS-4A) ou 10 m (Sentinel-2). Aproximar não aumenta a resolução, e a resolução nominal não garante identificar objetos.
+- **Nuvem no CBERS-4A:** é **estimada** pela Central (a fonte não traz máscara). As células com nuvem estimada usam outra imagem; nuvens pequenas abaixo do limite podem aparecer.
+- **Mosaico:** junta datas e fontes diferentes, e a carta diz isso (não é uma fotografia de uma data só).
 - **O pino:** é a coordenada coletada em campo, com a precisão do GPS, e não confirma visualmente a construção.
 - **Barra de escala:** só aparece quando é tecnicamente correta (RN-92).
 
 ## Testes
 | Teste | O que garante |
 |---|---|
-| `geo_test.go` | Projeção com valores independentes (Porto Velho), ordem lat/lon, pino ↔ pixel nas duas direções, norte para cima, não é interpolação linear em graus, escala/barra, carta continental sem barra, agrupamento determinístico |
-| `cdse_test.go` (servidor falso) | Token reaproveitado e renovado, sem credenciais, credenciais recusadas, cota (429 + `Retry-After`), sem internet, queda no meio do download, resposta ilegível, imagem com área sem dados, limite de tamanho, só área/período/parâmetros enviados, dia da passagem única |
-| `armazem_test.go` | Imagens e cartas sobrevivem ao reinício; nomes maliciosos recusados; limpar não apaga cartas; carta interrompida não aparece |
-| `carta_test.go` | Pino desenhado em `geo.Pixel`; PNG e PDF (individual, geral, geral grande em A3); data × período; campos obrigatórios |
-| `credenciais_test.go` | Gravar, ler (com acentos) e apagar; rodado também no Gerenciador de Credenciais real do Windows (`GOOS=windows go test -c`) |
-| `app/cartas_test.go` (Central real + provedor falso) | Sem localização listada à parte, prévia guardada sem gastar cota de novo, carta salva reaberta após reiniciar, rota local segura, imagem incompleta e ponto fora do enquadramento recusados, sem credenciais, pontos distantes agrupados |
+| `geo/*_test.go` | Projeção, pino ↔ pixel, escala; UTM contra referências; setores (5, 20 em 2 × 10 km, 100 em 10 × 30 km, grupos distantes, repetidos, inválidos, determinismo) |
+| `cog/`, `stac/`, `inpe/` | Leitor COG (sintéticos, Range, cache, offline, tabelas sob demanda, recusas), STAC paginado e instável, candidatas filtradas e deduplicadas; real opcional (`SITPOSSE7_REDE=1`) |
+| `raster/`, `selecao/` | Reprojeção preserva a posição, SCL, cor, costura, buracos, tiles; seleção hierárquica, retalhos, células limitadas ou sem imagem, independência da ordem |
+| `composicao/` | Ponta a ponta com servidor falso (escolha, folhas, tiles, reabrir offline, reusar sem internet); real opcional em Ariquemes |
+| `carta/` | Pino em `geo.Pixel`; PNG e PDF; carta com várias folhas, proveniência do mosaico, índice de setores |
+| `app/cartas_test.go` | Plano com número fixo e responsável, preparo assíncrono, carta com setores (arquivos por folha), reinício offline, rotas seguras (tiles, PNG), limpar imagens, reserva CDSE (inclusive incompleta), sem reserva = RN-91, cancelamento |
+| `frontend/src/cartas.test.ts` | Agrupamento de pinos (sem perder nenhum, determinístico, coordenadas iguais) e escolha do PNG da carta |
+| `cdse_test.go`, `armazem_test.go`, `credenciais_test.go` | Como na A27 |
 
-**Falta o teste com o Copernicus real:** depende da conta do usuário (§ Cadastro gratuito).
+Revisão visual: `npm run demo` → Cartas-imagem (preparo simulado, tooltip, cartão, grupos, setores).

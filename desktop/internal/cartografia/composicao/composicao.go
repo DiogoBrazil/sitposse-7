@@ -210,14 +210,22 @@ func paineis(set *geo.Setorizacao) []raster.Painel {
 	return out
 }
 
-// Preparar compõe a imagem para os pontos (já validados). Sem internet, devolve a
-// composição guardada da mesma área (Guardada = true) ou o erro de conexão (RN-91).
-func (s *Servico) Preparar(ctx context.Context, pts []geo.Ponto, cfg ConfigFolhas, prog func(Progresso)) (*Composicao, error) {
+// Preparar compõe a imagem para os pontos (já validados). Com reusar=true, a composição
+// guardada da mesma área é devolvida sem consultar a internet (resultado estável); com
+// reusar=false ("Atualizar melhor imagem") a busca é refeita. Sem internet, devolve a
+// composição guardada (Guardada = true) ou o erro de conexão (RN-91).
+func (s *Servico) Preparar(ctx context.Context, pts []geo.Ponto, cfg ConfigFolhas, prog func(Progresso), reusar bool) (*Composicao, error) {
 	s.iniciar()
 	if prog == nil {
 		prog = func(Progresso) {}
 	}
 	chave := ChaveArea(pts, cfg(2))
+	if reusar {
+		if c, ok := s.guardada(chave); ok {
+			c.Guardada = true
+			return c, nil
+		}
+	}
 	set, err := geo.Setorizar(pts, cfg(2))
 	if err != nil {
 		return nil, err
@@ -233,7 +241,11 @@ func (s *Servico) Preparar(ctx context.Context, pts []geo.Ponto, cfg ConfigFolha
 			return c, nil
 		}
 		if s.Reserva != nil {
-			return s.prepararReserva(ctx, pts, set, chave, prog)
+			c, errR := s.prepararReserva(ctx, pts, set, chave, prog)
+			if errors.Is(errR, cartografia.ErrSemCredenciais) {
+				return nil, err // sem reserva configurada: vale o erro do INPE (RN-91)
+			}
+			return c, errR
 		}
 		return nil, err
 	}

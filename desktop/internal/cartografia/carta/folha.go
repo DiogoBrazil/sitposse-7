@@ -7,6 +7,7 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"image/png"
+	"math"
 	"strings"
 
 	"github.com/signintech/gopdf"
@@ -20,9 +21,35 @@ import (
 const (
 	Titulo   = "Carta-imagem de localização das propriedades"
 	Ressalva = "Ponto(s) coletado(s) no levantamento; não representa(m) limites fundiários nem documento cartográfico oficial."
-	NotaPino = "O pino indica a coordenada registrada em campo, com a precisão do GPS do celular; não confirma visualmente a construção. A imagem tem resolução espacial de 10 m: ampliá-la não aumenta a resolução."
+	NotaPino = "O pino indica a coordenada registrada em campo, com a precisão do GPS do celular; não confirma visualmente a construção."
 	SRC      = "Coordenadas: WGS 84 (EPSG:4326). Projeção da carta: WGS 84 / Pseudo-Mercator (EPSG:3857). Norte para cima."
 )
+
+// resolucaoImagem: a resolução mais fina das partes usadas (10 m nas cartas antigas).
+func resolucaoImagem(d Dados) float64 {
+	r := 0.0
+	for _, p := range d.Partes {
+		if p.Fracao > 0 && (r == 0 || p.ResolucaoM < r) {
+			r = p.ResolucaoM
+		}
+	}
+	if r == 0 {
+		if d.Imagem != nil && d.Imagem.ResolucaoNativaM > 0 {
+			return d.Imagem.ResolucaoNativaM
+		}
+		return 10
+	}
+	return r
+}
+
+func fmtM(v float64) string {
+	return strings.TrimSuffix(strings.TrimSuffix(fmt.Sprintf("%.1f", v), "0"), ".")
+}
+
+// notaImagem: o pino e a resolução (a resolução nominal não garante identificar objetos).
+func notaImagem(d Dados) string {
+	return NotaPino + " A imagem tem resolução nominal de " + fmtM(resolucaoImagem(d)) + " m: ampliá-la não aumenta a resolução, e a resolução nominal não garante a identificação de objetos."
+}
 
 // Coordenada formatada (6 casas ≈ 0,1 m: sem perder a precisão coletada).
 func Coordenada(p geo.Ponto) string { return fmt.Sprintf("%.6f, %.6f", p.Lat, p.Lon) }
@@ -46,11 +73,37 @@ func Informacoes(d Dados) [][2]string {
 		{"Estudo", padrao(d.Estudo, "—")},
 		{"Jornada(s)", padrao(strings.Join(jornadas, ", "), "—")},
 		{"Equipe(s)", padrao(strings.Join(equipes, ", "), "—")},
-		{"Imagem", "Copernicus Sentinel-2 L2A (Copernicus Data Space Ecosystem), cores reais (B04, B03, B02)"},
-		{"Data da imagem", d.Imagem.Periodo()},
-		{"Resolução", fmt.Sprintf("10 m (imagem); apresentação ≈ %.1f m por pixel", esc.MetrosPorPixel)},
+	}
+	if len(d.Partes) == 0 {
+		out = append(out, [2]string{"Imagem", "Copernicus Sentinel-2 L2A (Copernicus Data Space Ecosystem), cores reais (B04, B03, B02)"},
+			[2]string{"Data da imagem", d.Imagem.Periodo()})
+	} else {
+		var fontes []string
+		estimada := false
+		for _, p := range d.Partes {
+			if p.Fracao <= 0 {
+				continue
+			}
+			fontes = append(fontes, fmt.Sprintf("%s, %s, %s m (%.0f%% da área)", p.Rotulo, p.Periodo, fmtM(p.ResolucaoM), math.Max(1, math.Round(100*p.Fracao))))
+			estimada = estimada || p.Estimada
+		}
+		rot := "Imagem"
+		if d.Mosaico {
+			rot = "Mosaico"
+			fontes = append([]string{"Composição de imagens de datas e fontes diferentes (não é uma fotografia de uma única data):"}, fontes...)
+		}
+		out = append(out, [2]string{rot, strings.Join(fontes, " ")})
+		if estimada {
+			out = append(out, [2]string{"Nuvens", "Na imagem CBERS-4A a presença de nuvens foi estimada pelo sistema (a fonte não traz máscara); áreas com nuvem estimada usam outra imagem."})
+		}
+	}
+	out = append(out, [][2]string{
+		{"Resolução", fmt.Sprintf("%s m (imagem); apresentação ≈ %.1f m por pixel", fmtM(resolucaoImagem(d)), esc.MetrosPorPixel)},
 		{"Referência", SRC},
 		{"Gerado em", d.GeradoEm.Local().Format("02/01/2006 15:04") + " pelo SITPOSSE-7 Central"},
+	}...)
+	if d.Referencia != "" {
+		out = append([][2]string{{"Folha", d.Referencia}}, out...)
 	}
 	if !esc.Valida {
 		out = append(out, [2]string{"Escala", "Sem barra de escala: a área é extensa e a escala varia mais de 1% na carta."})
@@ -135,7 +188,7 @@ func FolhaPNG(d Dados, mapa *image.NRGBA) ([]byte, error) {
 	if extra > 0 {
 		nLeg++
 	}
-	ressalva := quebrar(Ressalva+" "+NotaPino, float64(w)-80*u)
+	ressalva := quebrar(Ressalva+" "+notaImagem(d), float64(w)-80*u)
 	topo := 150 * u
 	rodape := float64(max(len(linhasInfo), nLeg))*lh + float64(len(ressalva))*lh + 110*u
 	H := int(topo) + mapa.Bounds().Dy() + int(rodape)
@@ -228,13 +281,31 @@ func (p *folhaPDF) linhas(s string, larg float64) []string {
 	return out
 }
 
-// FolhaPDF: A4 paisagem (A3 com muitas propriedades). Página 1: mapa + legenda +
-// informações; páginas seguintes (carta geral): tabela de coordenadas.
+// Pagina: os dados e o mapa já desenhado de uma folha.
+type Pagina struct {
+	Dados Dados
+	Mapa  *image.NRGBA
+}
+
+// FolhaPDF: uma folha só (carta individual ou geral sem setores).
 func FolhaPDF(d Dados, mapa *image.NRGBA) ([]byte, error) {
+	return CartaPDF([]Pagina{{d, mapa}})
+}
+
+// CartaPDF: A4 paisagem (A3 com muitas propriedades numa folha). Uma página por folha (a
+// geral primeiro, depois os setores) e, na carta geral, a tabela de coordenadas de todas
+// as propriedades (a numeração é a mesma em todas as folhas, RN-96).
+func CartaPDF(paginas []Pagina) ([]byte, error) {
+	if len(paginas) == 0 {
+		return nil, fmt.Errorf("carta sem folhas")
+	}
+	d := paginas[0].Dados
 	gp := &gopdf.GoPdf{}
 	tam := *gopdf.PageSizeA4Landscape
-	if len(d.Marcadores) > 25 {
-		tam = gopdf.Rect{W: 1190.55, H: 841.89} // A3 paisagem
+	for _, pg := range paginas {
+		if len(pg.Dados.Marcadores) > 25 {
+			tam = gopdf.Rect{W: 1190.55, H: 841.89} // A3 paisagem
+		}
 	}
 	gp.Start(gopdf.Config{Unit: gopdf.UnitPT, PageSize: tam})
 	for nome, dados := range map[string][]byte{"regular": fontes.Regular, "semi": fontes.SemiBold, "negrito": fontes.Bold, "condensada": fontes.CondensedBold} {
@@ -244,6 +315,56 @@ func FolhaPDF(d Dados, mapa *image.NRGBA) ([]byte, error) {
 	}
 	gp.SetInfo(gopdf.PdfInfo{Title: Titulo + " — " + d.Subtitulo, Author: relatorios.Instituicao + " — " + relatorios.Unidade, Creator: relatorios.Sistema + " Central", CreationDate: d.GeradoEm})
 	p := &folhaPDF{gp: gp, larg: tam.W, alt: tam.H, margem: 28}
+	cabemTodas := true
+	for _, pg := range paginas {
+		cabem, err := p.pagina(pg.Dados, pg.Mapa)
+		if err != nil {
+			return nil, err
+		}
+		cabemTodas = cabemTodas && cabem
+	}
+	// Tabela de coordenadas (carta geral ou legenda que não coube).
+	if d.Tipo == "geral" || !cabemTodas {
+		cols := []relatorios.Coluna{{Rotulo: "Nº", Peso: 0.5}, {Rotulo: "Propriedade", Peso: 3}, {Rotulo: "Equipe", Peso: 1.3}, {Rotulo: "Latitude", Peso: 1.2}, {Rotulo: "Longitude", Peso: 1.2}, {Rotulo: "Precisão do GPS", Peso: 1.1}}
+		if len(paginas) > 1 {
+			cols = append(cols, relatorios.Coluna{Rotulo: "Folha", Peso: 0.8})
+		}
+		setorDe := map[int]string{}
+		for _, pg := range paginas[1:] {
+			for _, mk := range pg.Dados.Marcadores {
+				if _, ok := setorDe[mk.Numero]; !ok {
+					setorDe[mk.Numero] = pg.Dados.Folha
+				}
+			}
+		}
+		t := relatorios.Tabela{Colunas: cols}
+		for _, mk := range d.Marcadores {
+			l := []string{fmt.Sprint(mk.Numero), mk.Nome, mk.Equipe, fmt.Sprintf("%.6f", mk.Ponto.Lat), fmt.Sprintf("%.6f", mk.Ponto.Lon), precisao(mk)}
+			if len(paginas) > 1 {
+				l = append(l, padrao(setorDe[mk.Numero], "Geral"))
+			}
+			t.Linhas = append(t.Linhas, l)
+		}
+		p.tabela(d, "Coordenadas das propriedades (WGS 84, graus decimais)", t)
+	}
+
+	n := gp.GetNumberOfPages()
+	for i := 1; i <= n; i++ {
+		_ = gp.SetPage(i)
+		p.fonte("regular", 7)
+		p.cor(0x4a, 0x58, 0x4f)
+		gp.SetXY(p.margem, tam.H-22)
+		_ = gp.Cell(nil, fmt.Sprintf("%s Central · %s · gerado em %s", relatorios.Sistema, Titulo, d.GeradoEm.Local().Format("02/01/2006 15:04")))
+		gp.SetXY(p.margem, tam.H-22)
+		_ = gp.CellWithOption(&gopdf.Rect{W: tam.W - 2*p.margem, H: 9}, fmt.Sprintf("Página %d de %d", i, n), gopdf.CellOption{Align: gopdf.Right})
+	}
+	return gp.GetBytesPdf(), nil
+}
+
+// pagina desenha uma folha (mapa, legenda, informações e ressalva). Devolve se a legenda coube.
+func (p *folhaPDF) pagina(d Dados, mapa *image.NRGBA) (bool, error) {
+	gp := p.gp
+	tam := gopdf.Rect{W: p.larg, H: p.alt}
 	gp.AddPage()
 	p.cabecalho(d)
 
@@ -262,14 +383,14 @@ func FolhaPDF(d Dados, mapa *image.NRGBA) ([]byte, error) {
 	}
 	var jb bytes.Buffer
 	if err := jpeg.Encode(&jb, mapa, &jpeg.Options{Quality: 90}); err != nil {
-		return nil, err
+		return false, err
 	}
 	holder, err := gopdf.ImageHolderByBytes(jb.Bytes())
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	if err := gp.ImageByHolder(holder, p.margem, p.cabecalhoY, &gopdf.Rect{W: mw, H: mh}); err != nil {
-		return nil, err
+		return false, err
 	}
 	gp.SetStrokeColor(0x44, 0x55, 0x49)
 	gp.SetLineWidth(0.6)
@@ -346,33 +467,13 @@ func FolhaPDF(d Dados, mapa *image.NRGBA) ([]byte, error) {
 	yr := p.cabecalhoY + mh + 8
 	p.fonte("regular", 7)
 	p.cor(0x4a, 0x58, 0x4f)
-	for _, l := range p.linhas(Ressalva+" "+NotaPino, mw) {
+	for _, l := range p.linhas(Ressalva+" "+notaImagem(d), mw) {
 		gp.SetXY(p.margem, yr)
 		_ = gp.Cell(nil, l)
 		yr += 8.6
 	}
 
-	// Tabela de coordenadas (carta geral ou legenda que não coube).
-	if d.Tipo == "geral" || cabem < len(d.Marcadores) {
-		cols := []relatorios.Coluna{{Rotulo: "Nº", Peso: 0.5}, {Rotulo: "Propriedade", Peso: 3}, {Rotulo: "Equipe", Peso: 1.3}, {Rotulo: "Latitude", Peso: 1.2}, {Rotulo: "Longitude", Peso: 1.2}, {Rotulo: "Precisão do GPS", Peso: 1.1}}
-		t := relatorios.Tabela{Colunas: cols}
-		for _, mk := range d.Marcadores {
-			t.Linhas = append(t.Linhas, []string{fmt.Sprint(mk.Numero), mk.Nome, mk.Equipe, fmt.Sprintf("%.6f", mk.Ponto.Lat), fmt.Sprintf("%.6f", mk.Ponto.Lon), precisao(mk)})
-		}
-		p.tabela(d, "Coordenadas das propriedades (WGS 84, graus decimais)", t)
-	}
-
-	n := gp.GetNumberOfPages()
-	for i := 1; i <= n; i++ {
-		_ = gp.SetPage(i)
-		p.fonte("regular", 7)
-		p.cor(0x4a, 0x58, 0x4f)
-		gp.SetXY(p.margem, tam.H-22)
-		_ = gp.Cell(nil, fmt.Sprintf("%s Central · %s · gerado em %s", relatorios.Sistema, Titulo, d.GeradoEm.Local().Format("02/01/2006 15:04")))
-		gp.SetXY(p.margem, tam.H-22)
-		_ = gp.CellWithOption(&gopdf.Rect{W: tam.W - 2*p.margem, H: 9}, fmt.Sprintf("Página %d de %d", i, n), gopdf.CellOption{Align: gopdf.Right})
-	}
-	return gp.GetBytesPdf(), nil
+	return cabem >= len(d.Marcadores), nil
 }
 
 // tabela simples em páginas novas, com cabeçalho repetido, texto centralizado e divisórias.

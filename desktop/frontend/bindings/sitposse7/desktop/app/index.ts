@@ -15,12 +15,13 @@ export {
 };
 
 export type {
+    Andamento,
     EstadoConexao,
-    ImagemPrevia,
+    FolhaPrevia,
     Info,
-    PassagensResposta,
     PedidoCarta,
-    PedidoTela,
+    PedidoPreparo,
     Plano,
-    QRPareamento
+    QRPareamento,
+    ResultadoPreparo
 } from "./models.js";

@@ -3,18 +3,18 @@ package app
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"image"
 	"image/color"
 	"image/png"
+	"net/http"
 	"net/http/httptest"
-
 	"strings"
 	"testing"
 	"time"
 
 	"sitposse7/desktop/internal/cartografia"
+	"sitposse7/desktop/internal/cartografia/cog/cogteste"
 	"sitposse7/desktop/internal/cartografia/geo"
 	"sitposse7/desktop/internal/credenciais"
 	"sitposse7/desktop/internal/estatisticas"
@@ -88,14 +88,65 @@ func centralComPropriedades(t *testing.T) *Central {
 	return c
 }
 
-func servico(t *testing.T, c *Central, p cartografia.Provedor) *CartaService {
-	return &CartaService{C: c, Provedor: p, cofre: &credenciais.Memoria{}, Agora: func() time.Time { return time.Date(2026, 11, 14, 22, 0, 0, 0, time.UTC) }}
+// catalogoFalso: um mosaico sintético (EPSG:4326, ≈ 110 m) servido por HTTP com Range.
+type catalogoFalso struct {
+	url string
+	err error
+}
+
+func (c *catalogoFalso) Candidatas(context.Context, [4]float64, time.Time) ([]cartografia.Candidata, error) {
+	if c.err != nil {
+		return nil, c.err
+	}
+	ate := time.Date(2026, 6, 30, 0, 0, 0, 0, time.UTC)
+	return []cartografia.Candidata{{ID: "MOS", Fonte: cartografia.FonteMosaico, Data: time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC), Ate: &ate, ResolucaoM: 10, URLRGB: c.url}}, nil
+}
+
+func servidorMosaico(t *testing.T) string {
+	t.Helper()
+	im := cogteste.Imagem{L: 1100, A: 1000, Amostras: 3, Pix: make([]byte, 1100*1000*3)}
+	for y := 0; y < im.A; y++ {
+		for x := 0; x < im.L; x++ {
+			k := 3 * (y*im.L + x)
+			im.Pix[k], im.Pix[k+1], im.Pix[k+2] = byte(60+x%80), byte(90+y%60), byte(40+(x+y)%40)
+		}
+	}
+	zero := 0
+	arq := cogteste.Escrever([]cogteste.Imagem{im, cogteste.Reduzir(im)}, cogteste.Opcoes{Big: true, EPSG: 4326, OrigemX: -63, OrigemY: -10, ResX: 0.001, ResY: 0.001, NoData: &zero, Bloco: 256})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("ETag", `"1"`)
+		http.ServeContent(w, r, "m.tif", time.Unix(0, 0), bytes.NewReader(arq))
+	}))
+	t.Cleanup(srv.Close)
+	return srv.URL + "/mosaico.tif"
+}
+
+func servico(t *testing.T, c *Central, p cartografia.Provedor, cat *catalogoFalso) *CartaService {
+	return &CartaService{C: c, Provedor: p, Catalogo: cat, cofre: &credenciais.Memoria{}, Agora: func() time.Time { return time.Date(2026, 11, 15, 22, 0, 0, 0, time.UTC) }}
+}
+
+// esperar a tarefa de preparo terminar.
+func esperar(t *testing.T, s *CartaService, id string) *Andamento {
+	t.Helper()
+	limite := time.Now().Add(60 * time.Second)
+	for time.Now().Before(limite) {
+		a, err := s.Andamento(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if a.Concluida {
+			return a
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatal("preparo não terminou")
+	return nil
 }
 
 func TestCartasDePontaAPonta(t *testing.T) {
 	c := centralComPropriedades(t)
-	pf := &provedorFalso{}
-	s := servico(t, c, pf)
+	cat := &catalogoFalso{url: servidorMosaico(t)}
+	s := servico(t, c, nil, cat)
 
 	plano, err := s.PlanejarGeral(estatisticas.Filtro{})
 	if err != nil {
@@ -104,113 +155,147 @@ func TestCartasDePontaAPonta(t *testing.T) {
 	if len(plano.Marcadores) != 2 || len(plano.SemLocalizacao) != 1 || plano.SemLocalizacao[0] != "Sítio Sem GPS" {
 		t.Fatalf("plano = %+v", plano)
 	}
-	if plano.Marcadores[0].Numero != 1 || plano.Marcadores[1].Numero != 2 || len(plano.Grupos) != 0 {
-		t.Errorf("numeração/grupos: %+v", plano)
+	if plano.Marcadores[0].Numero == plano.Marcadores[1].Numero || plano.Marcadores[0].Responsavel != "Fulano" || plano.Marcadores[0].UUID == "" {
+		t.Errorf("marcadores: %+v", plano.Marcadores)
 	}
 	if _, err := s.PlanejarIndividual("u3"); err == nil || !strings.Contains(err.Error(), "não tem coordenada") {
 		t.Errorf("sem coordenada: %v", err)
 	}
 
-	d := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
-	tela := PedidoTela{Retangulo: plano.Retangulo, Data: &d}
-	prev, err := s.Imagem(tela)
-	if err != nil || prev.Guardada || pf.chamadas != 1 || prev.Periodo != "Aquisição de 28/10/2026" {
-		t.Fatalf("prévia: %+v, %v, chamadas %d", prev, err, pf.chamadas)
-	}
-	// A mesma área e data não gastam cota de novo.
-	prev2, _ := s.Imagem(tela)
-	if !prev2.Guardada || pf.chamadas != 1 {
-		t.Errorf("imagem guardada não reaproveitada (chamadas %d)", pf.chamadas)
-	}
-
-	reg, err := s.GerarCarta(PedidoCarta{PedidoTela: tela, Tipo: "geral", UUIDs: plano.UUIDs, Criterios: []string{"Equipe: Bravo"}})
+	id, err := s.Preparar(PedidoPreparo{Tipo: "geral", UUIDs: plano.UUIDs})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if pf.chamadas != 1 || reg.Propriedades != 2 || len(reg.Arquivos) != 2 {
-		t.Errorf("carta: %+v (chamadas %d)", reg, pf.chamadas)
+	a := esperar(t, s, id)
+	if a.Erro != "" || a.Resultado == nil {
+		t.Fatalf("preparo: %+v", a)
+	}
+	res := a.Resultado
+	if res.Guardada || len(res.Partes) == 0 || res.Partes[0].Rotulo != "Mosaico Sentinel-2 trimestral (INPE)" || !strings.Contains(res.Tiles, res.ComposicaoID) {
+		t.Fatalf("resultado: %+v", res)
 	}
 
-	// Reinício do app: as cartas continuam lá e abrem sem provedor (sem internet).
-	s2 := servico(t, c, nil)
+	reg, err := s.GerarCarta(PedidoCarta{Tipo: "geral", UUIDs: plano.UUIDs, ComposicaoID: res.ComposicaoID, Criterios: []string{"Equipe: Bravo"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reg.Propriedades != 2 || strings.Join(reg.Arquivos, ",") != "carta-01-geral.png,carta.pdf" || !strings.Contains(reg.Periodo, "01/04/2026") {
+		t.Errorf("carta: %+v", reg)
+	}
+
+	// Reinício do app sem internet: as cartas continuam lá; a mesma área reabre a composição.
+	cat.err = cartografia.ErrSemConexao
+	s2 := servico(t, c, nil, cat)
 	l := s2.Cartas()
 	if len(l) != 1 || l[0].ID != reg.ID {
 		t.Fatalf("cartas após reiniciar = %+v", l)
 	}
-	w := httptest.NewRecorder()
-	HandlerCartografia(s2).ServeHTTP(w, httptest.NewRequest("GET", "/cartografia/cartas/"+reg.ID+"/carta.png", nil))
-	if w.Code != 200 || w.Header().Get("Content-Type") != "image/png" {
-		t.Errorf("rota da carta: %d", w.Code)
+	id2, _ := s2.Preparar(PedidoPreparo{Tipo: "geral", UUIDs: plano.UUIDs, Atualizar: true})
+	if a2 := esperar(t, s2, id2); a2.Resultado == nil || !a2.Resultado.Guardada || a2.Resultado.ComposicaoID != res.ComposicaoID {
+		t.Fatalf("offline: %+v", a2)
 	}
-	for _, u := range []string{"/cartografia/cartas/" + reg.ID + "/carta.json", "/cartografia/imagens/../../sitposse7.db", "/cartografia/cartas/x/carta.png"} {
+	get := func(u string) *httptest.ResponseRecorder {
 		w := httptest.NewRecorder()
 		HandlerCartografia(s2).ServeHTTP(w, httptest.NewRequest("GET", u, nil))
-		if w.Code != 404 {
+		return w
+	}
+	if w := get("/cartografia/cartas/" + reg.ID + "/carta-01-geral.png"); w.Code != 200 || w.Header().Get("Content-Type") != "image/png" {
+		t.Errorf("rota da carta: %d", w.Code)
+	}
+	cx, cy := geo.XY(plano.Marcadores[0].Ponto)
+	z := res.ZGeral
+	n := float64(int(1) << z)
+	tx, ty := int((cx+20037508.342789244)/40075016.68557849*n), int((20037508.342789244-cy)/40075016.68557849*n)
+	if w := get(fmt.Sprintf("/cartografia/composicoes/%s/%d/%d/%d.jpg", res.ComposicaoID, z, tx, ty)); w.Code != 200 || w.Header().Get("Content-Type") != "image/jpeg" {
+		t.Errorf("tile: %d %s", w.Code, w.Header().Get("Content-Type"))
+	}
+	if w := get(fmt.Sprintf("/cartografia/composicoes/%s/3/1/1.jpg", res.ComposicaoID)); w.Header().Get("Content-Type") != "image/png" {
+		t.Errorf("tile fora da composição deveria ser transparente")
+	}
+	for _, u := range []string{"/cartografia/cartas/" + reg.ID + "/carta.json", "/cartografia/imagens/../../sitposse7.db", "/cartografia/cartas/x/carta.png",
+		"/cartografia/composicoes/../../sitposse7.db", "/cartografia/composicoes/" + res.ComposicaoID + "/composicao.json"} {
+		if w := get(u); w.Code != 404 {
 			t.Errorf("%s: %d", u, w.Code)
 		}
 	}
-	// Sem credenciais e sem provedor: mensagem para configurar (não trava nada).
-	s2.Provedor = nil
-	outra := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
-	if _, err := s2.Imagem(PedidoTela{Retangulo: plano.Retangulo, Data: &outra}); !errors.Is(err, cartografia.ErrSemCredenciais) {
-		t.Errorf("sem credenciais: %v", err)
+	// Limpar imagens mantém as cartas e apaga composições e blocos.
+	if _, err := s2.LimparImagens(); err != nil || len(s2.Cartas()) != 1 {
+		t.Errorf("limpar: %v, %d cartas", err, len(s2.Cartas()))
 	}
-	// Limpar imagens mantém as cartas.
-	if n, _ := s2.LimparImagens(); n != 1 || len(s2.Cartas()) != 1 {
-		t.Errorf("limpar: %d imagens, %d cartas", n, len(s2.Cartas()))
-	}
-	if est := s2.Estado(); est.Configurado || est.Uso.Cartas != 1 {
+	if est := s2.Estado(); est.Configurado || est.Uso.Cartas != 1 || est.Uso.Imagens != 0 {
 		t.Errorf("estado = %+v", est)
 	}
-}
-
-func TestCartaRecusaImagemIncompletaEPontoFora(t *testing.T) {
-	c := centralComPropriedades(t)
-	s := servico(t, c, &provedorFalso{transparencia: true})
-	plano, _ := s.PlanejarGeral(estatisticas.Filtro{})
-	d := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
-	_, err := s.GerarCarta(PedidoCarta{PedidoTela: PedidoTela{Retangulo: plano.Retangulo, Data: &d}, Tipo: "geral", UUIDs: plano.UUIDs})
-	if !errors.Is(err, cartografia.ErrImagemIncompleta) || len(s.Cartas()) != 0 {
-		t.Errorf("imagem incompleta: %v (cartas %d)", err, len(s.Cartas()))
-	}
-	s = servico(t, c, &provedorFalso{})
-	r, _ := geo.Enquadrar([]geo.Ponto{{Lat: -10.40, Lon: -62.50}}, 100, 200, 2000, 1500) // só o Sítio A
-	_, err = s.GerarCarta(PedidoCarta{PedidoTela: PedidoTela{Retangulo: r, Data: &d}, Tipo: "geral", UUIDs: plano.UUIDs})
-	if err == nil || !strings.Contains(err.Error(), "fora da carta") {
-		t.Errorf("ponto fora: %v", err)
+	// Sem composição: a carta pede para preparar a imagem.
+	if _, err := s2.GerarCarta(PedidoCarta{Tipo: "geral", UUIDs: plano.UUIDs, ComposicaoID: res.ComposicaoID}); err == nil {
+		t.Error("carta sem composição")
 	}
 }
 
-func TestPontosDistantesSaoAgrupados(t *testing.T) {
+func TestCartaComSetores(t *testing.T) {
 	c := centralComPropriedades(t)
+	// Um grupo a cerca de 60 km dos dois primeiros: carta geral + 2 setores.
 	if _, err := c.n.B.Escrita.Exec(`INSERT INTO propriedades (uuid, coleta_uuid, equipe_uuid, nome_propriedade, responsavel_familia, lat, lon, gps_origem, created_at, updated_at, rev_origem, recebido_em, origem_instalacao, registro_json)
-		SELECT 'u4', 'col', equipe_uuid, 'Sítio Longe', 'Fulano', -11.9, -61.0, 'gnss', 1, 1, 1, 1, 'x', '{}' FROM coletas WHERE uuid = 'col'`); err != nil {
+		SELECT 'u4', 'col', equipe_uuid, 'Sítio Longe', 'Beltrano', -10.80, -62.05, 'gnss', 1, 1, 1, 1, 'x', '{}' FROM coletas WHERE uuid = 'col'`); err != nil {
 		t.Fatal(err)
 	}
-	s := servico(t, c, &provedorFalso{})
+	s := servico(t, c, nil, &catalogoFalso{url: servidorMosaico(t)})
 	plano, err := s.PlanejarGeral(estatisticas.Filtro{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if plano.ResolucaoM <= 20 || len(plano.Grupos) != 2 {
-		t.Errorf("resolução %.1f m/px, grupos %v", plano.ResolucaoM, plano.Grupos)
+	id, _ := s.Preparar(PedidoPreparo{Tipo: "geral", UUIDs: plano.UUIDs})
+	a := esperar(t, s, id)
+	if a.Resultado == nil || len(a.Resultado.Setores) != 2 {
+		t.Fatalf("setores: %+v", a)
 	}
-
-}
-
-// Prévia aberta no zoom máximo (área de dezenas de metros): o pedido é ampliado para 1,5 km.
-func TestPedidoMinimoDeLargura(t *testing.T) {
-	c := centralComPropriedades(t)
-	s := servico(t, c, &provedorFalso{})
-	x, y := geo.XY(geo.Ponto{Lat: -10.40, Lon: -62.50})
-	d := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
-	ped, err := s.pedido(PedidoTela{Retangulo: geo.Retangulo{MinX: x - 40, MaxX: x + 40, MinY: y - 30, MaxY: y + 30}, Data: &d})
+	reg, err := s.GerarCarta(PedidoCarta{Tipo: "geral", UUIDs: plano.UUIDs, ComposicaoID: a.Resultado.ComposicaoID})
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Tolerância de 0,5%: a escala usa a esfera do Web Mercator (R = 6.378.137 m) e a distância
-	// usa o raio médio (haversine); a diferença (~0,1%) fica bem abaixo do 1% da RN-92.
-	if w := geo.DistanciaM(geo.LatLon(ped.Ret.MinX, y), geo.LatLon(ped.Ret.MaxX, y)); w < 1492 {
-		t.Errorf("largura do pedido = %.0f m; mínimo 1500", w)
+	if strings.Join(reg.Arquivos, ",") != "carta-01-geral.png,carta-02-setor-A.png,carta-03-setor-B.png,carta.pdf" {
+		t.Fatalf("arquivos: %v", reg.Arquivos)
+	}
+}
+
+func TestReservaCDSEQuandoOINPEFalha(t *testing.T) {
+	c := centralComPropriedades(t)
+	pf := &provedorFalso{}
+	s := servico(t, c, pf, &catalogoFalso{err: fmt.Errorf("%w: INPE fora do ar", cartografia.ErrSemConexao)})
+	plano, _ := s.PlanejarGeral(estatisticas.Filtro{})
+	id, _ := s.Preparar(PedidoPreparo{Tipo: "geral", UUIDs: plano.UUIDs})
+	a := esperar(t, s, id)
+	if a.Resultado == nil || !a.Resultado.Reserva || pf.chamadas == 0 {
+		t.Fatalf("reserva: %+v (chamadas %d)", a, pf.chamadas)
+	}
+	if _, err := s.GerarCarta(PedidoCarta{Tipo: "geral", UUIDs: plano.UUIDs, ComposicaoID: a.Resultado.ComposicaoID}); err != nil {
+		t.Fatal(err)
+	}
+	// Reserva com imagem incompleta: nenhuma carta (RN-93).
+	s3 := servico(t, centralComPropriedades(t), &provedorFalso{transparencia: true}, &catalogoFalso{err: cartografia.ErrSemConexao})
+	id3, _ := s3.Preparar(PedidoPreparo{Tipo: "geral", UUIDs: plano.UUIDs})
+	if a3 := esperar(t, s3, id3); a3.Resultado != nil || !strings.Contains(a3.Erro, "não cobre toda a área") {
+		t.Fatalf("reserva incompleta: %+v", a3)
+	}
+	// Sem INPE e sem credenciais: mensagem de conexão (RN-91).
+	s4 := servico(t, centralComPropriedades(t), nil, &catalogoFalso{err: cartografia.ErrSemConexao})
+	s4.Provedor = nil
+	id4, _ := s4.Preparar(PedidoPreparo{Tipo: "geral", UUIDs: plano.UUIDs})
+	if a4 := esperar(t, s4, id4); !a4.SemConexao || a4.Erro != cartografia.ErrSemConexao.Error() {
+		t.Fatalf("sem nada: %+v", a4)
+	}
+}
+
+func TestCancelarPreparo(t *testing.T) {
+	c := centralComPropriedades(t)
+	s := servico(t, c, nil, &catalogoFalso{url: servidorMosaico(t)})
+	plano, _ := s.PlanejarGeral(estatisticas.Filtro{})
+	id, _ := s.Preparar(PedidoPreparo{Tipo: "geral", UUIDs: plano.UUIDs})
+	s.Cancelar(id)
+	a := esperar(t, s, id)
+	if a.Resultado != nil && a.Erro == "" {
+		t.Skip("o preparo terminou antes do cancelamento") // máquina rápida: nada a conferir
+	}
+	if a.Erro != "Operação cancelada." {
+		t.Fatalf("cancelado: %+v", a)
 	}
 }

@@ -3,6 +3,7 @@ package composicao
 import (
 	"bytes"
 	"context"
+	"errors"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -103,7 +104,7 @@ func TestPrepararCompoeGuardaEReabreOffline(t *testing.T) {
 		if p.Total > 0 && p.Feito > p.Total {
 			t.Errorf("progresso %d/%d", p.Feito, p.Total)
 		}
-	})
+	}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +145,7 @@ func TestPrepararCompoeGuardaEReabreOffline(t *testing.T) {
 	// Sem internet: catálogo e arquivos fora do ar; a mesma área reabre pela composição guardada.
 	srv.Close()
 	off := &Servico{Dir: dir, Catalogo: &catalogoFalso{err: cartografia.ErrSemConexao}, Agora: func() time.Time { return agora }}
-	c2, err := off.Preparar(context.Background(), pts, cfg, nil)
+	c2, err := off.Preparar(context.Background(), pts, cfg, nil, false)
 	if err != nil || !c2.Guardada || c2.ID != comp.ID {
 		t.Fatalf("offline: %v %+v", err, c2)
 	}
@@ -155,8 +156,12 @@ func TestPrepararCompoeGuardaEReabreOffline(t *testing.T) {
 		t.Fatal("tile offline", err)
 	}
 	// Área nova, sem internet e sem reserva: erro de conexão (RN-91).
-	if _, err := off.Preparar(context.Background(), []geo.Ponto{{Lat: -11, Lon: -62}}, cfg, nil); err == nil {
+	if _, err := off.Preparar(context.Background(), []geo.Ponto{{Lat: -11, Lon: -62}}, cfg, nil, false); err == nil {
 		t.Fatal("área nova sem internet deveria falhar")
+	}
+	// Reabrir com reusar=true não consulta a internet (mesmo id, estável).
+	if c3, err := (&Servico{Dir: dir, Catalogo: &catalogoFalso{err: errors.New("não deveria consultar")}}).Preparar(context.Background(), pts, cfg, nil, true); err != nil || c3.ID != comp.ID {
+		t.Fatal("reusar:", err)
 	}
 	// Fora da composição: nenhum tile.
 	if b, err := off.Tile(context.Background(), c2.ID, 2, 1, 1); err != nil || b != nil {

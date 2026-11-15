@@ -24,26 +24,6 @@ export interface CartaGuardada {
 }
 
 /**
- * Passagem é uma aquisição disponível sobre a área (um dia de passagem do satélite).
- */
-export interface Passagem {
-    /**
-     * data (UTC) da aquisição
-     */
-    "data": string;
-
-    /**
-     * cobertura de nuvens estimada (%), a menor entre os tiles do dia
-     */
-    "nuvens": number;
-
-    /**
-     * quantos tiles do catálogo cobrem a área nesse dia
-     */
-    "tiles": number;
-}
-
-/**
  * Uso do disco.
  */
 export interface Uso {
