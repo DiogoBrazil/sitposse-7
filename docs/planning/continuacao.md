@@ -1,7 +1,7 @@
 # Continuação do trabalho (passagem de bastão)
 
 > **Leia isto primeiro** ao retomar o projeto em outra máquina ou com outro agente.
-> Atualizado em **14/11/2026 (noite)**. Mantenha este arquivo em dia ao final de cada sessão.
+> Atualizado em **15/11/2026**. Mantenha este arquivo em dia ao final de cada sessão.
 > Ambiente da §3 pronto no PC desktop, com a VM de teste. Comece pela §2.
 
 ## 1. Onde estamos
@@ -50,9 +50,18 @@ A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-d
 - **Conta Copernicus criada pelo usuário** (categoria *Public*, finalidade *Public sector*, tipo *National/regional/local public authorities*). Cliente OAuth "SITPOSSE-7 Central" (*Client Credentials*, sem SPA, validade de 90 dias: **vence em 13/02/2027**; depois disso, criar outro e colar em Cartas-imagem → Configurar). As credenciais ficam só no Gerenciador de Credenciais do Windows (alvo `SITPOSSE-7/Copernicus-CDSE`).
 - **1º teste real:** a conexão e a busca de datas funcionaram. A prévia ficou no zoom máximo e a imagem virou borrões. Corrigido na 0.5.1 (zoom máximo 16, área mínima de 1,5 km, enquadramento com `ResizeObserver`); a causa exata não foi reproduzida.
 - **Coordenadas de teste (14/11, ~23h):** a pedido do usuário, Jaraguá e Lua De Prata foram movidas para área rural (-10.0754, -63.1741 e -10.0750, -63.1689) direto no banco da Central, como correção da Central (`corrigido_desde_rev_origem = 1`, `rev_central = 1`, auditoria `corrigir`). Cópia anterior: `%LOCALAPPDATA%\SITPOSSE-7\sitposse7.db.antes-coordenadas-teste-20261114-232248`. Uma versão nova dessas duas vinda do celular será **recusada** ("corrigido na Central") até existir a resolução de conflitos.
-- **Próximo passo:** o usuário testa a 0.5.1 numa carta geral com as duas propriedades e responde: (1) se a prévia abriu com a régua em torno de 500 m sem aproximar (para identificar a causa); (2) se a nitidez de 10 m atende ou se é preciso enxergar construções. Nesse caso, avaliar outro provedor pela interface `Provedor`: Brasil MAIS/Planet (~3 m, gratuito para a segurança pública com adesão) ou Esri World Imagery (< 1 m, chave ArcGIS). Depois, calibrar as cores (névoa leve; ganho fixo de 2,5).
+- **Teste da 0.5.1 (15/11):** o usuário testou e **aprovou no geral**. Ficaram só **ajustes de detalhe**, adiados por decisão do usuário (15/11) para uma **etapa futura**: os detalhes ainda serão enviados por ele. Ao retomar, conferir também as perguntas da 1ª rodada que seguem sem resposta: (1) se a prévia abriu com a régua em torno de 500 m sem aproximar; (2) se a nitidez de 10 m atende ou se é preciso enxergar construções (nesse caso, avaliar outro provedor pela interface `Provedor`: Brasil MAIS/Planet, ~3 m, ou Esri World Imagery, < 1 m); e a calibração das cores (névoa leve; ganho fixo de 2,5).
 
-4. **Aliases e duplicatas** (P5 resolvida): migração 0003 + ADR, telas.
+4. **Aliases e duplicatas** (P5 resolvida): migração 0003 + ADR, telas. *(Depois da A28.)*
+
+**Estudos, jornadas, equipes e coletas (A28, aprovado em 15/11):** plano completo em ADR-0023/0024/0025 e na fase "Estudos e coletas" do [plano.md](plano.md). Etapas (marque ao concluir):
+- [x] **E0** decisões e documentação (15/11).
+- [ ] **E1** Central, núcleo: migração 0002 reescrita + guarda, códigos, estudos/jornadas/equipes, pareamento sem equipe, importação com `aguardando_confirmacao`/decisão/destino travado, recibo v2, estatísticas/relatórios/cartas por estudo, `central-teste` com comandos de decisão. Contratos v2 (`shared/schemas/*.v2`, fixtures). **Os testes cruzados do Android (`:core:sync`) ficam vermelhos entre a E1 e a E4**, porque a Central passa a falar só v2.
+- [ ] **E2** Central, telas: Estudos, estudo em foco, modal de destino, filtros por jornada/equipe.
+- [ ] **E3** Android, dados: Room v3 + guarda, coletas, códigos, responsável obrigatório, observações.
+- [ ] **E4** Android, sincronização v2 por coleta.
+- [ ] **E5** Android, telas: código da equipe, coletas, formulário em 7 etapas com revisão.
+- [ ] **E6** builds, reinício controlado dos bancos (com confirmação do usuário na hora) e bancada.
 
 Revisão visual sem o Windows: `cd desktop/frontend && npm run demo` (dados fictícios) e capturas pelo navegador.
 

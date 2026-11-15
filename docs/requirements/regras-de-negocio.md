@@ -3,20 +3,25 @@
 > Este é o **único** lugar onde as regras de negócio são definidas. Os outros documentos fazem referência a elas pelo ID (RN-xx).
 > Status: todas as regras abaixo estão **APROVADAS** (prompt-mestre e respostas do usuário em 13/11/2026), salvo marcação em contrário.
 
-## Equipe e operação
-- **RN-01** A equipe tem `nome_equipe` (obrigatório), `responsavel` (obrigatório) e `identificacao_area` (opcional, texto livre, p. ex. "Gleba A", "Linha 25", "Setor Norte").
-- **RN-02** A equipe recebe um UUID v4 estável na configuração inicial. Editar nome, responsável ou área **não** altera o UUID.
+## Estudo, jornada, equipe e coleta
+*(Reescrita pela A28 em 15/11/2026; ADR-0023 e ADR-0024. Substitui a antiga seção "Equipe e operação".)*
+- **RN-01** Na Central, a hierarquia é **Estudo de Situação → Jornada → Equipe → Cadastros**. O **estudo** tem nome obrigatório (não precisa ser único) e código público único `SITPOSSE7-XXXX-XXXX`. A **jornada** pertence a um estudo e tem data (`AAAA-MM-DD`) e número sequencial no estudo; a data não é identificador (duas jornadas podem ter a mesma data). A **equipe** pertence a uma jornada, tem nome livre (sem nomenclatura obrigatória, único dentro da jornada) e código público único em toda a Central `EQ-XXXX-XXXX`. Equipe com o mesmo nome em outra jornada é **outra equipe, com outro código**.
+- **RN-02** Os códigos usam o alfabeto Crockford Base32 (sem `I L O U`), com **7 caracteres aleatórios + 1 dígito verificador** (Luhn mod 32). Na digitação, maiúsculas e minúsculas, espaços e hífens são indiferentes, `O` vale `0` e `I`/`L` valem `1`. O banco garante a unicidade; em colisão, gera-se outro. Casos de referência: `shared/test-fixtures/codigos/codigos.v1.json`.
 - **RN-03** Cada instalação do app gera um UUID aleatório próprio (`instalacao`). **Não** é coletado nenhum identificador permanente de hardware.
 - **RN-04** Não há conta nem login individual no Android.
-- **RN-05** Existe a entidade **operação**. Uma equipe pertence a **uma** operação, e o vínculo é feito no primeiro pareamento com a Central. *(Recomendado R6, aprovado com o plano.)*
-- **RN-06** Após reinstalação, a identidade da equipe é recuperada **pela Central** (restauração explícita). O que não tinha sido sincronizado antes da perda não é recuperável.
+- **RN-05** No celular, cada código de equipe informado abre uma **coleta** (UUID próprio). Todo cadastro pertence a **uma** coleta, para sempre; o rascunho pertence à coleta em que começou. O celular **não** consulta a Central para aceitar o código: confere só o formato e o dígito verificador.
+- **RN-06** Após reinstalação do app, basta informar de novo o código da equipe para continuar coletando (nova coleta). O que não tinha sido sincronizado antes da perda não é recuperável. A restauração dos cadastros pela Central continua prevista (RF-A15).
+- **RN-07** Ciclo da coleta: `em andamento` (aceita cadastros novos) ou `concluída` (não aceita cadastros novos, mas os existentes podem ser editados, excluídos e sincronizados; pode ser reaberta com confirmação). Ao abrir o app: nenhuma em andamento → pedir o código; uma → abrir direto; várias → listar. A conclusão é **manual**; o app pergunta se deve concluir a anterior ao iniciar outro código e avisa quando a coleta começou em outro dia. Digitar o código de uma coleta existente retoma essa coleta, sem duplicá-la.
+- **RN-08** O código de uma coleta só pode ser **corrigido no celular** enquanto ela não tiver destino confirmado pela Central e nenhum lote dela estiver aberto. A correção não altera nenhum dado dos cadastros e fica registrada (código anterior e novo).
+- **RN-09** Antes de importar, a Central **sempre** mostra ao operador o destino resolvido pelo código (estudo, data da jornada, equipe, código) ou avisa que o código não existe; o operador confirma, altera o destino ou cancela. Nenhuma vinculação é silenciosa. Depois da primeira importação, a coleta fica **presa à equipe** escolhida (destino travado). A correção feita na Central preserva o código recebido, é auditável e vale só para aquela coleta.
 
 ## Propriedade / família
 - **RN-10** O UUID é a identidade. **Nomes iguais não significam o mesmo cadastro.**
-- **RN-11** O único campo obrigatório é `nome_propriedade` (não vazio após remover espaços). `responsavel_familia` é opcional.
+- **RN-11** Os **únicos** campos obrigatórios são `nome_propriedade` e `responsavel_familia` (exibido como "Nome do responsável pela propriedade"), ambos não vazios após remover espaços. *(Alterada pela A28 em 15/11/2026; antes, só o nome da propriedade.)* A navegação entre as etapas do formulário nunca é bloqueada por falta deles; só o salvamento.
 - **RN-12** GPS, fotos, área e quantitativos **não** são obrigatórios.
 - **RN-13** Não há campo obrigatório de identificação pessoal (CPF, RG etc.).
 - **RN-14** Excluir é marcar `excluido_em` (tombstone). Exclusão de negócio **≠** limpeza de cópia local.
+- **RN-15** **Observações relevantes** (`observacoes_relevantes`): texto livre opcional, multilinha, com acentos e quebras de linha, até **4000 caracteres**. Vazio é gravado como nulo. *(A28, 15/11/2026.)*
 
 ## Quantitativos fixos
 - **RN-20** Pessoas: **Adultos (18+ anos)**, **Jovens (12–17 anos)**, **Crianças (0–11 anos)**, conforme as faixas do ECA. O formulário mostra o texto de ajuda com as idades.
@@ -59,11 +64,11 @@
 - **RN-63** A foto só é **confirmada** depois de a Central verificar tamanho e hash e persistir o registro.
 
 ## Sincronização e conflitos
-- **RN-70** A sincronização é **em sentido único: Android → Central**. Exceção: restauração explícita da equipe (RN-06).
+- **RN-70** A sincronização é **em sentido único: Android → Central**. Exceções: o recibo informa ao celular o destino confirmado da coleta (RN-09), e a futura restauração de cadastros (RF-A15).
 - **RN-71** Edições feitas na Central são **correções da Central** e não voltam aos aparelhos.
 - **RN-72** Se o Android enviar nova versão (inclusive exclusão) de um cadastro que a Central corrigiu depois da última versão recebida, abre-se um **conflito manual**. Nada é sobrescrito nem apagado em silêncio. Detalhes: [conflitos.md](../synchronization/conflitos.md).
 - **RN-73** A unidade de conflito é o **cadastro**: a propriedade com seus itens e os metadados das fotos. *(Recomendado R3, aprovado com o plano.)*
-- **RN-74** Enviado ≠ importado. O Android só marca como confirmado o que consta em **recibo persistido** pela Central.
+- **RN-74** Enviado ≠ importado. O Android só marca como confirmado o que consta em **recibo persistido** pela Central. Um envio **cancelado** pelo operador não confirma nada, não apaga nada e pode ser refeito.
 
 ## Estatísticas
 - **RN-80** Consideram apenas registros **vigentes** (sem tombstone), na última versão aplicada.

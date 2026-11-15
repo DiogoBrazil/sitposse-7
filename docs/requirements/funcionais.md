@@ -5,9 +5,9 @@ As regras detalhadas (campos, validações, conversões) estão em [regras-de-ne
 ## RF-A — SITPOSSE-7 Campo (Android, 100% offline)
 | ID | Requisito |
 |---|---|
-| RF-A01 | Na primeira abertura, configurar a equipe: nome* e responsável*; identificação da área é opcional. Gerar o UUID da equipe e o UUID da instalação. |
-| RF-A02 | Consultar e editar os dados da equipe sem alterar seu UUID. |
-| RF-A03 | Criar, consultar, editar e excluir (tombstone) propriedades/famílias offline. |
+| RF-A01 | Iniciar a coleta informando só o **código da equipe** (validado offline: formato e dígito verificador). Gerar o UUID da coleta e, na primeira abertura, o UUID da instalação (RN-05). |
+| RF-A02 | Gerir as coletas do aparelho: retomar, escolher entre várias em andamento, concluir, reabrir, corrigir o código (RN-07, RN-08) e ver as pendentes de sincronização. |
+| RF-A03 | Criar, consultar, editar e excluir (tombstone) propriedades/famílias offline, com formulário **em etapas** e revisão antes de salvar; inclui **Observações relevantes** (RN-15). |
 | RF-A04 | Registrar quantitativos fixos: pessoas, veículos, bovinos e equinos. |
 | RF-A05 | Registrar itens dinâmicos (eletrodomésticos, móveis, aves), com vários "Outros" de nome livre; editar e remover itens. |
 | RF-A06 | Registrar a área (ha ou alqueire paulista) e exibir a conversão. |
@@ -19,13 +19,13 @@ As regras detalhadas (campos, validações, conversões) estão em [regras-de-ne
 | RF-A12 | Exportar pacote de contingência (USB) e importar o recibo da Central. |
 | RF-A13 | Exportar backup completo para local escolhido pelo usuário. |
 | RF-A14 | Liberar espaço de fotos somente quando confirmadas e cobertas por backup verificado da Central, por ação explícita (regra final pendente: P3/P4). |
-| RF-A15 | Receber restauração da identidade e dos cadastros da equipe a partir da Central, após reinstalação. |
+| RF-A15 | Receber restauração dos cadastros a partir da Central, após reinstalação. |
 
 ## RF-C — SITPOSSE-7 Central (Windows)
 | ID | Requisito | Internet? |
 |---|---|---|
-| RF-C01 | Gerir operações (criar, ativar, encerrar). | Não |
-| RF-C02 | Parear aparelhos (QR Code) e receber lotes por Wi‑Fi local. | Não |
+| RF-C01 | Gerir **estudos de situação**, suas **jornadas** e as **equipes** de cada jornada, com códigos gerados pela Central; copiar equipes de uma jornada anterior (com códigos novos); escolher o estudo em foco (RN-01, RN-02). | Não |
+| RF-C02 | Parear aparelhos (QR Code) e receber lotes por Wi‑Fi local, com **confirmação, correção ou cancelamento do destino** pelo operador antes de importar (RN-09). | Não |
 | RF-C03 | Importar pacote de contingência e gerar recibo (arquivo e QR). | Não |
 | RF-C04 | Consultar, criar e editar (correção da Central) propriedades, itens e fotos, com auditoria. | Não |
 | RF-C05 | Fila de conflitos com resolução manual campo a campo. | Não |
@@ -33,7 +33,7 @@ As regras detalhadas (campos, validações, conversões) estão em [regras-de-ne
 | RF-C07 | Relatórios não cartográficos (PDF/CSV) respeitando os filtros. | Não |
 | RF-C08 | Backup verificado e restauração. | Não |
 | RF-C09 | Histórico de sincronizações, erros e auditoria. | Não |
-| RF-C10 | Restaurar equipe em aparelho reinstalado. | Não |
+| RF-C10 | Restaurar cadastros em aparelho reinstalado. | Não |
 | RF-C11 | Agrupar nomes de "Outros" por aliases e sugerir possíveis duplicatas sem fundir (P5). | Não |
 | RF-C12 | Mapa individual e geral com imagem online, integrado aos filtros. | **Sim** |
 | RF-C13 | Carta-imagem individual e geral (PNG/PDF), se o provedor permitir. | **Sim** |

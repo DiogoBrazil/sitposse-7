@@ -1,6 +1,6 @@
 # ADR-0012 — Entidade operação
 
-- **Status:** Aprovado
+- **Status:** Substituído por ADR-0023 (15/11/2026)
 - **Data:** 2026-11-13
 
 ## Decisão

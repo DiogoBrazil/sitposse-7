@@ -2,6 +2,17 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-15 (A28, E0) — estudos, jornadas, equipes e coletas: decisões e documentação
+- **docs** · Planejamento aprovado pelo usuário: **Estudo de Situação → Jornada → Equipe** na Central, **coleta pelo código da equipe** no celular, **confirmação do destino** antes de importar, formulário em 7 etapas, responsável obrigatório, **Observações relevantes** e reinício único dos bancos de teste.
+  - ADRs novos (Propostos): **0023** (hierarquia e códigos `EQ-XXXX-XXXX`/`SITPOSSE7-XXXX-XXXX`, Crockford Base32 + dígito Luhn mod 32; substitui o ADR-0012), **0024** (coletas, protocolo v2, confirmação/correção/cancelamento do destino, destino travado) e **0025** (geração 2 dos esquemas, com guarda contra banco antigo).
+  - `matriz-decisoes.md`: **A28**; A3, A10 e R6 substituídas; A4 e A12 alteradas.
+  - `regras-de-negocio.md`: seção "Estudo, jornada, equipe e coleta" (RN-01..09 reescritas/novas), **RN-11** (responsável obrigatório), **RN-15** (observações, até 4000 caracteres), RN-70 e RN-74 ajustadas.
+  - `funcionais.md` (RF-A01..03, A15, C01, C02, C10), `protocolo.md` (v2), `modelo-de-dados.md`, `integridade.md` (invariantes 7–9 e novos pontos de falha), `pendencias.md` (P6 deixa de existir), `plano.md` (fase "Estudos e coletas").
+  - Telas e documentos de `mobile/docs` e `desktop/docs` serão atualizados nas etapas que mudam as telas (E2 e E5). Nenhuma mudança de código nesta etapa.
+
+## 2026-11-15 (A27) — teste das cartas-imagem pelo usuário
+- **docs** · O usuário testou a Central `0.5.1-mvp` e aprovou as cartas-imagem no geral. Os ajustes de detalhe ficaram para uma etapa futura (detalhes a enviar pelo usuário). Registrado em `continuacao.md` e `plano.md`.
+
 ## 2026-11-14 (A27) — prévia da carta: zoom e área mínima
 - **desktop** · Teste real com o Copernicus: credenciais e busca de datas funcionaram, mas a prévia ficou no zoom máximo e a imagem virou borrões (pixels de 10 m esticados). A causa exata (enquadramento automático ou aproximação manual) não foi reproduzida. Correções:
   - zoom máximo da prévia 16 (≈ 2,4 m/px de tela);

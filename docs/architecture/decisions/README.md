@@ -18,7 +18,7 @@ Um ADR aprovado **não é editado** para mudar a decisão: cria-se um novo ADR q
 | [0009](0009-area-milesimos-dm2.md) | Área em milésimos e cálculo em dm² | Aprovado |
 | [0010](0010-timestamps.md) | Timestamps epoch ms / ISO 8601 UTC | Aprovado |
 | [0011](0011-fotos-reduzidas.md) | Fotos reduzidas a ~2560 px | Aprovado |
-| [0012](0012-entidade-operacao.md) | Entidade operação | Aprovado |
+| [0012](0012-entidade-operacao.md) | Entidade operação | Substituído por ADR-0023 |
 | [0013](0013-cartografia-plugavel.md) | Cartografia online com provedor plugável | Aprovado; imagem de satélite definida e cache alterado pelo ADR-0022 |
 | [0014](0014-tls12-minimo-android8.md) | TLS 1.2 restrito como mínimo (Android 8 e 9) | Aprovado |
 | [0015](0015-zxing-leitor-qr.md) | ZXing para ler o QR da Central (substitui o ML Kit) | Aprovado |
@@ -29,5 +29,8 @@ Um ADR aprovado **não é editado** para mudar a decisão: cria-se um novo ADR q
 | [0020](0020-filtroestudo-em-memoria.md) | FiltroEstudo calculado em memória sobre as visões vigentes | Aprovado |
 | [0021](0021-relatorios-pdf-docx-xlsx.md) | Relatórios em PDF, DOCX e XLSX gerados na Central | Aprovado |
 | [0022](0022-cartas-imagem-sentinel2-cdse.md) | Cartas-imagem com Sentinel-2 (Copernicus CDSE) e imagens guardadas localmente (altera RN-90) | Aprovado |
+| [0023](0023-estudo-jornada-equipe-e-codigos.md) | Estudo de situação, jornadas, equipes por jornada e códigos públicos (substitui o ADR-0012) | Proposto |
+| [0024](0024-coletas-e-confirmacao-de-destino.md) | Coletas no celular, protocolo v2 e confirmação do destino na Central | Proposto |
+| [0025](0025-reinicio-dos-bancos-de-teste.md) | Reinício único dos bancos de teste (geração 2 do esquema) | Proposto |
 
 Modelo para novos ADRs: copie [`template.md`](template.md).
