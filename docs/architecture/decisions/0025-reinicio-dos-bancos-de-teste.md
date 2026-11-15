@@ -1,6 +1,6 @@
 # ADR-0025 — Reinício único dos bancos de teste (geração 2 do esquema)
 
-- **Status:** Proposto (autorizado pelo usuário em 15/11/2026, A28)
+- **Status:** Aprovado pelo usuário em 15/11/2026, após implementação e teste em bancada (A28)
 - **Data:** 2026-11-15
 - **Substitui / Substituído por:** altera o ADR-0017 (§8, migração 0002 da Central) e o ADR-0018 (§1, banco v2 do celular)
 

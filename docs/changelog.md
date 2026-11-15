@@ -2,6 +2,9 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-15 — ADRs da A28 aprovados
+- **docs** · ADR-0023 (estudos, jornadas, equipes e códigos), ADR-0024 (coletas e confirmação do destino, protocolo v2) e ADR-0025 (reinício único dos bancos de teste) passam de Proposto para **Aprovado** pelo usuário, após implementação e teste em bancada.
+
 ## 2026-11-15 — Central 0.7.2-mvp: ordem das ações em Estudos
 - **desktop** · Ação movida para a última coluna da lista de Estudos de situação, com largura reservada de 120 px. Ícones e espaçamento mantidos.
 - **build** · Novo instalador 0.7.2-mvp.

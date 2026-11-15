@@ -1,6 +1,6 @@
 # ADR-0024 — Coletas no celular, protocolo v2 e confirmação do destino na Central
 
-- **Status:** Proposto (plano aprovado pelo usuário em 15/11/2026, A28)
+- **Status:** Aprovado pelo usuário em 15/11/2026, após implementação e teste em bancada (A28)
 - **Data:** 2026-11-15
 - **Substitui / Substituído por:** altera o ADR-0017 (§1, §2, §3 e a importação automática) e o ADR-0018 (§5, um lote aberto por vez)
 

@@ -1,6 +1,6 @@
 # ADR-0023 — Estudo de situação, jornadas, equipes por jornada e códigos públicos
 
-- **Status:** Proposto (plano aprovado pelo usuário em 15/11/2026, A28)
+- **Status:** Aprovado pelo usuário em 15/11/2026, após implementação e teste em bancada (A28)
 - **Data:** 2026-11-15
 - **Substitui / Substituído por:** substitui o ADR-0012 (entidade operação) e a parte de equipe do ADR-0017 (§1, objeto `equipe` no lote e no pareamento)
 
