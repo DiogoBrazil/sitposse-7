@@ -3,13 +3,13 @@
 
 import * as CartaService from "./cartaservice.js";
 import * as ConsultaService from "./consultaservice.js";
-import * as OperacaoService from "./operacaoservice.js";
+import * as EstudoService from "./estudoservice.js";
 import * as RelatorioService from "./relatorioservice.js";
 import * as SincronizacaoService from "./sincronizacaoservice.js";
 export {
     CartaService,
     ConsultaService,
-    OperacaoService,
+    EstudoService,
     RelatorioService,
     SincronizacaoService
 };

@@ -63,6 +63,11 @@ export interface Info {
      * alarme do reconciliador
      */
     "fotos_sem_arquivo": string[] | null;
+
+    /**
+     * banco de geração anterior (ADR-0025)
+     */
+    "bloqueio": string;
 }
 
 /**

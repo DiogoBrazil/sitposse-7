@@ -1,29 +1,32 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { OperacaoService as Op, SincronizacaoService as Sinc } from '../bindings/sitposse7/desktop/app'
-import type { Operacao, PedidoResumo } from '../bindings/sitposse7/desktop/internal/pareamento/models'
+import { SincronizacaoService as Sinc } from '../bindings/sitposse7/desktop/app'
+import type { PedidoResumo } from '../bindings/sitposse7/desktop/internal/pareamento/models'
+import type { LoteAguardando } from '../bindings/sitposse7/desktop/internal/importacao/models'
 import Painel from './telas/Painel.vue'
 import Propriedades from './telas/Propriedades.vue'
 import Propriedade from './telas/Propriedade.vue'
-import Equipes from './telas/Equipes.vue'
+import Estudos from './telas/Estudos.vue'
 import Sincronizacao from './telas/Sincronizacao.vue'
 import Cartas from './telas/Cartas.vue'
 import InfoTecnica from './componentes/InfoTecnica.vue'
+import ModalDestino from './componentes/ModalDestino.vue'
 import { mensagem } from './formato'
+import { carregarEstudos, definirFoco, estudoFoco, estudos } from './estudo'
 import type { Tela } from './navegacao'
 
 const menu: { id: Tela; rotulo: string; icone: string }[] = [
   { id: 'painel', rotulo: 'Painel', icone: 'M3 13h7V3H3zm0 8h7v-6H3zm11 0h7V11h-7zm0-18v6h7V3z' },
   { id: 'propriedades', rotulo: 'Propriedades', icone: 'M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z' },
   { id: 'cartas', rotulo: 'Cartas-imagem', icone: 'M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5zM9 4v13.5M15 6.5V20' },
-  { id: 'equipes', rotulo: 'Equipes', icone: 'M8 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm8 0a3 3 0 1 0 0-6M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 14c3 0 6 2.2 6 6' },
+  { id: 'estudos', rotulo: 'Estudos', icone: 'M8 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm8 0a3 3 0 1 0 0-6M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 14c3 0 6 2.2 6 6' },
   { id: 'sincronizacao', rotulo: 'Sincronização', icone: 'M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4' },
 ]
 const tela = ref<Tela>('painel')
 /** Propriedade aberta e a tela de onde veio (para o "Voltar"). */
 const aberta = ref<{ uuid: string; de: Tela } | null>(null)
 const versao = ref('')
-const operacao = ref<Operacao | null>(null)
+const bloqueio = ref('')
 const infoAberta = ref(false)
 /** Propriedade escolhida na página dela para a carta individual. */
 const cartaUuid = ref<string | null>(null)
@@ -34,23 +37,26 @@ let rolagem = 0
 function abrirPropriedade(uuid: string) { rolagem = window.scrollY; aberta.value = { uuid, de: tela.value }; window.scrollTo(0, 0) }
 function voltar() { aberta.value = null; nextTick(() => window.scrollTo(0, rolagem)) }
 
-// Pedidos de pareamento: aparecem em qualquer tela (o aparelho espera até 90 s).
+// Pedidos de pareamento e lotes esperando o destino: aparecem em qualquer tela.
 const pedidos = ref<PedidoResumo[]>([])
+const aguardando = ref<LoteAguardando[]>([])
 const erroPedido = ref('')
 let timer: number | undefined
 async function verificar() {
   try { pedidos.value = (await Sinc.Pendentes()) ?? [] } catch { /* a Central continua utilizável */ }
+  try { aguardando.value = (await Sinc.Aguardando()) ?? [] } catch { /* */ }
 }
+async function aposDecidir() { await verificar(); await carregarEstudos() }
 async function decidir(id: string, aceitar: boolean) {
   erroPedido.value = ''
   try { await Sinc.Decidir(id, aceitar); await verificar() } catch (e) { erroPedido.value = mensagem(e) }
 }
-async function carregarOperacao() { try { operacao.value = await Op.Ativa() } catch { /* */ } }
 onMounted(async () => {
+  try { const i = await Sinc.Info(); versao.value = i.versao; bloqueio.value = i.bloqueio } catch { /* */ }
+  if (bloqueio.value) return
+  try { await carregarEstudos() } catch { /* */ }
   verificar()
-  carregarOperacao()
-  timer = window.setInterval(() => { verificar(); carregarOperacao() }, 1500)
-  try { versao.value = (await Sinc.Info()).versao } catch { /* */ }
+  timer = window.setInterval(verificar, 1500)
 })
 onUnmounted(() => window.clearInterval(timer))
 </script>
@@ -72,8 +78,11 @@ onUnmounted(() => window.clearInterval(timer))
         </button>
       </div>
       <div class="operacao">
-        <span class="op-rotulo">Operação ativa</span>
-        <strong>{{ operacao?.nome ?? 'Nenhuma' }}</strong>
+        <label class="op-rotulo" for="estudo-foco">Estudo em foco</label>
+        <select v-if="estudos.length" id="estudo-foco" :value="estudoFoco" @change="definirFoco(($event.target as HTMLSelectElement).value)">
+          <option v-for="e in estudos" :key="e.uuid" :value="e.uuid">{{ e.nome }}</option>
+        </select>
+        <button v-else class="discreto novo-estudo" @click="ir('estudos')">Criar estudo</button>
       </div>
       <div class="rodape">
         <button class="info" @click="infoAberta = true">
@@ -84,7 +93,16 @@ onUnmounted(() => window.clearInterval(timer))
       </div>
     </nav>
 
-    <main>
+    <main v-if="bloqueio">
+      <section class="bloco">
+        <div class="bloco-cabeca"><h2>Dados de teste antigos</h2></div>
+        <div class="bloco-corpo pilha">
+          <p class="aviso-erro">{{ bloqueio }}</p>
+          <p>Feche a Central e siga o procedimento de reinício dos dados de teste (docs/operacao/teste-de-campo-mvp.md): os arquivos antigos são movidos para uma pasta de cópia, sem apagar nada.</p>
+        </div>
+      </section>
+    </main>
+    <main v-else>
       <Propriedade v-if="aberta" :key="aberta.uuid" :uuid="aberta.uuid" :de="aberta.de" @voltar="voltar" @carta="cartaDe" />
       <!-- As telas ficam montadas (só escondidas) enquanto a propriedade está aberta: ao voltar,
            filtros, aba e detalhamento continuam como estavam. -->
@@ -92,7 +110,7 @@ onUnmounted(() => window.clearInterval(timer))
         <KeepAlive>
           <Painel v-if="tela === 'painel'" @ir="ir" @abrir="abrirPropriedade" />
           <Propriedades v-else-if="tela === 'propriedades'" @abrir="abrirPropriedade" />
-          <Equipes v-else-if="tela === 'equipes'" />
+          <Estudos v-else-if="tela === 'estudos'" />
           <Cartas v-else-if="tela === 'cartas'" :uuid-inicial="cartaUuid" />
           <Sincronizacao v-else @info="infoAberta = true" />
         </KeepAlive>
@@ -101,17 +119,17 @@ onUnmounted(() => window.clearInterval(timer))
 
     <InfoTecnica v-if="infoAberta" @fechar="infoAberta = false" />
 
+    <ModalDestino v-if="aguardando.length && !pedidos.length" :lotes="aguardando" @decidido="aposDecidir" />
+
     <div v-if="pedidos.length" class="modal-fundo">
       <div class="modal pilha" role="alertdialog" aria-modal="true" aria-labelledby="pedido-titulo">
         <h2 id="pedido-titulo">Celular pedindo pareamento</h2>
         <div v-for="p in pedidos" :key="p.id" class="pilha pedido">
           <dl class="dados">
-            <dt>Equipe</dt><dd><strong>{{ p.equipe_nome }}</strong></dd>
-            <dt>Responsável</dt><dd>{{ p.responsavel }}</dd>
-            <dt v-if="p.identificacao_area">Área</dt><dd v-if="p.identificacao_area">{{ p.identificacao_area }}</dd>
-            <dt>Aparelho</dt><dd>{{ p.rotulo_aparelho || '—' }}</dd>
+            <dt>Aparelho</dt><dd><strong>{{ p.rotulo_aparelho || '—' }}</strong></dd>
+            <dt>Instalação</dt><dd class="mono">{{ p.instalacao_uuid.slice(0, 8) }}</dd>
           </dl>
-          <p class="suave">{{ p.equipe_conhecida ? 'Equipe já conhecida: um novo aparelho dela será liberado.' : 'Equipe nova: será incluída na operação ativa.' }}</p>
+          <p class="suave">{{ p.aparelho_conhecido ? 'Aparelho já pareado antes: a credencial dele será renovada.' : 'Aparelho novo.' }} O estudo e a equipe de cada envio são confirmados depois, pelo código.</p>
           <div class="linha" style="justify-content: flex-end">
             <button class="perigo" @click="decidir(p.id, false)">Recusar</button>
             <button class="primario" @click="decidir(p.id, true)">Confirmar pareamento</button>
@@ -146,7 +164,8 @@ onUnmounted(() => window.clearInterval(timer))
 .lateral :focus-visible { outline-color: var(--ipe); }
 .operacao { margin-top: auto; padding: .75rem .8rem; border-top: 1px solid color-mix(in srgb, var(--lateral-tinta) 14%, transparent); display: flex; flex-direction: column; gap: .15rem; }
 .op-rotulo { font-size: .78rem; color: var(--lateral-tinta-2); }
-.operacao strong { font-size: .95rem; overflow-wrap: anywhere; }
+.operacao select { width: 100%; background: var(--lateral-ativo); color: var(--lateral-tinta); border-color: color-mix(in srgb, var(--lateral-tinta) 25%, transparent); font-weight: 600; }
+.novo-estudo { color: var(--lateral-tinta); justify-content: flex-start; padding-left: 0; }
 .rodape { display: flex; flex-direction: column; gap: .35rem; }
 .info { display: flex; align-items: center; gap: .55rem; border: none; background: transparent; color: var(--lateral-tinta-2); padding: .45rem .8rem; font-size: .88rem; font-weight: 500; min-height: 0; }
 .info:hover { color: var(--lateral-tinta); background: var(--lateral-ativo); }

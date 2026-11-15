@@ -19,5 +19,5 @@ export interface Marcador {
      */
     "origem": string;
     "equipe": string;
-    "area_identificada": string;
+    "jornada": string;
 }

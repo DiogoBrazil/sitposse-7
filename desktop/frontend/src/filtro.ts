@@ -4,9 +4,10 @@ import type { Campo, Condicao, Filtro, Opcao } from '../bindings/sitposse7/deskt
 
 export type { Campo, Condicao, Filtro, Opcao }
 
-export function filtroVazio(): Filtro {
+/** Filtro vazio dentro do estudo em foco (A28: Painel, Propriedades e cartas mostram um estudo por vez). */
+export function filtroVazio(estudo = ''): Filtro {
   return {
-    operacoes: [], equipes: [], areas_identificadas: [], busca: '', periodo_campo: 'cadastro', de: null, ate: null,
+    estudo, jornadas: [], equipes: [], busca: '', periodo_campo: 'cadastro', de: null, ate: null,
     com_localizacao: null, com_foto: null, com_area: null, faixas_area: [], area_min_ha: null, area_max_ha: null, condicoes: [],
   }
 }
@@ -66,13 +67,12 @@ export interface Chip { chave: string; texto: string; remover: (f: Filtro) => Fi
 
 const sem = <T>(lista: T[] | null | undefined, x: T) => (lista ?? []).filter((y) => y !== x)
 
-/** Filtros ativos, um chip por critério, cada um com a forma de removê-lo. */
-export function chips(f: Filtro, o: { equipes: Opcao[]; areas: Opcao[]; operacoes: Opcao[]; campos: Campo[] }): Chip[] {
+/** Filtros ativos, um chip por critério (o estudo em foco aparece no cabeçalho, não como chip). */
+export function chips(f: Filtro, o: { equipes: Opcao[]; jornadas: Opcao[]; campos: Campo[] }): Chip[] {
   const out: Chip[] = []
   const rot = (lista: Opcao[], v: string) => lista.find((x) => x.valor === v)?.rotulo ?? v
-  for (const v of f.operacoes ?? []) out.push({ chave: `op:${v}`, texto: `Operação: ${rot(o.operacoes, v)}`, remover: (x) => ({ ...x, operacoes: sem(x.operacoes, v) }) })
+  for (const v of f.jornadas ?? []) out.push({ chave: `jo:${v}`, texto: rot(o.jornadas, v), remover: (x) => ({ ...x, jornadas: sem(x.jornadas, v) }) })
   for (const v of f.equipes ?? []) out.push({ chave: `eq:${v}`, texto: `Equipe: ${rot(o.equipes, v)}`, remover: (x) => ({ ...x, equipes: sem(x.equipes, v) }) })
-  for (const v of f.areas_identificadas ?? []) out.push({ chave: `ar:${v}`, texto: v ? `Área: ${rot(o.areas, v)}` : 'Sem identificação da área', remover: (x) => ({ ...x, areas_identificadas: sem(x.areas_identificadas, v) }) })
   if (f.busca.trim()) out.push({ chave: 'busca', texto: `Busca: “${f.busca.trim()}”`, remover: (x) => ({ ...x, busca: '' }) })
   if (f.de != null || f.ate != null) {
     const qual = f.periodo_campo === 'recebimento' ? 'Recebidas' : 'Cadastradas'
@@ -99,7 +99,7 @@ export function chips(f: Filtro, o: { equipes: Opcao[]; areas: Opcao[]; operacoe
 export function comExtra(f: Filtro, extra: Partial<Filtro>): Filtro {
   return {
     ...f, ...extra,
-    equipes: extra.equipes ?? f.equipes, areas_identificadas: extra.areas_identificadas ?? f.areas_identificadas,
+    equipes: extra.equipes ?? f.equipes, jornadas: extra.jornadas ?? f.jornadas,
     faixas_area: extra.faixas_area ?? f.faixas_area,
     condicoes: [...(f.condicoes ?? []), ...(extra.condicoes ?? [])],
   }

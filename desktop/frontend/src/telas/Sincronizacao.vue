@@ -1,21 +1,17 @@
 <script setup lang="ts">
 import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue'
 import QRCode from 'qrcode'
-import { OperacaoService as Op, SincronizacaoService as Sinc } from '../../bindings/sitposse7/desktop/app'
+import { SincronizacaoService as Sinc } from '../../bindings/sitposse7/desktop/app'
 import type { Info } from '../../bindings/sitposse7/desktop/app/models'
 import type { LoteLinha, Rejeicao } from '../../bindings/sitposse7/desktop/internal/consultas/models'
-import type { Operacao } from '../../bindings/sitposse7/desktop/internal/pareamento/models'
 import TabelaDados from '../componentes/TabelaDados.vue'
 import { mensagem, num, quando } from '../formato'
 import type { Coluna } from '../tabela'
 
 const emit = defineEmits<{ info: [] }>()
 const info = ref<Info | null>(null)
-const op = ref<Operacao | null | undefined>(undefined) // undefined = carregando
 const lotes = ref<LoteLinha[]>([])
 const erro = ref('')
-const nomeOperacao = ref('')
-const criando = ref(false)
 
 const qr = ref('')
 const gerando = ref(false)
@@ -28,15 +24,9 @@ const rejeicoes = ref<Rejeicao[]>([])
 
 async function carregar() {
   try {
-    const [i, o, l] = await Promise.all([Sinc.Info(), Op.Ativa(), Sinc.Lotes()])
-    info.value = i; op.value = o; lotes.value = l ?? []
+    const [i, l] = await Promise.all([Sinc.Info(), Sinc.Lotes()])
+    info.value = i; lotes.value = l ?? []
   } catch (e) { erro.value = mensagem(e) }
-}
-
-async function criarOperacao() {
-  erro.value = ''
-  criando.value = true
-  try { op.value = await Op.Criar(nomeOperacao.value, ''); nomeOperacao.value = '' } catch (e) { erro.value = mensagem(e) } finally { criando.value = false }
 }
 
 async function gerarQr() {
@@ -60,13 +50,23 @@ async function abrirLote(l: LoteLinha) {
 
 const colLotes: Coluna<LoteLinha>[] = [
   { chave: 'recebido_em', rotulo: 'Recebido em', formatar: (l) => quando(l.recebido_em) },
-  { chave: 'equipe', rotulo: 'Equipe' },
+  { chave: 'codigo_informado', rotulo: 'Código recebido' },
+  { chave: 'equipe', rotulo: 'Destino' },
   { chave: 'aparelho', rotulo: 'Aparelho', secundaria: true },
   { chave: 'status', rotulo: 'Situação' },
   { chave: 'aplicados', rotulo: 'Registros novos ou atualizados', tipo: 'numero' },
   { chave: 'duplicados', rotulo: 'Já existentes', tipo: 'numero' },
   { chave: 'rejeitados', rotulo: 'Recusados', tipo: 'numero' },
 ]
+
+function situacao(l: LoteLinha): { texto: string; classe: string } {
+  switch (l.status) {
+    case 'importado': return { texto: 'Importado', classe: 'ok' }
+    case 'aguardando_confirmacao': return { texto: 'Aguardando confirmação', classe: 'alerta' }
+    case 'cancelado': return { texto: 'Cancelado', classe: 'erro' }
+    default: return { texto: 'Recebendo…', classe: 'alerta' }
+  }
+}
 
 // Recepção ao vivo (3 s) e contagem do QR, só com a tela visível.
 let t1: number | undefined
@@ -96,27 +96,16 @@ onMounted(iniciar); onActivated(iniciar); onDeactivated(parar); onUnmounted(para
     <p v-if="erro" class="aviso-erro">{{ erro }}</p>
     <p v-if="info?.fotos_sem_arquivo?.length" class="aviso-erro">{{ info.fotos_sem_arquivo.length }} foto(s) registrada(s) sem arquivo na pasta de dados. Não apague nada e avise o suporte.</p>
 
-    <section v-if="op === null" class="bloco">
-      <div class="bloco-cabeca"><h2>Criar a operação</h2></div>
-      <div class="bloco-corpo pilha">
-        <p class="suave">Os celulares são pareados com a operação ativa. Dê um nome que identifique o levantamento, por exemplo “Levantamento Linha 25, novembro de 2026”.</p>
-        <form class="linha" @submit.prevent="criarOperacao">
-          <input v-model="nomeOperacao" maxlength="200" placeholder="Nome da operação" style="flex: 1 1 320px" />
-          <button class="primario" :disabled="!nomeOperacao.trim() || criando">Criar operação</button>
-        </form>
-      </div>
-    </section>
-
-    <section v-else-if="op" class="bloco parear">
+    <section class="bloco parear">
       <div class="passos">
         <h2>Parear um celular</h2>
         <ol>
           <li><span><strong>Ligue o hotspot móvel</strong> deste computador (com internet na origem) e conecte o celular a ele.</span></li>
           <li><span>No celular, toque em <strong>Sincronizar</strong> e depois em <strong>Ler QR de pareamento</strong>.</span></li>
           <li><span>Aponte a câmera para o QR desta tela.</span></li>
-          <li><span>Confirme o pedido que vai aparecer aqui. Depois, o celular envia os cadastros sozinho.</span></li>
+          <li><span>Confirme o pedido que vai aparecer aqui. Depois, o celular envia os cadastros e você <strong>confirma o destino</strong> de cada coleta (estudo, jornada e equipe pelo código).</span></li>
         </ol>
-        <p class="suave">Operação: <strong>{{ op.nome }}</strong>. Um celular já pareado não precisa de QR: basta tocar em “Enviar para a Central”.</p>
+        <p class="suave">Um celular já pareado não precisa de QR: basta tocar em “Enviar para a Central”. Os códigos das equipes ficam em <strong>Estudos</strong>.</p>
       </div>
       <div class="qr">
         <div class="moldura" :class="{ vazia: !qr }">
@@ -137,8 +126,18 @@ onMounted(iniciar); onActivated(iniciar); onDeactivated(parar); onUnmounted(para
       <TabelaDados :colunas="colLotes" :linhas="lotes" :chave="(l) => l.uuid" rotulo="Lotes recebidos" :ordem="{ chave: 'recebido_em', dir: 'desc' }"
                    texto-vazio="Nenhum lote recebido ainda." clicavel @abrir="abrirLote">
         <template #status="{ linha }">
-          <span class="selo" :class="linha.status === 'importado' ? 'ok' : 'alerta'">{{ linha.status === 'importado' ? 'Importado' : 'Recebendo…' }}</span>
+          <span class="selo" :class="situacao(linha).classe">{{ situacao(linha).texto }}</span>
           <span v-if="linha.importado_em" class="fraco quando">{{ quando(linha.importado_em) }}</span>
+          <span v-if="linha.status === 'cancelado'" class="fraco quando">{{ linha.motivo === 'codigo_inexistente' ? 'Código não encontrado' : 'Cancelado pelo operador' }}</span>
+        </template>
+        <template #codigo_informado="{ linha }"><span class="mono">{{ linha.codigo_informado }}</span></template>
+        <template #equipe="{ linha }">
+          <template v-if="linha.equipe">
+            <strong>{{ linha.equipe }}</strong> <span class="mono fraco">{{ linha.equipe_codigo }}</span>
+            <span class="fraco quando">{{ linha.estudo }} · {{ linha.jornada }}</span>
+            <span v-if="linha.corrigido" class="selo alerta">Corrigido na Central</span>
+          </template>
+          <span v-else class="fraco">—</span>
         </template>
         <template #aparelho="{ linha }">{{ linha.aparelho || '—' }}</template>
         <template #rejeitados="{ linha }">
@@ -151,7 +150,7 @@ onMounted(iniciar); onActivated(iniciar); onDeactivated(parar); onUnmounted(para
     <div v-if="loteAberto" class="modal-fundo" @click.self="loteAberto = null">
       <div class="modal pilha" role="dialog" aria-modal="true" aria-labelledby="rej-titulo">
         <h2 id="rej-titulo">Registros recusados</h2>
-        <p class="suave">Lote de {{ quando(loteAberto.recebido_em) }}, equipe {{ loteAberto.equipe }}. Esses registros continuam pendentes no celular.</p>
+        <p class="suave">Lote de {{ quando(loteAberto.recebido_em) }}, equipe {{ loteAberto.equipe ?? '—' }}. Esses registros continuam pendentes no celular.</p>
         <ul class="rej"><li v-for="r in rejeicoes" :key="r.uuid"><strong>{{ r.entidade }}</strong>: {{ r.motivo }}<br /><span class="mono fraco">{{ r.uuid }}</span></li></ul>
         <div class="linha" style="justify-content: flex-end"><button autofocus @click="loteAberto = null">Fechar</button></div>
       </div>

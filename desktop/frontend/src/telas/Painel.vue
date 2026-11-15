@@ -5,9 +5,9 @@
  * sempre com os mesmos filtros (RN-81). Todo número abre as famílias que o compõem (RN-82).
  */
 import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
-import { ConsultaService as Consulta, OperacaoService as Op } from '../../bindings/sitposse7/desktop/app'
+import { ConsultaService as Consulta } from '../../bindings/sitposse7/desktop/app'
 import type { Resumo } from '../../bindings/sitposse7/desktop/internal/consultas/models'
-import type { Operacao } from '../../bindings/sitposse7/desktop/internal/pareamento/models'
+import { estudoAtual, estudoFoco } from '../estudo'
 import type { Faixa, TipoItem } from '../../bindings/sitposse7/desktop/internal/estatisticas/models'
 import BarraFiltros from '../componentes/BarraFiltros.vue'
 import CartaoIndicador from '../componentes/CartaoIndicador.vue'
@@ -23,16 +23,17 @@ import type { Tela } from '../navegacao'
 import type { Coluna } from '../tabela'
 
 const emit = defineEmits<{ ir: [tela: Tela]; abrir: [uuid: string] }>()
-const filtro = ref<Filtro>(filtroVazio())
+const filtro = ref<Filtro>(filtroVazio(estudoFoco.value))
+// Trocar o estudo em foco recomeça os filtros dentro do novo estudo.
+watch(estudoFoco, (e) => { if (filtro.value.estudo !== e) filtro.value = filtroVazio(e) })
 const r = ref<Resultado | null>(null)
 const resumo = ref<Resumo | null>(null)
-const op = ref<Operacao | null>(null)
 const erro = ref('')
 
 async function carregar() {
   try {
-    const [a, b, c] = await Promise.all([Consulta.Estatisticas(filtro.value), Consulta.Resumo(), Op.Ativa()])
-    r.value = a; resumo.value = b; op.value = c; erro.value = ''
+    const [a, b] = await Promise.all([Consulta.Estatisticas(filtro.value), Consulta.Resumo(filtro.value.estudo)])
+    r.value = a; resumo.value = b; erro.value = ''
   } catch (e) { erro.value = mensagem(e) }
 }
 let atraso: number | undefined
@@ -45,7 +46,7 @@ onMounted(iniciar); onActivated(iniciar); onDeactivated(parar); onUnmounted(para
 
 const t = computed(() => r.value?.totais)
 const campos = computed(() => r.value?.campos ?? [])
-const opcoes = computed(() => ({ equipes: r.value?.equipes ?? [], areas: r.value?.areas ?? [], operacoes: r.value?.operacoes ?? [] }))
+const opcoes = computed(() => ({ equipes: r.value?.equipes ?? [], jornadas: r.value?.jornadas ?? [] }))
 const rotuloDe = (chave: string) => campos.value.find((c) => c.chave === chave)?.rotulo ?? chave
 
 // ---------- exportação ----------
@@ -77,7 +78,7 @@ const lin = (chave: string, rotulo: string): LinhaIndicador => ({ chave, rotulo,
 // ---------- análises ----------
 type Aba = 'grupos' | 'familias' | 'itens' | 'tamanho'
 const aba = ref<Aba>('grupos')
-const agrupar = ref<'equipe' | 'area'>('equipe')
+const agrupar = ref<'equipe' | 'jornada'>('equipe')
 const conjunto = ref('resumo')
 const indicador = ref('pessoas_total')
 const camposConjunto = computed(() => CONJUNTOS.find((c) => c.id === conjunto.value)!.campos)
@@ -96,9 +97,9 @@ function valorIndicador(x: Grupo | Familia, chave: string): number {
 const rotuloIndicador = computed(() => indicadores.value.find((i) => i.chave === indicador.value)?.rotulo ?? '')
 const corIndicador = computed(() => (indicador.value === 'familias' || indicador.value === 'area' ? 'eletro' : dominioDoCampo(indicador.value)))
 
-const grupos = computed(() => (agrupar.value === 'equipe' ? r.value?.por_equipe : r.value?.por_area) ?? [])
+const grupos = computed(() => (agrupar.value === 'equipe' ? r.value?.por_equipe : r.value?.por_jornada) ?? [])
 const colGrupos = computed<Coluna<Grupo>[]>(() => [
-  { chave: 'nome', rotulo: agrupar.value === 'equipe' ? 'Equipe' : 'Área identificada' },
+  { chave: 'nome', rotulo: agrupar.value === 'equipe' ? 'Equipe' : 'Jornada' },
   { chave: 'familias', rotulo: 'Famílias', tipo: 'numero', valor: (l) => l.totais.familias, formatar: (l) => num(l.totais.familias) },
   ...camposConjunto.value.map((c) => ({ chave: c.chave, rotulo: c.rotulo, tipo: 'numero' as const, valor: (l: Grupo) => v(l.totais, c.chave), formatar: (l: Grupo) => num(v(l.totais, c.chave)) })),
   ...(conjunto.value === 'resumo' ? [{ chave: 'area', rotulo: 'Área (ha)', tipo: 'numero' as const, valor: (l: Grupo) => l.totais.area_dm2, formatar: (l: Grupo) => l.totais.area_ha + (l.totais.sem_area ? ` (${l.totais.sem_area} sem)` : '') }] : []),
@@ -111,7 +112,7 @@ const totaisLinha = computed(() => {
   return o
 })
 function detalharGrupo(g: Grupo) {
-  const extra: Partial<Filtro> = agrupar.value === 'equipe' ? { equipes: [g.chave] } : { areas_identificadas: [g.chave] }
+  const extra: Partial<Filtro> = agrupar.value === 'equipe' ? { equipes: [g.chave] } : { jornadas: [g.chave] }
   const qtd = indicador.value !== 'familias' && indicador.value !== 'area'
   detalhar(qtd ? indicador.value : 'familias', `${g.nome}: ${qtd ? rotuloDe(indicador.value).toLowerCase() : 'famílias'}`, extra)
 }
@@ -154,7 +155,7 @@ const colFaixas: Coluna<Faixa>[] = [
 const detalharFaixa = (f: Faixa) => detalhar('familias', `Tamanho: ${f.rotulo.toLowerCase()}`, { faixas_area: [f.chave] })
 
 const abas: { id: Aba; rotulo: string }[] = [
-  { id: 'grupos', rotulo: 'Por equipe ou área' }, { id: 'familias', rotulo: 'Por família' }, { id: 'itens', rotulo: 'Itens por tipo' }, { id: 'tamanho', rotulo: 'Tamanho das propriedades' },
+  { id: 'grupos', rotulo: 'Por jornada ou equipe' }, { id: 'familias', rotulo: 'Por família' }, { id: 'itens', rotulo: 'Itens por tipo' }, { id: 'tamanho', rotulo: 'Tamanho das propriedades' },
 ]
 </script>
 
@@ -164,16 +165,16 @@ const abas: { id: Aba; rotulo: string }[] = [
       <div class="titulo">
         <h1>Painel</h1>
         <p class="suave">
-          {{ op ? `Operação ${op.nome}` : 'Nenhuma operação ativa' }}<template v-if="resumo?.lotes_importados">. {{ plural(resumo.lotes_importados, 'lote importado', 'lotes importados') }}, o último em {{ quando(resumo.ultima_importacao) }}</template>
+          {{ estudoAtual ? `${estudoAtual.nome} · ${estudoAtual.codigo_exibicao}` : 'Nenhum estudo de situação' }}<template v-if="resumo?.lotes_importados">. {{ plural(resumo.lotes_importados, 'lote importado', 'lotes importados') }}, o último em {{ quando(resumo.ultima_importacao) }}</template>
         </p>
       </div>
       <div class="linha">
         <button :disabled="!r?.familias_base" title="PDF, Word ou Excel, com os filtros ativos" @click="exportando = true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>Exportar</button>
-        <button class="primario" @click="emit('ir', 'sincronizacao')">{{ op ? 'Receber dos celulares' : 'Criar operação' }}</button>
+        <button class="primario" @click="emit('ir', estudoAtual ? 'sincronizacao' : 'estudos')">{{ estudoAtual ? 'Receber dos celulares' : 'Criar estudo' }}</button>
       </div>
     </header>
 
-    <BarraFiltros v-model="filtro" :equipes="opcoes.equipes" :areas="opcoes.areas" :operacoes="opcoes.operacoes" :campos="campos"
+    <BarraFiltros v-model="filtro" :equipes="opcoes.equipes" :jornadas="opcoes.jornadas" :campos="campos"
                   :mostrando="t?.familias ?? null" :base="r?.familias_base ?? null" />
     <p v-if="erro" class="aviso-erro">{{ erro }}</p>
 
@@ -213,7 +214,7 @@ const abas: { id: Aba; rotulo: string }[] = [
 
           <div v-if="aba === 'grupos' || aba === 'familias'" class="controles">
             <label v-if="aba === 'grupos'">Agrupar por
-              <select v-model="agrupar"><option value="equipe">Equipe</option><option value="area">Área identificada</option></select>
+              <select v-model="agrupar"><option value="equipe">Equipe</option><option value="jornada">Jornada</option></select>
             </label>
             <label>Colunas
               <select v-model="conjunto"><option v-for="c in CONJUNTOS" :key="c.id" :value="c.id">{{ c.rotulo }}</option></select>
@@ -225,11 +226,11 @@ const abas: { id: Aba; rotulo: string }[] = [
 
           <template v-if="aba === 'grupos'">
             <div v-if="grupos.length" class="bloco grafico-bloco">
-              <h3>{{ rotuloIndicador }} por {{ agrupar === 'equipe' ? 'equipe' : 'área identificada' }}</h3>
+              <h3>{{ rotuloIndicador }} por {{ agrupar }}</h3>
               <Grafico :montar="(tm) => barrasHorizontais(tm, corIndicador, grupos.map((g) => ({ nome: g.nome, valor: valorIndicador(g, indicador) })), indicador === 'area' ? 'ha' : '')"
                        :altura="alturaBarras(grupos.length)" :rotulo="`Gráfico de ${rotuloIndicador} por grupo; os valores estão na tabela`" @clicar="(i) => detalharGrupo(grupos[i])" />
             </div>
-            <TabelaDados :colunas="colGrupos" :linhas="grupos" :chave="(l) => l.chave || '—'" :rotulo="`Totais por ${agrupar === 'equipe' ? 'equipe' : 'área'}`" :por-pagina="0"
+            <TabelaDados :colunas="colGrupos" :linhas="grupos" :chave="(l) => l.chave || '—'" :rotulo="`Totais por ${agrupar}`" :por-pagina="0"
                          :totais="totaisLinha" clicavel :ordem="{ chave: 'familias', dir: 'desc' }" texto-vazio="Nenhuma família com esses filtros." @abrir="detalharGrupo" />
             <p class="fraco dica">Clique numa linha ou barra para ver as famílias que compõem os números.</p>
           </template>
@@ -281,7 +282,7 @@ const abas: { id: Aba; rotulo: string }[] = [
 
     <ExportarRelatorio v-if="exportando" modo="geral" :filtro="filtro" :criterios="criterios" :familias="t?.familias ?? 0" @fechar="exportando = false" />
     <Detalhamento v-if="detalhe" :titulo="detalhe.titulo" :filtro="detalhe.filtro" :campo="detalhe.campo" :campos="campos"
-                  :equipes="opcoes.equipes" :areas="opcoes.areas" :operacoes="opcoes.operacoes"
+                  :equipes="opcoes.equipes" :jornadas="opcoes.jornadas"
                   @fechar="detalhe = null" @abrir="(u) => emit('abrir', u)" @aplicar="aplicarDetalhe" />
   </div>
 </template>

@@ -11,6 +11,7 @@ import { alturaBarras, barrasHorizontais, type Dominio, type GrupoTotal, type Po
 import { mensagem, num, quando } from '../formato'
 import type { Tela } from '../navegacao'
 import type { Coluna } from '../tabela'
+import { dataBR } from '../estudo'
 
 const props = defineProps<{ uuid: string; de: Tela }>()
 const emit = defineEmits<{ voltar: []; carta: [uuid: string] }>()
@@ -25,7 +26,7 @@ onMounted(async () => {
 })
 onUnmounted(() => window.removeEventListener('keydown', tecla))
 
-const voltarPara: Record<Tela, string> = { painel: 'Painel', propriedades: 'Propriedades', equipes: 'Equipes', sincronizacao: 'Sincronização', cartas: 'Cartas-imagem' }
+const voltarPara: Record<Tela, string> = { painel: 'Painel', propriedades: 'Propriedades', estudos: 'Estudos', sincronizacao: 'Sincronização', cartas: 'Cartas-imagem' }
 const soma = (ps: Ponto[]) => ps.reduce((s, x) => s + x.valor, 0)
 
 const pessoas = computed<Ponto[]>(() => p.value ? [
@@ -122,9 +123,11 @@ const unidadeOriginal = computed(() => {
         <div class="titulo">
           <h1>{{ p.nome }}</h1>
           <p class="suave">
-            {{ p.responsavel ? `Responsável: ${p.responsavel}` : 'Responsável não informado' }}
+            Responsável: {{ p.responsavel }}
             <span class="sep" aria-hidden="true"></span>
-            Equipe {{ p.equipe }}<template v-if="p.equipe_area"> ({{ p.equipe_area }})</template>
+            {{ p.estudo }} · Jornada {{ p.jornada_numero }} ({{ dataBR(p.jornada_data) }})
+            <span class="sep" aria-hidden="true"></span>
+            {{ p.equipe }} <span class="codigo">{{ p.equipe_codigo }}</span>
           </p>
         </div>
         <div class="lado">
@@ -139,6 +142,11 @@ const unidadeOriginal = computed(() => {
       </header>
 
       <FaixaTotais :grupos="totais" />
+
+      <section v-if="p.observacoes" class="bloco observacoes">
+        <div class="bloco-cabeca"><h2>Observações relevantes</h2></div>
+        <div class="bloco-corpo"><p class="texto-livre">{{ p.observacoes }}</p></div>
+      </section>
 
       <div class="grade">
         <section class="bloco">
@@ -280,4 +288,6 @@ const unidadeOriginal = computed(() => {
 .foto-grande { margin: 0; display: flex; flex-direction: column; gap: .6rem; max-width: 95vw; }
 .foto-grande img { max-width: 95vw; max-height: 82vh; border-radius: var(--raio); object-fit: contain; }
 .foto-grande figcaption { display: flex; justify-content: space-between; align-items: center; gap: 1rem; color: #e6ece6; flex-wrap: wrap; }
+.texto-livre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; line-height: 1.55; }
+.codigo { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .9em; letter-spacing: .03em; }
 </style>

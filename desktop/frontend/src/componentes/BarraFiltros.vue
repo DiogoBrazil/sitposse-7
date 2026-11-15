@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Barra do FiltroEstudo (§22-A.2–22-A.4): busca, equipe e área sempre à vista; os demais
+ * Barra do FiltroEstudo (§22-A.2–22-A.4, A28): busca, jornada e equipe sempre à vista; os demais
  * critérios em "Mais filtros". Os filtros ativos aparecem como chips removíveis, e
  * "Limpar filtros" volta à visão geral.
  */
@@ -12,8 +12,7 @@ import { num, plural } from '../formato'
 const props = defineProps<{
   modelValue: Filtro
   equipes: Opcao[]
-  areas: Opcao[]
-  operacoes: Opcao[]
+  jornadas: Opcao[]
   campos: Campo[]
   mostrando?: number | null
   base?: number | null
@@ -23,8 +22,8 @@ const f = computed(() => props.modelValue)
 const mudar = (parcial: Partial<Filtro>) => emit('update:modelValue', { ...f.value, ...parcial })
 
 const avancado = ref(false)
-const ativos = computed(() => chips(f.value, { equipes: props.equipes, areas: props.areas, operacoes: props.operacoes, campos: props.campos }))
-const nAvancados = computed(() => ativos.value.filter((c) => !/^(eq|ar|busca)/.test(c.chave)).length)
+const ativos = computed(() => chips(f.value, { equipes: props.equipes, jornadas: props.jornadas, campos: props.campos }))
+const nAvancados = computed(() => ativos.value.filter((c) => !/^(eq|jo|busca)/.test(c.chave)).length)
 
 // Busca com pequeno atraso para não recalcular a cada tecla.
 const busca = ref(f.value.busca)
@@ -71,8 +70,8 @@ const usaValor = (op: string) => OPERADORES.find((o) => o.valor === op)?.usaValo
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
         <input v-model="busca" type="search" placeholder="Buscar família, propriedade ou responsável" />
       </label>
+      <SelecaoMultipla rotulo="Jornada" todos="Todas" :opcoes="jornadas" :model-value="f.jornadas" @update:model-value="(v) => mudar({ jornadas: v })" />
       <SelecaoMultipla rotulo="Equipe" todos="Todas" :opcoes="equipes" :model-value="f.equipes" @update:model-value="(v) => mudar({ equipes: v })" />
-      <SelecaoMultipla rotulo="Área" todos="Todas" :opcoes="areas" :model-value="f.areas_identificadas" @update:model-value="(v) => mudar({ areas_identificadas: v })" />
       <button type="button" class="mais" :class="{ aberto: avancado }" :aria-expanded="avancado" @click="avancado = !avancado">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
         Mais filtros<span v-if="nAvancados" class="cont">{{ nAvancados }}</span>
@@ -112,11 +111,6 @@ const usaValor = (op: string) => OPERADORES.find((o) => o.valor === op)?.usaValo
         <p class="fraco dica">Propriedades sem área informada não entram numa faixa em hectares.</p>
       </fieldset>
 
-      <fieldset v-if="operacoes.length > 1">
-        <legend>Operação</legend>
-        <SelecaoMultipla rotulo="Operação" todos="Todas" :opcoes="operacoes" :model-value="f.operacoes" @update:model-value="(v) => mudar({ operacoes: v })" />
-      </fieldset>
-
       <fieldset class="condicoes">
         <legend>Pessoas, veículos, animais e bens</legend>
         <p v-if="!(f.condicoes ?? []).length" class="fraco">Por exemplo: bovinos mais de 5, possui caminhão, não possui geladeira.</p>
@@ -148,7 +142,7 @@ const usaValor = (op: string) => OPERADORES.find((o) => o.valor === op)?.usaValo
           <button type="button" :aria-label="`Remover filtro: ${c.texto}`" @click="emit('update:modelValue', c.remover(f))">×</button>
         </li>
       </ul>
-      <button v-if="ativos.length" type="button" class="discreto limpar" @click="busca = ''; emit('update:modelValue', filtroVazio())">Limpar filtros</button>
+      <button v-if="ativos.length" type="button" class="discreto limpar" @click="busca = ''; emit('update:modelValue', filtroVazio(f.estudo))">Limpar filtros</button>
     </div>
   </section>
 </template>

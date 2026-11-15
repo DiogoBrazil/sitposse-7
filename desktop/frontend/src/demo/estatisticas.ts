@@ -15,6 +15,8 @@ const faixaDe = (d: number | null) => (d == null ? 'sem_area' : FAIXAS.find((f) 
 const grupoCat: Record<string, string> = { ave: 'Aves', eletrodomestico: 'Eletrodomésticos', movel: 'Móveis' }
 const totalCat: Record<string, string> = { ave: 'aves_total', eletrodomestico: 'eletro_total', movel: 'moveis_total' }
 
+export const ESTUDOS = [{ uuid: 's1', nome: 'Fazenda Santa Maria' }, { uuid: 's2', nome: 'Gleba Rio Preto' }]
+
 export function montarBase(props: any[]) {
   const itens = new Map<string, any>()
   const familias = props.map((p) => {
@@ -35,7 +37,8 @@ export function montarBase(props: any[]) {
       val[totalCat[i.categoria]] += i.quantidade
     }
     const dm2 = p.area_ha ? Math.round(Number(p.area_ha.replace(',', '.')) * 1e6) : null
-    return { uuid: p.uuid, nome: p.nome, responsavel: p.responsavel, equipe_uuid: p.equipe_uuid, equipe: p.equipe, area_identificada: p.equipe_area, operacao_uuid: 'o1',
+    return { uuid: p.uuid, nome: p.nome, responsavel: p.responsavel, observacoes: p.observacoes, equipe_uuid: p.equipe_uuid, equipe: p.equipe, equipe_codigo: p.equipe_codigo,
+      jornada_uuid: p.jornada_uuid, jornada: p.jornada, jornada_numero: p.jornada_numero, jornada_data: p.jornada_data, estudo_uuid: p.estudo_uuid, estudo: p.estudo,
       valores: val, area_dm2: dm2, area_ha: p.area_ha, area_unidade: p.area_unidade, com_localizacao: p.lat != null, criado_em: p.criado_em, recebido_em: p.recebido_em }
   })
   return { familias, itens: [...itens.values()] }
@@ -44,7 +47,8 @@ export function montarBase(props: any[]) {
 function passa(p: any, f: any): boolean {
   const termo = sem(f.busca ?? '')
   if (f.equipes?.length && !f.equipes.includes(p.equipe_uuid)) return false
-  if (f.areas_identificadas?.length && !f.areas_identificadas.includes(p.area_identificada ?? '')) return false
+  if (f.estudo && p.estudo_uuid !== f.estudo) return false
+  if (f.jornadas?.length && !f.jornadas.includes(p.jornada_uuid)) return false
   if (termo && !sem(p.nome).includes(termo) && !sem(p.responsavel ?? '').includes(termo)) return false
   const t = f.periodo_campo === 'recebimento' ? p.recebido_em : p.criado_em
   if ((f.de != null && t < f.de) || (f.ate != null && t > f.ate)) return false
@@ -79,24 +83,26 @@ function totais(fs: any[]) {
 }
 
 export function calcular(base: ReturnType<typeof montarBase>, f: any) {
-  const fs = base.familias.filter((p) => passa(p, f))
+  const doEstudo = base.familias.filter((p) => !f.estudo || p.estudo_uuid === f.estudo)
+  const fs = doEstudo.filter((p) => passa(p, f))
   const agrupar = (chave: (p: any) => string, nome: (p: any) => string) => {
     const m = new Map<string, any[]>()
     for (const p of fs) { const k = chave(p); if (!m.has(k)) m.set(k, []); m.get(k)!.push(p) }
     return [...m.entries()].map(([k, ps]) => ({ chave: k, nome: nome(ps[0]), totais: totais(ps) })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
   }
-  const eqs = new Map(base.familias.map((p) => [p.equipe_uuid, p.equipe]))
-  const areas = new Set(base.familias.map((p) => p.area_identificada ?? ''))
+  const rotEq = (p: any) => `${p.equipe} · J${p.jornada_numero} (${p.jornada_data.split('-').reverse().join('/')})`
+  const eqs = new Map(doEstudo.map((p) => [p.equipe_uuid, rotEq(p)]))
+  const jors = new Map(doEstudo.map((p) => [p.jornada_uuid, p.jornada]))
   return {
-    familias_base: base.familias.length, totais: totais(fs), familias: fs,
-    por_equipe: agrupar((p) => p.equipe_uuid, (p) => p.equipe),
-    por_area: agrupar((p) => p.area_identificada ?? '', (p) => p.area_identificada || 'Sem identificação da área'),
+    familias_base: doEstudo.length, totais: totais(fs), familias: fs,
+    por_equipe: agrupar((p) => p.equipe_uuid, rotEq),
+    por_jornada: agrupar((p) => p.jornada_uuid, (p) => p.jornada),
     itens: base.itens.map((c) => ({ campo: c, total: fs.reduce((s, p) => s + (p.valores[c.chave] ?? 0), 0), familias: fs.filter((p) => (p.valores[c.chave] ?? 0) > 0).length })),
     faixas_area: [...FAIXAS.map(([k, r]) => { const ps = fs.filter((p) => faixaDe(p.area_dm2) === k); const d = ps.reduce((s, p) => s + (p.area_dm2 ?? 0), 0); return { chave: k, rotulo: r, familias: ps.length, area_dm2: d, area_ha: fmtHa(d) } }),
       { chave: 'sem_area', rotulo: 'Sem área informada', familias: fs.filter((p) => p.area_dm2 == null).length, area_dm2: 0, area_ha: '0,00' }],
     campos: [...FIXOS.map(([chave, rotulo, grupo]) => ({ chave, rotulo, grupo })), ...base.itens],
     equipes: [...eqs.entries()].map(([valor, rotulo]) => ({ valor, rotulo })),
-    areas: [...areas].map((a) => ({ valor: a, rotulo: a || 'Sem identificação da área' })),
-    operacoes: [{ valor: 'o1', rotulo: 'Levantamento Linha C-25 (ativa)' }],
+    jornadas: [...jors.entries()].map(([valor, rotulo]) => ({ valor, rotulo })),
+    estudos: ESTUDOS.map((e) => ({ valor: e.uuid, rotulo: e.nome })),
   }
 }

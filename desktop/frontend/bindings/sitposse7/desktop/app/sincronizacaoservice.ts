@@ -15,6 +15,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as consultas$0 from "../internal/consultas/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as importacao$0 from "../internal/importacao/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as pareamento$0 from "../internal/pareamento/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -22,10 +25,25 @@ import * as pareamento$0 from "../internal/pareamento/models.js";
 import * as $models from "./models.js";
 
 /**
+ * Aguardando lista os lotes que esperam a confirmação do destino (ADR-0024).
+ */
+export function Aguardando(): $CancellablePromise<importacao$0.LoteAguardando[] | null> {
+    return $Call.ByID(2003021517);
+}
+
+/**
  * Decidir confirma (true) ou recusa (false) o pareamento.
  */
 export function Decidir(id: string, aceitar: boolean): $CancellablePromise<void> {
     return $Call.ByID(3991748127, id, aceitar);
+}
+
+/**
+ * DecidirDestino importa o lote para a equipe escolhida ou, com equipe vazia, cancela a
+ * sincronização. Devolve o estado final ("importado" ou "cancelado").
+ */
+export function DecidirDestino(lote: string, equipe: string): $CancellablePromise<string> {
+    return $Call.ByID(3901945285, lote, equipe);
 }
 
 /**

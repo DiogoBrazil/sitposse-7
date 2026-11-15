@@ -1,22 +1,26 @@
-import { calcular, montarBase } from './estatisticas'
+import { calcular, ESTUDOS, montarBase } from './estatisticas'
 // Dados fictícios para revisar o visual no navegador (`npm run demo`). Só entram com
 // `vite --mode demo` (alias em vite.config.ts); o build de produção usa os bindings reais.
 /* eslint-disable */
 const espera = <T>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 60))
 const H = 3600_000
 const t0 = Date.UTC(2026, 10, 14, 13, 0)
+// Estudo "Fazenda Santa Maria": jornada 1 (Alfa, Bravo) e jornada 2 (Alfa, Charlie). Outro estudo vazio.
 const equipes = [
-  { uuid: 'e1', nome: 'Bravo', responsavel: 'Sgt. Ribeiro', identificacao_area: 'Linha C-25, Rio Branco' },
-  { uuid: 'e2', nome: 'Charlie', responsavel: 'Cb. Almeida', identificacao_area: 'Linha C-28' },
-  { uuid: 'e3', nome: 'Delta', responsavel: 'Sd. Nogueira', identificacao_area: null },
+  { uuid: 'e1', nome: 'Equipe Alfa', codigo: 'EQ-7K3M-9QX1', jornada: 'j1' },
+  { uuid: 'e2', nome: 'Equipe Bravo', codigo: 'EQ-4HZ2-RTB5', jornada: 'j1' },
+  { uuid: 'e3', nome: 'Equipe Alfa', codigo: 'EQ-0A1B-0C1X', jornada: 'j2' },
+  { uuid: 'e4', nome: 'Equipe Charlie', codigo: 'EQ-10Q0-K1MX', jornada: 'j2' },
 ]
+const jornadas: Record<string, { numero: number; data: string }> = { j1: { numero: 1, data: '2026-10-10' }, j2: { numero: 2, data: '2026-10-11' } }
 const nomes = ['Sítio Boa Esperança', 'Chácara Lua de Prata', 'Fazenda Jaraguá', 'Sítio Ipê Amarelo', 'Chácara São José', 'Sítio Três Irmãos', 'Fazendinha Recanto Verde', 'Sítio Água Boa', 'Chácara Bela Vista', 'Sítio Santa Luzia', 'Sítio do Igarapé', 'Chácara Nova Aliança', 'Sítio Castanheira', 'Fazenda Primavera']
-const resp = ['Pedro Pereira', 'João Souza', 'Maria Aparecida Lima', null, 'Antônio Carlos', 'Francisca Gomes', 'José Ribamar', 'Luzia Santos', 'Raimundo Nonato', 'Ana Paula Ferreira', 'Sebastião Rocha', null, 'Edinaldo Matos', 'Rosa Maria Dias']
+const resp = ['Pedro Pereira', 'João Souza', 'Maria Aparecida Lima', 'Joaquim Barros', 'Antônio Carlos', 'Francisca Gomes', 'José Ribamar', 'Luzia Santos', 'Raimundo Nonato', 'Ana Paula Ferreira', 'Sebastião Rocha', 'Benedita Alves', 'Edinaldo Matos', 'Rosa Maria Dias']
 function rnd(i: number, m: number) { return Math.abs(Math.sin(i * 9301 + m * 49297) * 233280) % 1 }
 const ints = (i: number, m: number, max: number) => Math.floor(rnd(i, m) * (max + 1))
 const foto = (cor: string) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9cc6e8"/><stop offset=".55" stop-color="#d8e8c8"/><stop offset=".56" stop-color="${cor}"/><stop offset="1" stop-color="#5b7a3a"/></linearGradient></defs><rect width="800" height="600" fill="url(#g)"/><rect x="420" y="250" width="200" height="110" fill="#c98b5a"/><polygon points="400,255 520,185 640,255" fill="#8a4b2a"/></svg>`)
 const propriedades = nomes.map((nome, i) => {
-  const e = equipes[i % 3]
+  const e = equipes[i % 4]
+  const j = jornadas[e.jornada]
   const semArea = i % 5 === 3
   const semGps = i % 6 === 4
   const ad = 1 + ints(i, 1, 4), jo = ints(i, 2, 3), cr = ints(i, 3, 4)
@@ -30,7 +34,10 @@ const propriedades = nomes.map((nome, i) => {
     ...(i % 4 === 0 ? [{ uuid: `i${i}g`, categoria: 'ave', codigo: 'ave.outros', nome: 'Codornas', outros: true, quantidade: ints(i, 8, 30) }] : []),
   ].filter((x) => x.quantidade > 0)
   return {
-    uuid: `p${i}`, nome, responsavel: resp[i], equipe_uuid: e.uuid, equipe: e.nome, equipe_area: e.identificacao_area,
+    uuid: `p${i}`, nome, responsavel: resp[i], equipe_uuid: e.uuid, equipe: e.nome, equipe_codigo: e.codigo,
+    observacoes: i % 5 === 0 ? 'Família pede prazo para retirar o gado.\nHá um idoso acamado na casa principal.' : null,
+    jornada_uuid: e.jornada, jornada_numero: j.numero, jornada_data: j.data, jornada: `Jornada ${j.numero} · ${j.data.split('-').reverse().join('/')}`,
+    estudo_uuid: 's1', estudo: 'Fazenda Santa Maria', estudo_codigo: 'SITPOSSE7-A82F-91C6',
     pessoas_adultos: ad, pessoas_jovens: jo, pessoas_criancas: cr,
     veic_caminhoes: ints(i, 9, 1), veic_automoveis_utilitarios: ints(i, 10, 2), veic_motos_ciclomotores: ints(i, 11, 3),
     bov_adultos: ints(i, 12, 60), bov_bezerros: ints(i, 13, 20), equ_adultos: ints(i, 14, 4), equ_potros: ints(i, 15, 2),
@@ -56,7 +63,7 @@ const baseEst = montarBase(propriedades)
 export const ConsultaService = {
   Estatisticas: (f: any) => espera(calcular(baseEst, f)),
   Resumo: () => espera({
-    equipes: 3, aparelhos: 4, propriedades: propriedades.length,
+    equipes: 4, aparelhos: 4, propriedades: propriedades.length,
     pessoas: propriedades.reduce((s, p) => s + p.pessoas_adultos + p.pessoas_jovens + p.pessoas_criancas, 0),
     veiculos: propriedades.reduce((s, p) => s + p.veic_caminhoes + p.veic_automoveis_utilitarios + p.veic_motos_ciclomotores, 0),
     bovinos: propriedades.reduce((s, p) => s + p.bov_adultos + p.bov_bezerros, 0),
@@ -67,22 +74,55 @@ export const ConsultaService = {
     com_area: propriedades.filter((p) => p.area_ha).length, sem_area: propriedades.filter((p) => !p.area_ha).length,
     com_gps: propriedades.filter((p) => p.lat != null).length, lotes_importados: 6, ultima_importacao: t0 + 8 * H,
   }),
-  Propriedades: (busca: string, equipe: string) => espera(propriedades
-    .filter((p) => (!equipe || p.equipe_uuid === equipe) && (!busca || sem(`${p.nome} ${p.responsavel ?? ''}`).includes(sem(busca))))
+  Propriedades: (busca: string, estudo: string, equipe: string) => espera(propriedades
+    .filter((p) => (!estudo || p.estudo_uuid === estudo) && (!equipe || p.equipe_uuid === equipe) && (!busca || sem(`${p.nome} ${p.responsavel ?? ''}`).includes(sem(busca))))
     .map(linha)),
   Propriedade: (uuid: string) => espera(propriedades.find((p) => p.uuid === uuid) ?? null),
-  Equipes: () => espera(equipes.map((e, i) => ({ ...e, aparelhos: i === 0 ? 2 : 1, propriedades: propriedades.filter((p) => p.equipe_uuid === e.uuid).length, ultima_importacao: t0 + (6 + i) * H }))),
 }
-export const OperacaoService = {
-  Ativa: () => espera({ uuid: 'o1', nome: 'Levantamento Linha C-25', descricao: '', status: 'ativa', criada_em: t0 }),
-  Criar: (nome: string) => espera({ uuid: 'o1', nome, descricao: '', status: 'ativa', criada_em: t0 }),
+const detalheEstudo = (uuid: string) => {
+  const s = ESTUDOS.find((e) => e.uuid === uuid)!
+  const doEstudo = uuid === 's1' ? propriedades : []
+  const lista_jornadas = uuid === 's1' ? Object.entries(jornadas).map(([ju, j]) => ({
+    uuid: ju, estudo_uuid: uuid, numero: j.numero, data: j.data, familias: doEstudo.filter((p) => p.jornada_uuid === ju).length,
+    equipes: equipes.filter((e) => e.jornada === ju).map((e) => ({ uuid: e.uuid, jornada_uuid: ju, nome: e.nome, codigo: e.codigo.replace(/-/g, ''), codigo_exibicao: e.codigo,
+      coletas: 1, familias: doEstudo.filter((p) => p.equipe_uuid === e.uuid).length, ultima_importacao: t0 + 6 * H })),
+  })) : [{ uuid: 'j9', estudo_uuid: uuid, numero: 1, data: '2026-11-20', familias: 0, equipes: [] }]
+  return { uuid, codigo: 'SITPOSSE7A82F91C6', codigo_exibicao: uuid === 's1' ? 'SITPOSSE7-A82F-91C6' : 'SITPOSSE7-3QJT-W8M2', nome: s.nome, criado_em: t0,
+    jornadas: lista_jornadas.length, equipes: lista_jornadas.reduce((n, j) => n + j.equipes.length, 0), familias: doEstudo.length,
+    primeira_data: lista_jornadas[0].data, ultima_data: lista_jornadas.at(-1)!.data, ultima_importacao: uuid === 's1' ? t0 + 8 * H : null, lista_jornadas }
 }
+let foco = 's1'
+export const EstudoService = {
+  Listar: () => espera(ESTUDOS.map((e) => { const { lista_jornadas, ...r } = detalheEstudo(e.uuid); return r })),
+  Detalhe: (u: string) => espera(detalheEstudo(u)),
+  EmFoco: () => espera(foco),
+  DefinirEmFoco: (u: string) => { foco = u; return espera(undefined) },
+  Criar: (nome: string) => espera({ ...detalheEstudo('s2'), nome }),
+  CriarJornada: () => espera(null), AdicionarEquipes: () => espera([]), Renomear: () => espera(undefined),
+  RenomearEquipe: () => espera(undefined), ExcluirEquipe: () => espera(undefined), ExcluirJornada: () => espera(undefined), AlterarDataJornada: () => espera(undefined),
+}
+const destinoDemo = { estudo_uuid: 's1', estudo_codigo: 'SITPOSSE7A82F91C6', estudo_nome: 'Fazenda Santa Maria', jornada_uuid: 'j2', jornada_numero: 2, jornada_data: '2026-10-11', equipe_uuid: 'e3', equipe_nome: 'Equipe Alfa', equipe_codigo: 'EQ0A1B0C1X' }
+const aguardandoDemo = () => location.hash === '#destino'
+  ? [{ lote_uuid: 'l-demo', instalacao_uuid: 'a', rotulo_aparelho: 'motorola moto g56 5G', coleta_uuid: 'c1', codigo_informado: 'EQ0A1B0C1X', codigo_exibicao: 'EQ-0A1B-0C1X', aguardando_desde: Date.now(), novos: 7, atualizados: 2, excluidos: 0, fotos: 15, destino: destinoDemo, travado: false, destino_travado: null }]
+  : location.hash === '#codigo-errado'
+    ? [{ lote_uuid: 'l-demo2', instalacao_uuid: 'a', rotulo_aparelho: 'Samsung SM-A155M', coleta_uuid: 'c2', codigo_informado: 'EQ0A1B0C2X', codigo_exibicao: 'EQ-0A1B-0C2X', aguardando_desde: Date.now(), novos: 3, atualizados: 0, excluidos: 0, fotos: 4, destino: null, travado: false, destino_travado: null }]
+    : []
 export const SincronizacaoService = {
-  Info: () => espera({ versao: '0.2.0-demo', central_id: 'fa79dbdb-4663-43cb-93c7-d90d7e549b20', pasta_dados: 'C:\\Users\\operador\\AppData\\Local\\SITPOSSE-7', ips: ['192.168.137.1', '192.168.0.24'], porta: 38807, pin: 'msApM8wO8uNTqXyvekNN1gf0iPjSEBVuS7ZlNu1EeFY', servidor_ativo: true, erro_servidor: '', versao_esquema: 2, fotos_sem_arquivo: [] }),
-  Pendentes: () => espera(location.hash === '#pedido' ? [{ id: 'x', equipe_uuid: 'e1', equipe_nome: 'Bravo', responsavel: 'Sgt. Ribeiro', identificacao_area: 'Linha C-25', rotulo_aparelho: 'motorola moto g56 5G', instalacao_uuid: 'a', equipe_conhecida: true, recebido_em: Date.now() }] : pedidos),
+  Aguardando: () => espera(aguardandoDemo()),
+  DecidirDestino: () => { location.hash = ''; return espera('importado') },
+  Info: () => espera({ bloqueio: location.hash === '#bloqueio' ? 'Este banco de dados é de uma versão de teste anterior da Central (antes dos estudos de situação) e não pode ser aberto por esta versão; nada foi alterado.' : '', versao: '0.6.0-demo', central_id: 'fa79dbdb-4663-43cb-93c7-d90d7e549b20', pasta_dados: 'C:\\Users\\operador\\AppData\\Local\\SITPOSSE-7', ips: ['192.168.137.1', '192.168.0.24'], porta: 38807, pin: 'msApM8wO8uNTqXyvekNN1gf0iPjSEBVuS7ZlNu1EeFY', servidor_ativo: true, erro_servidor: '', versao_esquema: 2, fotos_sem_arquivo: [] }),
+  Pendentes: () => espera(location.hash === '#pedido' ? [{ id: 'x', rotulo_aparelho: 'motorola moto g56 5G', instalacao_uuid: 'a7c41e2b-0000-4000-8000-000000000001', aparelho_conhecido: true, recebido_em: Date.now() }] : pedidos),
   Decidir: () => espera(undefined),
-  GerarQRPareamento: () => espera({ payload: { v: 1, central_id: 'fa79dbdb', ips: ['192.168.137.1'], porta: 38807, spki_sha256: 'msApM8wO8uNTqXyvekNN1gf0iPjSEBVuS7ZlNu1EeFY', token: 'demo-token' }, expira_em: Date.now() + 600_000 }),
-  Lotes: () => espera(Array.from({ length: 6 }, (_, i) => ({ uuid: `l${i}`, equipe: equipes[i % 3].nome, aparelho: i % 2 ? 'motorola moto g56 5G' : 'Samsung SM-A155M', status: i === 0 ? 'recebendo' : 'importado', recebido_em: t0 + (8 - i) * H, importado_em: i === 0 ? null : t0 + (8 - i) * H + 4000, aplicados: 4 + i * 3, duplicados: i % 3, rejeitados: i === 2 ? 1 : 0, conflitos: 0 }))),
+  GerarQRPareamento: () => espera({ payload: { v: 2, central_id: 'fa79dbdb', ips: ['192.168.137.1'], porta: 38807, spki_sha256: 'msApM8wO8uNTqXyvekNN1gf0iPjSEBVuS7ZlNu1EeFY', token: 'demo-token' }, expira_em: Date.now() + 600_000 }),
+  Lotes: () => espera(Array.from({ length: 6 }, (_, i) => {
+    const st = ['aguardando_confirmacao', 'importado', 'importado', 'cancelado', 'importado', 'importado'][i]
+    const e = equipes[i % 4]
+    return { uuid: `l${i}`, codigo_informado: i === 3 ? 'EQ-0A1B-0C2X' : e.codigo, estudo: st === 'importado' ? 'Fazenda Santa Maria' : null,
+      jornada: st === 'importado' ? `Jornada ${jornadas[e.jornada].numero} · ${jornadas[e.jornada].data.split('-').reverse().join('/')}` : null,
+      equipe: st === 'importado' ? e.nome : null, equipe_codigo: st === 'importado' ? e.codigo : null, corrigido: i === 2, motivo: st === 'cancelado' ? 'codigo_inexistente' : null,
+      aparelho: i % 2 ? 'motorola moto g56 5G' : 'Samsung SM-A155M', status: st, recebido_em: t0 + (8 - i) * H, importado_em: st === 'importado' ? t0 + (8 - i) * H + 4000 : null,
+      aplicados: st === 'importado' ? 4 + i * 3 : 0, duplicados: st === 'importado' ? i % 3 : 0, rejeitados: i === 2 ? 1 : 0, conflitos: 0 }
+  })),
   Rejeicoes: () => espera([{ entidade: 'item', uuid: '3f2a9c1e-0000-4000-8000-000000000001', motivo: 'quantidade negativa' }]),
 }
 export const RelatorioService = {
@@ -118,7 +158,7 @@ function planoDe(ps: any[]) {
   const m = 1500
   const r = quadro({ min_x: Math.min(...pts.map((p) => p.x)) - m, max_x: Math.max(...pts.map((p) => p.x)) + m, min_y: Math.min(...pts.map((p) => p.y)) - m, max_y: Math.max(...pts.map((p) => p.y)) + m })
   return {
-    marcadores: com.map((p, i) => ({ numero: i + 1, nome: p.nome, ponto: { lat: p.lat, lon: p.lon }, precisao_m: p.gps_precisao_m, origem: p.gps_origem, equipe: p.equipe, area_identificada: p.equipe_area ?? '' })),
+    marcadores: com.map((p, i) => ({ numero: i + 1, nome: p.nome, ponto: { lat: p.lat, lon: p.lon }, precisao_m: p.gps_precisao_m, origem: p.gps_origem, equipe: p.equipe, jornada: p.jornada })),
     uuids: com.map((p) => p.uuid), sem_localizacao: ps.filter((p) => p.lat == null).map((p) => p.nome),
     retangulo: r, so: graus(r.min_x, r.min_y), ne: graus(r.max_x, r.max_y), extensao_km: (r.max_x - r.min_x) / 1000 * Math.cos(10.4 * Math.PI / 180), resolucao_m: 6, grupos: [], largura: 2000, altura: 1500,
   }

@@ -19,6 +19,7 @@ import { chips, dataParaMs, type Filtro, filtroVazio, msParaData } from '../filt
 import { mensagem, num, plural, quando } from '../formato'
 import type { Resultado } from '../painel'
 import type { Coluna } from '../tabela'
+import { estudoFoco } from '../estudo'
 
 const props = defineProps<{ uuidInicial?: string | null }>()
 
@@ -34,12 +35,14 @@ async function carregarEstado() { try { estado.value = await Cartas.Estado() } c
 const tipo = ref<'individual' | 'geral'>('geral')
 const propriedades = ref<PropriedadeLinha[]>([])
 const uuid = ref('')
-const filtro = ref<Filtro>(filtroVazio())
+const filtro = ref<Filtro>(filtroVazio(estudoFoco.value))
+async function carregarPropriedades() { try { propriedades.value = (await Consulta.Propriedades('', estudoFoco.value, '')) ?? [] } catch { /* */ } }
+watch(estudoFoco, (e) => { if (filtro.value.estudo !== e) filtro.value = filtroVazio(e); carregarPropriedades() })
 const resultado = ref<Resultado | null>(null)
 const plano = ref<Plano | null>(null)
 const grupo = ref(-1) // -1 = todas numa carta
 const criterios = computed(() => tipo.value === 'geral' && resultado.value
-  ? chips(filtro.value, { equipes: resultado.value.equipes ?? [], areas: resultado.value.areas ?? [], operacoes: resultado.value.operacoes ?? [], campos: resultado.value.campos ?? [] }).map((c) => c.texto)
+  ? chips(filtro.value, { equipes: resultado.value.equipes ?? [], jornadas: resultado.value.jornadas ?? [], campos: resultado.value.campos ?? [] }).map((c) => c.texto)
   : [])
 
 async function planejar() {
@@ -154,7 +157,7 @@ const colSalvas: Coluna<CartaGuardada>[] = [
 
 onMounted(async () => {
   await carregarEstado()
-  try { propriedades.value = (await Consulta.Propriedades('', '')) ?? [] } catch { /* */ }
+  await carregarPropriedades()
   if (props.uuidInicial) { tipo.value = 'individual'; uuid.value = props.uuidInicial } else planejar()
   carregarSalvas()
 })
@@ -199,7 +202,7 @@ const offline = computed(() => ehSemConexao(erro.value))
             </optgroup>
           </select>
         </div>
-        <BarraFiltros v-if="tipo === 'geral'" v-model="filtro" :equipes="resultado?.equipes ?? []" :areas="resultado?.areas ?? []" :operacoes="resultado?.operacoes ?? []"
+        <BarraFiltros v-if="tipo === 'geral'" v-model="filtro" :equipes="resultado?.equipes ?? []" :jornadas="resultado?.jornadas ?? []"
                       :campos="resultado?.campos ?? []" :mostrando="resultado?.totais.familias ?? null" :base="resultado?.familias_base ?? null" />
       </section>
 

@@ -1,20 +1,18 @@
 <script setup lang="ts">
 /** Informações técnicas da Central (servidor, endereços, identidade, pasta). Aberta pelo rodapé da barra lateral. */
 import { onMounted, onUnmounted, ref } from 'vue'
-import { OperacaoService as Op, SincronizacaoService as Sinc } from '../../bindings/sitposse7/desktop/app'
+import { SincronizacaoService as Sinc } from '../../bindings/sitposse7/desktop/app'
 import type { Info } from '../../bindings/sitposse7/desktop/app/models'
-import type { Operacao } from '../../bindings/sitposse7/desktop/internal/pareamento/models'
 import { mensagem } from '../formato'
 
 const emit = defineEmits<{ fechar: [] }>()
 const info = ref<Info | null>(null)
-const op = ref<Operacao | null>(null)
 const erro = ref('')
 const fechar = () => emit('fechar')
 const tecla = (e: KeyboardEvent) => { if (e.key === 'Escape') fechar() }
 onMounted(async () => {
   window.addEventListener('keydown', tecla)
-  try { [info.value, op.value] = await Promise.all([Sinc.Info(), Op.Ativa()]) } catch (e) { erro.value = mensagem(e) }
+  try { info.value = await Sinc.Info() } catch (e) { erro.value = mensagem(e) }
 })
 onUnmounted(() => window.removeEventListener('keydown', tecla))
 </script>
@@ -31,7 +29,6 @@ onUnmounted(() => window.removeEventListener('keydown', tecla))
         <dt>Servidor</dt>
         <dd><span class="selo" :class="info.servidor_ativo ? 'ok' : 'erro'">{{ info.servidor_ativo ? `Ativo na porta ${info.porta}` : info.erro_servidor || 'Inativo' }}</span></dd>
         <dt>Endereços</dt><dd>{{ info.ips?.length ? info.ips.join(', ') : 'Nenhuma rede ativa' }}</dd>
-        <dt>Operação ativa</dt><dd>{{ op?.nome ?? 'Nenhuma' }}</dd>
         <dt>Impressão digital</dt><dd class="mono">{{ info.pin }}</dd>
         <dt>ID da Central</dt><dd class="mono">{{ info.central_id }}</dd>
         <dt>Pasta de dados</dt><dd class="mono">{{ info.pasta_dados }}</dd>

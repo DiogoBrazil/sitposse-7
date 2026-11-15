@@ -1,25 +1,26 @@
 # Telas e fluxos — Central
 
-Layout: barra lateral fixa + área de conteúdo; responsivo de 1366×768 a 4K; tema claro e escuro; tabelas com busca, filtros, ordenação, paginação, estados vazio, carregando e erro.
+Layout: barra lateral fixa (com o **estudo em foco**, A28) + área de conteúdo; responsivo de 1366×768 a 4K; tema claro e escuro; tabelas com busca, filtros, ordenação, paginação, estados vazio, carregando e erro.
 
 | Menu | Conteúdo |
 |---|---|
-| **Painel** (estatísticas, §22-A) | Barra de filtros (busca, equipe, área identificada; "Mais filtros": período de cadastro ou recebimento, localização, fotos, área informada, faixas e hectares, condições sobre qualquer quantidade ou tipo de item) com chips e "Limpar filtros", e "N de M famílias". Cartões com detalhamento (famílias, pessoas, veículos, rebanho, aves, eletrodomésticos, móveis, área). Abas: por equipe ou área identificada (colunas escolhíveis + gráfico), por família, itens por tipo (predefinidos e "Outros" agrupados), tamanho das propriedades. Todo número, barra ou linha abre a relação das famílias (drill-down) e daí o cadastro; "Filtrar o Painel por estes critérios". Depois: alertas (conflitos, lotes com erro, último backup) |
+| **Painel** (estatísticas, §22-A) | Sempre do **estudo em foco** (nome e código no cabeçalho). Barra de filtros (busca, jornada, equipe; "Mais filtros": período de cadastro ou recebimento, localização, fotos, área informada, faixas e hectares, condições sobre qualquer quantidade ou tipo de item) com chips e "Limpar filtros", e "N de M famílias". Cartões com detalhamento (famílias, pessoas, veículos, rebanho, aves, eletrodomésticos, móveis, área). Abas: por jornada ou equipe (colunas escolhíveis + gráfico), por família, itens por tipo (predefinidos e "Outros" agrupados), tamanho das propriedades. Todo número, barra ou linha abre a relação das famílias (drill-down) e daí o cadastro; "Filtrar o Painel por estes critérios". Depois: alertas (conflitos, lotes com erro, último backup) |
 | **Propriedades** | Mesma barra de filtros do Painel + tabela com totais → **página da propriedade** (faixa de totais; pessoas, rebanho e veículos em gráfico + tabela; bens e criações por categoria; área e localização em texto; fotos ampliáveis; registro e sincronização); depois: histórico e auditoria, "Localização" online, editar |
-| **Equipes / Operações** | Operação ativa, equipes, aparelhos pareados (revogar), última sincronização |
+| **Estudos** *(A28, ADR-0023)* | Lista com busca (nome, código, jornadas, equipes, famílias, última importação) e **Novo estudo** (nome, data da 1ª jornada, equipes iniciais). Página do estudo: código, renomear, pôr em foco, **Nova jornada** (data; copiar nomes de equipes de jornadas anteriores; equipes novas; cada uma com código novo); por jornada, as equipes com o **código grande** e **Copiar**, "Copiar todos os códigos", **+ Equipe** e excluir equipe sem cadastros |
+| **Confirmar destino da sincronização** *(modal global, ADR-0024)* | Aparece em qualquer tela quando um lote chega: aparelho, código recebido, cadastros novos/atualizados/excluídos, fotos e o destino pelo código (estudo, jornada, equipe, código oficial) → **Confirmar e importar** · **Alterar destino** · **Cancelar sincronização**. Código inexistente: "Código de equipe não encontrado" → **Corrigir no Central** (Estudo → Jornada → Equipe, com o código oficial) ou cancelar. Coleta já importada: destino travado. Fila "1 de N" |
 | **Fotos** | Galeria filtrável por propriedade e equipe |
-| **Sincronização** | Passos e QR de pareamento (botão bloqueado enquanto gera), estado da recepção, histórico de lotes com recusas; IPs, porta, impressão digital e pasta ficam em **Informações técnicas** (modal no rodapé da barra lateral); depois: diagnóstico de rede e firewall, "Restaurar equipe" |
+| **Sincronização** | Passos e QR de pareamento do aparelho (botão bloqueado enquanto gera), estado da recepção, histórico de lotes (código recebido, destino, corrigido, situação: recebendo, aguardando confirmação, importado, cancelado) com recusas; IPs, porta, impressão digital e pasta ficam em **Informações técnicas** (modal no rodapé da barra lateral); depois: diagnóstico de rede e firewall, "Restaurar equipe" |
 | **Importar pacote** | Selecionar `.s7pkg` → validação → resultado → recibo (QR e arquivo) |
 | **Conflitos** | Fila; tela de três colunas (Base / Central / Android) |
 | **Estatísticas** | Barra de filtros (chips + "Limpar filtros"), cartões, tabela analítica (linhas e colunas escolhíveis), gráficos, drill-down. **Sempre offline** |
 | **Cartas-imagem** *(A27, ADR-0022)* | Carta individual (também pela página da propriedade) ou geral (filtros do Painel); datas de imagem com nuvens e sugestão; prévia Leaflet com pinos; carta PDF/PNG guardada e reaberta sem internet; configuração do acesso ao Copernicus e limpeza das imagens. Mensagem RN-91 sem internet. Detalhes: [cartografia.md](cartografia.md) |
-| **Relatórios** | **Feito (A26, ADR-0021):** botão "Exportar" no Painel e em Propriedades: PDF, Word (.docx) ou Excel (.xlsx) com os filtros ativos (panorama, por equipe e área, itens, tamanhos, por família e, opcionalmente, uma ficha por família); "Exportar ficha" na página da propriedade (PDF ou Word). Depois: carta-imagem individual e geral *(online)* |
+| **Relatórios** | **Feito (A26, ADR-0021):** botão "Exportar" no Painel e em Propriedades: PDF, Word (.docx) ou Excel (.xlsx) com os filtros ativos (panorama, por jornada e equipe, itens, tamanhos, por família e, opcionalmente, uma ficha por família); "Exportar ficha" na página da propriedade (PDF ou Word). Depois: carta-imagem individual e geral *(online)* |
 | **Backup** | Fazer backup, verificar, restaurar (assistente), histórico |
 | **Configurações** | Nome do operador, pasta de dados, porta, provedor cartográfico e chave |
 | **Auditoria** | Consulta por entidade, período e origem |
 
 ## Estatísticas: `FiltroEstudo`
-Dimensões: operação · equipe(s) · identificação da área · propriedade · categoria e tipo de item (incluindo grupos de "Outros") · presença/ausência de tipo · faixas numéricas por categoria (p. ex. bovinos > 5) · tem GPS · tem foto · tem área · faixa de área (ha).
+Dimensões (A28): estudo em foco · jornada(s) · equipe(s) · propriedade · categoria e tipo de item (incluindo grupos de "Outros") · presença/ausência de tipo · faixas numéricas por categoria (p. ex. bovinos > 5) · tem GPS · tem foto · tem área · faixa de área (ha).
 O mesmo objeto alimenta cartões, tabelas, gráficos, lista, mapa e exportações (RN-81). Cada número tem drill-down para a lista de propriedades que o compõem.
 
 ## Cruzamentos (lista derivada, A25)
@@ -28,7 +29,7 @@ O mesmo objeto alimenta cartões, tabelas, gráficos, lista, mapa e exportaçõe
 **Totais:** sempre há o **geral**, **por equipe** e **por família** (cada propriedade é uma família).
 
 **Filtros combináveis (`FiltroEstudo`):**
-- operação, equipe(s), identificação da área;
+- estudo (em foco), jornada(s), equipe(s);
 - período (cadastro no celular ou recebimento na Central);
 - tem GPS, tem foto, tem área, faixa de área (ha);
 - categoria e tipo de item, incluindo os grupos de "Outros" (aliases);

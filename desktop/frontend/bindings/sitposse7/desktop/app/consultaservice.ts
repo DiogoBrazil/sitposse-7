@@ -18,13 +18,6 @@ import * as consultas$0 from "../internal/consultas/models.js";
 import * as estatisticas$0 from "../internal/estatisticas/models.js";
 
 /**
- * Equipes lista as equipes.
- */
-export function Equipes(): $CancellablePromise<consultas$0.EquipeLinha[] | null> {
-    return $Call.ByID(3537656745);
-}
-
-/**
  * Estatisticas aplica o FiltroEstudo às propriedades vigentes e devolve todos os números
  * do painel a partir do mesmo conjunto (RN-81; docs/requirements/estatisticas.md §22-A).
  */
@@ -40,15 +33,15 @@ export function Propriedade(uuid: string): $CancellablePromise<consultas$0.Propr
 }
 
 /**
- * Propriedades lista as propriedades vigentes.
+ * Propriedades lista as propriedades vigentes do estudo ("" = todos).
  */
-export function Propriedades(busca: string, equipe: string): $CancellablePromise<consultas$0.PropriedadeLinha[] | null> {
-    return $Call.ByID(256648355, busca, equipe);
+export function Propriedades(busca: string, estudo: string, equipe: string): $CancellablePromise<consultas$0.PropriedadeLinha[] | null> {
+    return $Call.ByID(256648355, busca, estudo, equipe);
 }
 
 /**
- * Resumo devolve os números do painel.
+ * Resumo devolve os números do painel do estudo ("" = todos).
  */
-export function Resumo(): $CancellablePromise<consultas$0.Resumo | null> {
-    return $Call.ByID(3130039750);
+export function Resumo(estudo: string): $CancellablePromise<consultas$0.Resumo | null> {
+    return $Call.ByID(3130039750, estudo);
 }

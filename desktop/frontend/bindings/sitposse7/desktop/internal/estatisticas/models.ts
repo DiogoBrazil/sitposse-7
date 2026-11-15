@@ -51,11 +51,21 @@ export interface Faixa {
 export interface Familia {
     "uuid": string;
     "nome": string;
-    "responsavel": string | null;
+    "responsavel": string;
+    "observacoes": string | null;
     "equipe_uuid": string;
     "equipe": string;
-    "area_identificada": string | null;
-    "operacao_uuid": string;
+    "equipe_codigo": string;
+    "jornada_uuid": string;
+
+    /**
+     * "Jornada 2 · 11/10/2026"
+     */
+    "jornada": string;
+    "jornada_numero": number;
+    "jornada_data": string;
+    "estudo_uuid": string;
+    "estudo": string;
     "valores": { [_ in string]?: number } | null;
     "area_dm2": number | null;
     "area_ha": string | null;
@@ -78,13 +88,16 @@ export interface Familia {
  * e ponteiros nulos não filtram.
  */
 export interface Filtro {
-    "operacoes": string[] | null;
-    "equipes": string[] | null;
+    /**
+     * estudo em foco ("" = todos); define a base (A28)
+     */
+    "estudo": string;
 
     /**
-     * "" = sem identificação
+     * jornadas do estudo
      */
-    "areas_identificadas": string[] | null;
+    "jornadas": string[] | null;
+    "equipes": string[] | null;
 
     /**
      * nome da propriedade ou responsável, sem acento
@@ -123,7 +136,7 @@ export interface Filtro {
 }
 
 /**
- * Grupo são os totais de uma equipe ou de uma área identificada.
+ * Grupo são os totais de uma equipe ou de uma jornada.
  */
 export interface Grupo {
     "chave": string;
@@ -149,14 +162,14 @@ export interface Resultado {
     "familias_base": number;
     "totais": Totais;
     "por_equipe": Grupo[] | null;
-    "por_area": Grupo[] | null;
+    "por_jornada": Grupo[] | null;
     "itens": TipoItem[] | null;
     "faixas_area": Faixa[] | null;
     "familias": Familia[] | null;
     "campos": Campo[] | null;
     "equipes": Opcao[] | null;
-    "areas": Opcao[] | null;
-    "operacoes": Opcao[] | null;
+    "jornadas": Opcao[] | null;
+    "estudos": Opcao[] | null;
 }
 
 /**

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Lista de propriedades/famílias com os mesmos filtros do Painel (§22-A.2 "Propriedades":
- * nome, responsável, equipe, área identificada, com/sem coordenadas, faixas de tamanho,
+ * nome, responsável, jornada, equipe, com/sem coordenadas, faixas de tamanho,
  * presença ou ausência de bens ou animais). Clique abre a página da propriedade.
  */
 import { computed, onActivated, onMounted, ref, watch } from 'vue'
@@ -12,10 +12,12 @@ import ExportarRelatorio from '../componentes/ExportarRelatorio.vue'
 import { chips, type Filtro, filtroVazio } from '../filtro'
 import { type Familia, type Resultado, v } from '../painel'
 import { haNumero, mensagem, num, plural, quando } from '../formato'
+import { estudoAtual, estudoFoco } from '../estudo'
 import type { Coluna } from '../tabela'
 
 const emit = defineEmits<{ abrir: [uuid: string] }>()
-const filtro = ref<Filtro>(filtroVazio())
+const filtro = ref<Filtro>(filtroVazio(estudoFoco.value))
+watch(estudoFoco, (e) => { if (filtro.value.estudo !== e) filtro.value = filtroVazio(e) })
 const r = ref<Resultado | null>(null)
 const erro = ref('')
 const carregando = ref(true)
@@ -30,11 +32,11 @@ onActivated(carregar)
 
 const familias = computed(() => r.value?.familias ?? [])
 const exportando = ref(false)
-const criterios = computed(() => chips(filtro.value, { equipes: r.value?.equipes ?? [], areas: r.value?.areas ?? [], operacoes: r.value?.operacoes ?? [], campos: r.value?.campos ?? [] }).map((c) => c.texto))
+const criterios = computed(() => chips(filtro.value, { equipes: r.value?.equipes ?? [], jornadas: r.value?.jornadas ?? [], campos: r.value?.campos ?? [] }).map((c) => c.texto))
 const colunas: Coluna<Familia>[] = [
   { chave: 'nome', rotulo: 'Propriedade / família', largura: '24%' },
   { chave: 'equipe', rotulo: 'Equipe' },
-  { chave: 'area_identificada', rotulo: 'Área identificada', secundaria: true },
+  { chave: 'jornada', rotulo: 'Jornada', secundaria: true },
   { chave: 'pessoas', rotulo: 'Pessoas', tipo: 'numero', valor: (l) => v(l, 'pessoas_total'), formatar: (l) => num(v(l, 'pessoas_total')) },
   { chave: 'bovinos', rotulo: 'Bovinos', tipo: 'numero', valor: (l) => v(l, 'bov_total'), formatar: (l) => num(v(l, 'bov_total')) },
   { chave: 'veiculos', rotulo: 'Veículos', tipo: 'numero', valor: (l) => v(l, 'veic_total'), formatar: (l) => num(v(l, 'veic_total')), secundaria: true },
@@ -54,12 +56,12 @@ const totais = computed(() => {
     <header class="cabeca">
       <div class="titulo">
         <h1>Propriedades</h1>
-        <p class="suave">Cada propriedade corresponde a uma família. Clique numa linha para ver o cadastro completo.</p>
+        <p class="suave"><template v-if="estudoAtual">{{ estudoAtual.nome }} · {{ estudoAtual.codigo_exibicao }}. </template>Cada propriedade corresponde a uma família. Clique numa linha para ver o cadastro completo.</p>
       </div>
       <button :disabled="!r?.familias_base" title="PDF, Word ou Excel, com os filtros ativos" @click="exportando = true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>Exportar</button>
     </header>
     <ExportarRelatorio v-if="exportando" modo="geral" :filtro="filtro" :criterios="criterios" :familias="r?.totais.familias ?? 0" @fechar="exportando = false" />
-    <BarraFiltros v-model="filtro" :equipes="r?.equipes ?? []" :areas="r?.areas ?? []" :operacoes="r?.operacoes ?? []" :campos="r?.campos ?? []"
+    <BarraFiltros v-model="filtro" :equipes="r?.equipes ?? []" :jornadas="r?.jornadas ?? []" :campos="r?.campos ?? []"
                   :mostrando="r?.totais.familias ?? null" :base="r?.familias_base ?? null" />
     <TabelaDados :colunas="colunas" :linhas="familias" :chave="(l) => l.uuid" rotulo="Propriedades recebidas" clicavel :totais="totais"
                  :carregando="carregando" :erro="erro" :ordem="{ chave: 'nome', dir: 'asc' }" @abrir="(l) => emit('abrir', l.uuid)">
@@ -67,7 +69,7 @@ const totais = computed(() => {
         <strong class="nome">{{ linha.nome }}</strong>
         <span class="suave resp">{{ linha.responsavel || 'Responsável não informado' }}</span>
       </template>
-      <template #area_identificada="{ linha }">{{ linha.area_identificada || '—' }}</template>
+      <template #equipe="{ linha }">{{ linha.equipe }}<span class="suave resp">{{ linha.jornada }}</span></template>
       <template #loc="{ linha }">
         <span class="selo" :class="linha.com_localizacao ? 'ok' : ''">{{ linha.com_localizacao ? 'Com localização' : 'Sem localização' }}</span>
       </template>

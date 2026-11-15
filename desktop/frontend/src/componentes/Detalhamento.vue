@@ -11,7 +11,7 @@ import { type Familia, type Resultado, v } from '../painel'
 import { haNumero, mensagem, num, plural } from '../formato'
 import type { Coluna } from '../tabela'
 
-const props = defineProps<{ titulo: string; filtro: Filtro; campo?: string | null; campos: Campo[]; equipes: Opcao[]; areas: Opcao[]; operacoes: Opcao[] }>()
+const props = defineProps<{ titulo: string; filtro: Filtro; campo?: string | null; campos: Campo[]; equipes: Opcao[]; jornadas: Opcao[] }>()
 const emit = defineEmits<{ fechar: []; abrir: [uuid: string]; aplicar: [f: Filtro] }>()
 const r = ref<Resultado | null>(null)
 const erro = ref('')
@@ -27,7 +27,7 @@ onMounted(() => { carregar(); window.addEventListener('keydown', tecla) })
 onUnmounted(() => window.removeEventListener('keydown', tecla))
 
 const rotuloCampo = computed(() => props.campos.find((c) => c.chave === props.campo)?.rotulo ?? '')
-const criterios = computed(() => chips(props.filtro, { equipes: props.equipes, areas: props.areas, operacoes: props.operacoes, campos: props.campos }).map((c) => c.texto))
+const criterios = computed(() => chips(props.filtro, { equipes: props.equipes, jornadas: props.jornadas, campos: props.campos }).map((c) => c.texto))
 
 const colunas = computed<Coluna<Familia>[]>(() => [
   { chave: 'nome', rotulo: 'Família / propriedade' },
