@@ -30,6 +30,8 @@ const (
 	AlturaCarta  = 1500
 	// Lado máximo de um grupo de propriedades numa carta geral legível (≈ 20 m/px).
 	LadoGrupoM = 40000
+	// Largura mínima (m) de uma imagem pedida: abaixo disso os pixels de 10 m viram borrões.
+	LarguraMinimaM = 1500
 )
 
 // CartaService: cartas-imagem com Sentinel-2/CDSE (A27, ADR-0022).
@@ -303,7 +305,7 @@ type PedidoTela struct {
 }
 
 func (s *CartaService) pedido(t PedidoTela) (cartografia.PedidoImagem, error) {
-	r := geo.AjustarProporcao(t.Retangulo, LarguraCarta, AlturaCarta)
+	r := geo.GarantirLargura(geo.AjustarProporcao(t.Retangulo, LarguraCarta, AlturaCarta), LarguraMinimaM)
 	if r.Largura() <= 0 || r.Altura() <= 0 {
 		return cartografia.PedidoImagem{}, errors.New("enquadramento inválido")
 	}

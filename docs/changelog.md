@@ -2,6 +2,14 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-14 (A27) — prévia da carta: zoom e área mínima
+- **desktop** · Teste real com o Copernicus: credenciais e busca de datas funcionaram, mas a prévia ficou no zoom máximo e a imagem virou borrões (pixels de 10 m esticados). A causa exata (enquadramento automático ou aproximação manual) não foi reproduzida. Correções:
+  - zoom máximo da prévia 16 (≈ 2,4 m/px de tela);
+  - nenhuma imagem pedida com menos de 1,5 km de largura (`geo.GarantirLargura`, com teste);
+  - enquadramento só com o mapa já medido (`ResizeObserver`).
+
+  Central `0.5.1-mvp`, instalador `61e7c91b…`.
+
 ## 2026-11-14 (A27) — cartas-imagem com Sentinel-2 (Copernicus)
 - **docs** · A27 e **ADR-0022**: imagem Sentinel-2 L2A do Copernicus CDSE (gratuito); **RN-90 alterada** (imagens consultadas e cartas guardadas sem validade; continua proibido mapa-base offline e pré-download); AGENTS.md §6 e §8 atualizados; P1 resolvida para imagem de satélite. Novo `desktop/docs/cartografia.md`.
 - **desktop** · Novos pacotes:

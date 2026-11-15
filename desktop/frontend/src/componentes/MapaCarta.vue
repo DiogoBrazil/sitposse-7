@@ -63,15 +63,24 @@ function aplicarImagem() {
   avisarVista()
 }
 
+// Enquadramento pendente: o mapa pode nascer com tamanho zero (tela ainda escondida ou em
+// layout); o Leaflet então calcularia o zoom máximo. Só enquadra com o quadro já medido.
+let enquadrarPendente = true
 function aplicarEnquadramento() {
-  if (!mapa || !props.enquadrar) return
+  enquadrarPendente = true
+  if (!mapa || !props.enquadrar || !el.value || el.value.clientWidth < 50 || el.value.clientHeight < 50) return
+  mapa.invalidateSize({ animate: false })
   const b = L.latLngBounds([props.enquadrar.so.lat, props.enquadrar.so.lon], [props.enquadrar.ne.lat, props.enquadrar.ne.lon])
   mapa.fitBounds(b, { animate: false, padding: [0, 0] })
+  enquadrarPendente = false
 }
+
+let observador: ResizeObserver | null = null
 
 onMounted(() => {
   if (!el.value) return
-  mapa = L.map(el.value, { zoomSnap: 0.25, zoomDelta: 0.5, attributionControl: true, minZoom: 3, maxZoom: 19 })
+  // Zoom máximo 16 (≈ 2,4 m por pixel de tela): além disso a imagem de 10 m só fica esticada.
+  mapa = L.map(el.value, { zoomSnap: 0.25, zoomDelta: 0.5, attributionControl: true, minZoom: 3, maxZoom: 16 })
   mapa.attributionControl.setPrefix(false)
   if (props.atribuicao) mapa.attributionControl.addAttribution(props.atribuicao)
   L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(mapa)
@@ -80,8 +89,15 @@ onMounted(() => {
   aplicarEnquadramento()
   aplicarImagem()
   mapa.on('moveend', avisarVista)
+  // Quando o quadro muda de tamanho (inclusive ao aparecer), o Leaflet precisa saber.
+  observador = new ResizeObserver(() => {
+    if (!mapa || !el.value || el.value.clientWidth < 50) return
+    mapa.invalidateSize({ animate: false })
+    if (enquadrarPendente) aplicarEnquadramento()
+  })
+  observador.observe(el.value)
 })
-onBeforeUnmount(() => { mapa?.remove(); mapa = null })
+onBeforeUnmount(() => { observador?.disconnect(); mapa?.remove(); mapa = null })
 
 watch(() => [props.pinos, props.nomes], desenharPinos, { deep: true })
 watch(() => props.imagem?.url, aplicarImagem)

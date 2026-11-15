@@ -22,6 +22,8 @@ As cartas e as imagens consultadas ficam na pasta de dados (`cartografia/`), **s
 
 **Data da imagem:** a sugestão é a passagem de menos nuvens entre as dos últimos 45 dias com até 20% de nuvens; senão, a de menos nuvens de todas. A mais recente não é presumida a melhor. Com uma passagem única, a carta cita a data; com mosaico, cita o período. Imagem com área sem dados (mais de 0,05%) não gera carta (RN-93).
 
+**Limites de zoom e área:** a prévia vai até o zoom 16 (≈ 2,4 m por pixel de tela). Acima disso, cada pixel de 10 m do Sentinel-2 viraria um borrão (visto no teste real de 14/11). Nenhuma imagem é pedida com menos de 1,5 km de largura (`geo.GarantirLargura`). O enquadramento automático só é aplicado depois que o mapa tem tamanho real (`ResizeObserver` + `invalidateSize`).
+
 **Pontos distantes:** se a carta geral passar de 20 m por pixel, a tela propõe dividi-la em grupos de até 40 km.
 
 ## O que sai para a internet

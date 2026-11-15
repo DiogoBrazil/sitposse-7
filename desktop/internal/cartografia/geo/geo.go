@@ -129,6 +129,21 @@ func AjustarProporcao(r Retangulo, larg, alt int) Retangulo {
 	return Retangulo{MinX: cx - w/2, MaxX: cx + w/2, MinY: cy - h/2, MaxY: cy + h/2}
 }
 
+// GarantirLargura amplia o retângulo, mantendo o centro e a proporção, até ter pelo menos
+// minM metros reais de largura. Evita pedir imagem de uma área minúscula (10 m por pixel
+// esticados viram borrões e gastam cota à toa).
+func GarantirLargura(r Retangulo, minM float64) Retangulo {
+	k := fatorEscala(r.Centro().Lat)
+	minW := minM * k
+	if r.Largura() >= minW || r.Largura() <= 0 {
+		return r
+	}
+	f := minW / r.Largura()
+	cx, cy := (r.MinX+r.MaxX)/2, (r.MinY+r.MaxY)/2
+	w, h := r.Largura()*f, r.Altura()*f
+	return Retangulo{MinX: cx - w/2, MaxX: cx + w/2, MinY: cy - h/2, MaxY: cy + h/2}
+}
+
 // Pixel devolve a posição do ponto numa imagem larg × alt que cobre r (origem no canto
 // superior esquerdo; y cresce para baixo). Exato para imagem em EPSG:3857.
 func Pixel(p Ponto, r Retangulo, larg, alt int) (px, py float64) {

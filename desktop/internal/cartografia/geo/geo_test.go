@@ -153,3 +153,18 @@ func TestAgrupar(t *testing.T) {
 		t.Error("agrupamento não determinístico")
 	}
 }
+
+func TestGarantirLargura(t *testing.T) {
+	c := Ponto{-10.43, -62.47}
+	x, y := XY(c)
+	r := Retangulo{MinX: x - 40, MaxX: x + 40, MinY: y - 30, MaxY: y + 30} // ~80 m: zoom máximo da prévia
+	g := GarantirLargura(r, 1500)
+	perto(t, "largura real", DistanciaM(LatLon(g.MinX, y), LatLon(g.MaxX, y)), 1500, 2)
+	perto(t, "proporção", g.Largura()/g.Altura(), 4.0/3, 1e-9)
+	cc := g.Centro()
+	perto(t, "centro lat", cc.Lat, c.Lat, 1e-9)
+	perto(t, "centro lon", cc.Lon, c.Lon, 1e-9)
+	if big := (Retangulo{MinX: x - 5000, MaxX: x + 5000, MinY: y - 3750, MaxY: y + 3750}); GarantirLargura(big, 1500) != big {
+		t.Error("retângulo já largo não deve mudar")
+	}
+}

@@ -191,3 +191,20 @@ func TestPontosDistantesSaoAgrupados(t *testing.T) {
 	}
 
 }
+
+// Prévia aberta no zoom máximo (área de dezenas de metros): o pedido é ampliado para 1,5 km.
+func TestPedidoMinimoDeLargura(t *testing.T) {
+	c := centralComPropriedades(t)
+	s := servico(t, c, &provedorFalso{})
+	x, y := geo.XY(geo.Ponto{Lat: -10.40, Lon: -62.50})
+	d := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
+	ped, err := s.pedido(PedidoTela{Retangulo: geo.Retangulo{MinX: x - 40, MaxX: x + 40, MinY: y - 30, MaxY: y + 30}, Data: &d})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Tolerância de 0,5%: a escala usa a esfera do Web Mercator (R = 6.378.137 m) e a distância
+	// usa o raio médio (haversine); a diferença (~0,1%) fica bem abaixo do 1% da RN-92.
+	if w := geo.DistanciaM(geo.LatLon(ped.Ret.MinX, y), geo.LatLon(ped.Ret.MaxX, y)); w < 1492 {
+		t.Errorf("largura do pedido = %.0f m; mínimo 1500", w)
+	}
+}
