@@ -91,3 +91,55 @@ export const RelatorioService = {
   Abrir: () => espera(undefined),
   MostrarNaPasta: () => espera(undefined),
 }
+
+// ---------- cartas-imagem (demonstração: sem Copernicus) ----------
+const RM = 6378137
+const merc = (lat: number, lon: number) => ({ x: RM * lon * Math.PI / 180, y: RM * Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)) })
+const graus = (x: number, y: number) => ({ lat: (2 * Math.atan(Math.exp(y / RM)) - Math.PI / 2) * 180 / Math.PI, lon: x / RM * 180 / Math.PI })
+function quadro(r: { min_x: number; min_y: number; max_x: number; max_y: number }) {
+  const cx = (r.min_x + r.max_x) / 2, cy = (r.min_y + r.max_y) / 2
+  let w = r.max_x - r.min_x, h = r.max_y - r.min_y
+  if (w / h > 4 / 3) h = w * 3 / 4; else w = h * 4 / 3
+  return { min_x: cx - w / 2, max_x: cx + w / 2, min_y: cy - h / 2, max_y: cy + h / 2 }
+}
+function satelite(): string {
+  const c = document.createElement('canvas'); c.width = 800; c.height = 600
+  const g = c.getContext('2d')!
+  for (let y = 0; y < 600; y += 6) for (let x = 0; x < 800; x += 6) {
+    const v = 70 + 40 * Math.sin(x / 41) * Math.cos(y / 29) + 25 * Math.sin((x + y) / 13)
+    g.fillStyle = `rgb(${v * 0.6 | 0},${v + 25 | 0},${v * 0.4 | 0})`; g.fillRect(x, y, 6, 6)
+  }
+  g.strokeStyle = '#b98d5c'; g.lineWidth = 7; g.beginPath(); g.moveTo(0, 320); g.bezierCurveTo(250, 260, 500, 380, 800, 300); g.stroke()
+  return c.toDataURL('image/png')
+}
+function planoDe(ps: any[]) {
+  const com = ps.filter((p) => p.lat != null)
+  const pts = com.map((p) => merc(p.lat, p.lon))
+  const m = 1500
+  const r = quadro({ min_x: Math.min(...pts.map((p) => p.x)) - m, max_x: Math.max(...pts.map((p) => p.x)) + m, min_y: Math.min(...pts.map((p) => p.y)) - m, max_y: Math.max(...pts.map((p) => p.y)) + m })
+  return {
+    marcadores: com.map((p, i) => ({ numero: i + 1, nome: p.nome, ponto: { lat: p.lat, lon: p.lon }, precisao_m: p.gps_precisao_m, origem: p.gps_origem, equipe: p.equipe, area_identificada: p.equipe_area ?? '' })),
+    uuids: com.map((p) => p.uuid), sem_localizacao: ps.filter((p) => p.lat == null).map((p) => p.nome),
+    retangulo: r, so: graus(r.min_x, r.min_y), ne: graus(r.max_x, r.max_y), extensao_km: (r.max_x - r.min_x) / 1000 * Math.cos(10.4 * Math.PI / 180), resolucao_m: 6, grupos: [], largura: 2000, altura: 1500,
+  }
+}
+let imagemDemo = ''
+export const CartaService = {
+  Estado: () => espera({ configurado: true, client_id: 'sh-1•••••••a9f2', provedor: 'Copernicus', uso: { imagens: 3, bytes_imagens: 14_200_000, cartas: 1, bytes_cartas: 2_100_000 } }),
+  PlanejarGeral: (f: any) => espera(planoDe(propriedades.filter((p) => (!f.equipes?.length || f.equipes.includes(p.equipe_uuid))))),
+  PlanejarIndividual: (u: string) => espera(planoDe(propriedades.filter((p) => p.uuid === u))),
+  EnquadrarGrupo: (pts: any[]) => espera(quadro({ min_x: 0, min_y: 0, max_x: 1, max_y: 1, ...pts })),
+  Passagens: () => espera({ passagens: [
+    { data: '2026-11-07T00:00:00Z', nuvens: 64.2, tiles: 2 }, { data: '2026-11-02T00:00:00Z', nuvens: 38.5, tiles: 2 },
+    { data: '2026-10-28T00:00:00Z', nuvens: 4.1, tiles: 2 }, { data: '2026-10-13T00:00:00Z', nuvens: 12.7, tiles: 1 }, { data: '2026-09-18T00:00:00Z', nuvens: 0.8, tiles: 2 },
+  ], sugerida: '2026-10-28T00:00:00Z' }),
+  Imagem: (t: any) => new Promise((ok) => setTimeout(() => {
+    imagemDemo ||= satelite()
+    const r = quadro(t.retangulo)
+    ok({ url: imagemDemo, retangulo: r, so: graus(r.min_x, r.min_y), ne: graus(r.max_x, r.max_y), periodo: t.data ? 'Aquisição de 28/10/2026' : 'Mosaico de aquisições', sem_dados: 0, guardada: false })
+  }, 500)),
+  GerarCarta: () => new Promise((ok) => setTimeout(() => ok({ id: '20261114-221500-abcd1234', titulo: 'Carta-imagem de localização das propriedades — 12 propriedade(s)', tipo: 'geral', propriedades: 12, periodo: 'Aquisição de 28/10/2026', criterios: [], gerada_em: new Date().toISOString(), arquivos: ['carta.pdf', 'carta.png'] }), 900)),
+  Cartas: () => espera([{ id: '20261114-201000-abcd1234', titulo: 'Carta-imagem de localização das propriedades — Fazenda Jaraguá', tipo: 'individual', propriedades: 1, periodo: 'Aquisição de 28/10/2026', criterios: [], gerada_em: '2026-11-14T20:10:00Z', arquivos: ['carta.pdf', 'carta.png'] }]),
+  AbrirCarta: () => espera(undefined), MostrarCarta: () => espera(undefined), SalvarCopia: () => espera(''),
+  SalvarCredenciais: () => espera(undefined), TestarConexao: () => espera(undefined), RemoverCredenciais: () => espera(undefined), LimparImagens: () => espera(3),
+}

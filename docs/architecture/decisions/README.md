@@ -19,7 +19,7 @@ Um ADR aprovado **não é editado** para mudar a decisão: cria-se um novo ADR q
 | [0010](0010-timestamps.md) | Timestamps epoch ms / ISO 8601 UTC | Aprovado |
 | [0011](0011-fotos-reduzidas.md) | Fotos reduzidas a ~2560 px | Aprovado |
 | [0012](0012-entidade-operacao.md) | Entidade operação | Aprovado |
-| [0013](0013-cartografia-plugavel.md) | Cartografia online com provedor plugável | Aprovado (provedor pendente: P1) |
+| [0013](0013-cartografia-plugavel.md) | Cartografia online com provedor plugável | Aprovado; imagem de satélite definida e cache alterado pelo ADR-0022 |
 | [0014](0014-tls12-minimo-android8.md) | TLS 1.2 restrito como mínimo (Android 8 e 9) | Aprovado |
 | [0015](0015-zxing-leitor-qr.md) | ZXing para ler o QR da Central (substitui o ML Kit) | Aprovado |
 | [0016](0016-hotspot-windows-com-internet.md) | Hotspot do Windows só com internet de origem (encerra P8) | Aprovado |
@@ -28,5 +28,6 @@ Um ADR aprovado **não é editado** para mudar a decisão: cria-se um novo ADR q
 | [0019](0019-frontend-central-tabelas-proprias-echarts.md) | Frontend da Central: tabelas próprias, ECharts e fonte empacotada (substitui o PrimeVue) | Aprovado |
 | [0020](0020-filtroestudo-em-memoria.md) | FiltroEstudo calculado em memória sobre as visões vigentes | Aprovado |
 | [0021](0021-relatorios-pdf-docx-xlsx.md) | Relatórios em PDF, DOCX e XLSX gerados na Central | Aprovado |
+| [0022](0022-cartas-imagem-sentinel2-cdse.md) | Cartas-imagem com Sentinel-2 (Copernicus CDSE) e imagens guardadas localmente (altera RN-90) | Aprovado |
 
 Modelo para novos ADRs: copie [`template.md`](template.md).

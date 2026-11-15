@@ -4,7 +4,6 @@ Nenhuma destas decisões pode ser tomada em silêncio. Cada uma tem recomendaç�
 
 | # | Pendência | Recomendação provisória | Decidir até | Status |
 |---|---|---|---|---|
-| P1 | Provedor cartográfico (custos, termos, exportação de cartas) | Provedor plugável. Candidatos: Esri World Imagery, Brasil MAIS (verificar adesão da PMRO e serviço WMS/XYZ), Google, Mapbox. Ver ADR-0013 | Início da Fase 6 | Aberta |
 | P2 | Modelo institucional de relatórios e cartas-imagem | Layout neutro com título e ressalva obrigatória | Fase 5 | Aberta |
 | P3 | Retenção e exclusão definitiva | Nunca apagar cadastros; liberar só arquivos de foto confirmados e cobertos por backup verificado, por ação explícita | Fase 5 | Aberta |
 | P4 | Critério para liberar espaço no celular | Igual a P3; a Central informa a cobertura de backup em `/v1/status` | Fase 5 | Aberta |
@@ -18,6 +17,7 @@ Nenhuma destas decisões pode ser tomada em silêncio. Cada uma tem recomendaç�
 ## Resolvidas
 | # | Pendência | Decisão | Data |
 |---|---|---|---|
+| P1 | Provedor cartográfico | Imagem de satélite: Copernicus CDSE, Sentinel-2 L2A, gratuito (A27, ADR-0022). Outros provedores (Esri, Brasil MAIS) podem entrar depois pela interface `Provedor` | 2026-11-14 |
 | P5 | Duplicidade sem UUID comum (mesma família por duas equipes) | Sugerir candidatas (nome normalizado + distância do GPS) e permitir **vincular** sem fundir nem apagar; aliases de "Outros" só na Central (A25) | 2026-11-14 |
 | P8 | Hotspot do Windows sem internet e com a tampa fechada | Não será usado assim: hotspot do Windows só com internet e computador ligado; sem teste de bancada (A21, ADR-0016) | 2026-11-13 |
 | — | TLS 1.3 indisponível no Android 8/9 (conflito entre A15 e o transporte aprovado) | TLS 1.2 restrito como mínimo (A19, ADR-0014) | 2026-11-13 |

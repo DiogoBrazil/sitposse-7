@@ -13,7 +13,7 @@ import type { Tela } from '../navegacao'
 import type { Coluna } from '../tabela'
 
 const props = defineProps<{ uuid: string; de: Tela }>()
-const emit = defineEmits<{ voltar: [] }>()
+const emit = defineEmits<{ voltar: []; carta: [uuid: string] }>()
 const p = ref<PropriedadeDetalhe | null>(null)
 const erro = ref('')
 const fotoAberta = ref<number | null>(null)
@@ -25,7 +25,7 @@ onMounted(async () => {
 })
 onUnmounted(() => window.removeEventListener('keydown', tecla))
 
-const voltarPara: Record<Tela, string> = { painel: 'Painel', propriedades: 'Propriedades', equipes: 'Equipes', sincronizacao: 'Sincronização' }
+const voltarPara: Record<Tela, string> = { painel: 'Painel', propriedades: 'Propriedades', equipes: 'Equipes', sincronizacao: 'Sincronização', cartas: 'Cartas-imagem' }
 const soma = (ps: Ponto[]) => ps.reduce((s, x) => s + x.valor, 0)
 
 const pessoas = computed<Ponto[]>(() => p.value ? [
@@ -129,6 +129,7 @@ const unidadeOriginal = computed(() => {
         </div>
         <div class="lado">
           <button @click="exportando = true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>Exportar ficha</button>
+          <button :disabled="p.lat == null" :title="p.lat == null ? 'Sem coordenada: não pode ser representada' : 'Imagem de satélite com o pino desta propriedade'" @click="emit('carta', p.uuid)">Carta-imagem</button>
         <div class="selos">
           <span class="selo" :class="p.lat != null ? 'ok' : ''">{{ p.lat != null ? 'Com localização' : 'Sem localização' }}</span>
           <span class="selo" :class="fotos.length ? 'ok' : ''">{{ fotos.length === 1 ? '1 foto' : `${fotos.length} fotos` }}</span>
@@ -254,6 +255,7 @@ const unidadeOriginal = computed(() => {
 .sep { display: inline-block; width: 1px; height: .9em; background: var(--regua-forte); margin: 0 .6rem; vertical-align: -.1em; }
 .selos { display: flex; gap: .4rem; flex-wrap: wrap; justify-content: flex-end; }
 .lado { display: flex; flex-direction: column; align-items: flex-end; gap: .6rem; }
+.lado > button + button { margin-top: -.2rem; }
 .ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; margin-right: .35rem; }
 
 .grade { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); align-items: start; }

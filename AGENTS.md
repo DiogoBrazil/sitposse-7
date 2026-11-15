@@ -42,7 +42,7 @@ Estas regras valem para todo o monorepositório. `mobile/AGENTS.md` e `desktop/A
 
 ## 6. Internet
 - Nenhuma função essencial depende de internet. **Mapas e cartas-imagem são a única exceção** e, sem conexão, mostram a mensagem amigável aprovada sem bloquear o restante.
-- Proibido: telemetria, login em nuvem, CDN em runtime, cache de tiles para uso offline (nesta versão).
+- Proibido: telemetria, login em nuvem para usar o sistema, CDN em runtime, mapa-base offline e pré-download de imagens. Permitido (ADR-0022): guardar na pasta de dados, sem validade, as imagens de satélite que o operador já consultou e as cartas-imagem geradas.
 
 ## 7. Dependências
 - Prefira a biblioteca padrão e bibliotecas oficiais. Justifique toda dependência nova (no ADR ou no `docs/changelog.md`) e fixe versões exatas.
@@ -50,4 +50,4 @@ Estas regras valem para todo o monorepositório. `mobile/AGENTS.md` e `desktop/A
 
 ## 8. Privacidade
 - Não colete identificador permanente de hardware.
-- Não envie dados a serviços externos, exceto requisições de tiles ao provedor cartográfico aprovado, que não levam dados de cadastro.
+- Não envie dados a serviços externos, exceto requisições ao provedor de imagens aprovado (Copernicus CDSE, ADR-0022), que levam **só** retângulo geográfico, período e parâmetros da imagem: nenhum dado de cadastro. Credenciais do provedor só no Gerenciador de Credenciais do Windows.

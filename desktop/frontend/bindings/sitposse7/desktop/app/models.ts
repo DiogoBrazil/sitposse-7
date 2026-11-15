@@ -3,7 +3,47 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as cartografia$0 from "../internal/cartografia/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as carta$0 from "../internal/cartografia/carta/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as geo$0 from "../internal/cartografia/geo/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as syncserver$0 from "../internal/syncserver/models.js";
+
+/**
+ * EstadoConexao: credenciais configuradas e uso do disco (sem expor o segredo).
+ */
+export interface EstadoConexao {
+    "configurado": boolean;
+
+    /**
+     * mascarado
+     */
+    "client_id": string;
+    "uso": cartografia$0.Uso;
+    "provedor": string;
+}
+
+/**
+ * ImagemPrevia: imagem para a prévia (servida em /cartografia/imagens/{chave}.png).
+ */
+export interface ImagemPrevia {
+    "url": string;
+    "retangulo": geo$0.Retangulo;
+    "so": geo$0.Ponto;
+    "ne": geo$0.Ponto;
+    "periodo": string;
+    "sem_dados": number;
+
+    /**
+     * veio do armazém local (não gastou cota)
+     */
+    "guardada": boolean;
+}
 
 /**
  * Info é o diagnóstico exibido na tela de Sincronização.
@@ -23,6 +63,62 @@ export interface Info {
      * alarme do reconciliador
      */
     "fotos_sem_arquivo": string[] | null;
+}
+
+/**
+ * PassagensResposta: dias com imagem sobre a área e a sugestão.
+ */
+export interface PassagensResposta {
+    "passagens": cartografia$0.Passagem[] | null;
+    "sugerida": string | null;
+}
+
+/**
+ * PedidoCarta: tipo, propriedades (UUIDs na ordem dos números), área, data e filtros.
+ */
+export interface PedidoCarta {
+    "retangulo": geo$0.Retangulo;
+    "data": string | null;
+    "de": string | null;
+    "ate": string | null;
+
+    /**
+     * individual | geral
+     */
+    "tipo": string;
+    "uuids": string[] | null;
+    "criterios": string[] | null;
+}
+
+/**
+ * PedidoTela: a área e a data escolhidas na tela (Data ou período De–Ate).
+ */
+export interface PedidoTela {
+    "retangulo": geo$0.Retangulo;
+    "data": string | null;
+    "de": string | null;
+    "ate": string | null;
+}
+
+/**
+ * Plano: propriedades representáveis (numeradas), as sem localização e o enquadramento.
+ */
+export interface Plano {
+    "marcadores": carta$0.Marcador[] | null;
+    "uuids": string[] | null;
+    "sem_localizacao": string[] | null;
+    "retangulo": geo$0.Retangulo;
+    "so": geo$0.Ponto;
+    "ne": geo$0.Ponto;
+    "extensao_km": number;
+    "resolucao_m": number;
+
+    /**
+     * índices em Marcadores, quando convém dividir
+     */
+    "grupos": (number[] | null)[] | null;
+    "largura": number;
+    "altura": number;
 }
 
 /**

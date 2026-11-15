@@ -72,7 +72,7 @@
 - **RN-83** Estatísticas **nunca dependem** de mapa ou de internet.
 
 ## Mapas e cartas-imagem
-- **RN-90** Mapas, imagem de satélite e cartas-imagem **exigem internet** nesta versão. É proibido mapa-base offline, pré-download ou cache persistente de tiles.
+- **RN-90** Obter imagem de satélite nova **exige internet** nesta versão. É proibido mapa-base offline e pré-download. As imagens que o operador já consultou e as cartas-imagem geradas ficam guardadas na pasta de dados, **sem validade**, e podem ser reabertas sem internet; só a imagem bruta pode ser apagada pelo operador (ADR-0022, que alterou a regra em 14/11/2026).
 - **RN-91** Sem conexão efetiva ao serviço, exibir: *"O mapa e a carta-imagem precisam de conexão com a internet. Seus cadastros, coordenadas, estatísticas e filtros continuam disponíveis offline. Conecte-se e tente novamente."*, com os botões **Tentar novamente** e **Voltar**.
 - **RN-92** A carta-imagem traz título "SITPOSSE-7 — 7º BPM/PMRO", identificação, coordenadas, legenda, data, fonte/atribuição e a ressalva *"Ponto(s) coletado(s) no levantamento; não representa(m) limites fundiários nem documento cartográfico oficial"*. Escala e norte só aparecem se forem tecnicamente corretos.
 - **RN-93** Sem conexão ou com tile faltando, **não** é gerada carta-imagem incompleta.

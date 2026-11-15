@@ -12,7 +12,7 @@ Aprovado em **13/11/2026**. As estimativas são para **um desenvolvedor em tempo
 | **3. Sincronização robusta** | Incremental, tombstones, retomada de fotos, recibos, ACK perdido, conflitos com tela de resolução, pacote USB com recibo, restauração de equipe | Cenários 1–14 de `testing/estrategia.md` §4 passando | 3–4 sem | — |
 | **4. Estatísticas e filtros** | `FiltroEstudo`, painel, tabelas, gráficos, drill-down, aliases, sugestão de duplicatas (P5) | Fixture de estatísticas com todos os cruzamentos do prompt §18 (lista derivada, A25) | 2–3 sem | **Antecipada (A25, 14/11/2026)**: em andamento, junto com a melhoria visual da Central |
 | **5. Backups e relatórios** | Backup e restauração nos dois lados; liberar espaço (P3/P4); relatórios PDF/CSV | Restauração real testada | 1,5–2 sem | Relatórios **antecipados** (A26, 14/11/2026): PDF, DOCX e XLSX feitos; backups pendentes |
-| **6. Cartografia online** | Provedor (P1), mapas individual e geral, cartas-imagem, indisponibilidade amigável | Testes de `testing/estrategia.md` §6 | 1,5–2 sem | — |
+| **6. Cartografia online** | Provedor (P1), mapas individual e geral, cartas-imagem, indisponibilidade amigável | Testes de `testing/estrategia.md` §6 | 1,5–2 sem | **Antecipada (A27, 14/11/2026)**: cartas-imagem Sentinel-2/CDSE em andamento (ADR-0022) |
 | **7. Campo, empacotamento e docs** | Teste com equipes reais, ajustes de UX, APK assinado, instalador, manuais | Checklist de aceite (§7 da estratégia) | 1,5–2 sem | — |
 
 **Total estimado: 16–23 semanas.** O MVP (A24) antecipa partes das Fases 1, 2 e 3; o que ficou de fora delas continua nas respectivas fases. A Fase 4 pode correr em paralelo com a 3, e a Fase 6 depende de P1.

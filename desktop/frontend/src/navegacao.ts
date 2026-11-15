@@ -1,1 +1,1 @@
-export type Tela = 'painel' | 'propriedades' | 'equipes' | 'sincronizacao'
+export type Tela = 'painel' | 'propriedades' | 'equipes' | 'sincronizacao' | 'cartas'

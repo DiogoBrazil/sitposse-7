@@ -46,7 +46,7 @@ Cliente Kotlin (JVM) contra o servidor Go real:
 - Teste de que Estatísticas abre e calcula **com a rede desligada**.
 
 ## 6. Cartografia
-Provedor falso: sucesso, timeout, falha de DNS, 401/403, 429 e 5xx. Verificar que **somente** o painel de mapa e a carta-imagem ficam indisponíveis, que os filtros se mantêm e que nenhuma carta é gerada incompleta.
+Provedor falso: sucesso, timeout, falha de DNS, 401/403, 429 e 5xx. Verificar que **somente** o painel de mapa e a carta-imagem ficam indisponíveis, que os filtros se mantêm e que nenhuma carta é gerada incompleta. Implementado para o Copernicus CDSE (A27): ver `desktop/docs/cartografia.md` §Testes.
 
 ## 7. Aceite final (prompt §21, inegociável)
 - [ ] Registros persistem offline e não desaparecem ao reiniciar.

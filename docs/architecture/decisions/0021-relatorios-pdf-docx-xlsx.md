@@ -16,7 +16,7 @@ Tudo precisa funcionar offline (AGENTS.md §6), com versões exatas e licenças 
 - **XLSX:** `github.com/xuri/excelize/v2` **v2.11.1** (BSD-3, publicada em 02/11/2026). A planilha tem:
   - uma aba por visão (Panorama, Por equipe, Por área, Por família, Itens por tipo, Tamanho, Sobre), cada uma com o cabeçalho institucional em texto;
   - tabelas do Excel com filtro e ordenação, totais com `SUBTOTAL(109, …)` (somam só as linhas visíveis), painéis congelados, gráficos de barras, links entre as abas e formatos numéricos reais.
-- **PDF:** `github.com/signintech/gopdf` **v0.38.4** (MIT, publicada em 31/10/2026), com a fonte **Archivo estática** (OFL-1.1, `internal/relatorios/fontes/OFL.txt`) embutida no executável. O desenho é próprio:
+- **PDF:** `github.com/signintech/gopdf` **v0.38.4** (MIT, publicada em 31/10/2026), com a fonte **Archivo estática** (OFL-1.1, `internal/fontes/OFL.txt`) embutida no executável. O desenho é próprio:
   - brasão e textos centralizados em todas as páginas;
   - tabelas com cabeçalho repetido a cada página, divisórias e texto centralizado;
   - rodapé "Página X de Y".

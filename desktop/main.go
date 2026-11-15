@@ -30,6 +30,8 @@ func main() {
 	}
 	defer central.Encerrar()
 
+	cartas := &app.CartaService{C: central}
+
 	wapp := application.New(application.Options{
 		Name:        "SITPOSSE-7 Central",
 		Description: "Central de consolidação do SITPOSSE-7 — 7º BPM/PMRO",
@@ -38,9 +40,10 @@ func main() {
 			application.NewService(&app.OperacaoService{C: central}),
 			application.NewService(&app.ConsultaService{C: central}),
 			application.NewService(&app.RelatorioService{C: central}),
+			application.NewService(cartas),
 		},
 		Assets: application.AssetOptions{
-			Handler: rotas(central, application.AssetFileServerFS(assets)),
+			Handler: rotas(central, cartas, application.AssetFileServerFS(assets)),
 		},
 	})
 
@@ -59,10 +62,11 @@ func main() {
 	}
 }
 
-// rotas serve as fotos da Central em /fotos/ e o frontend no resto.
-func rotas(central *app.Central, frontend http.Handler) http.Handler {
+// rotas serve as fotos (/fotos/), as imagens e cartas guardadas (/cartografia/) e o frontend.
+func rotas(central *app.Central, cartas *app.CartaService, frontend http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/fotos/", central.HandlerFotos())
+	mux.Handle("/cartografia/", app.HandlerCartografia(cartas))
 	mux.Handle("/", frontend)
 	return mux
 }

@@ -12,7 +12,7 @@ Layout: barra lateral fixa + área de conteúdo; responsivo de 1366×768 a 4K; t
 | **Importar pacote** | Selecionar `.s7pkg` → validação → resultado → recibo (QR e arquivo) |
 | **Conflitos** | Fila; tela de três colunas (Base / Central / Android) |
 | **Estatísticas** | Barra de filtros (chips + "Limpar filtros"), cartões, tabela analítica (linhas e colunas escolhíveis), gráficos, drill-down. **Sempre offline** |
-| **Mapa** *(online)* | Mapa geral com os mesmos filtros; mensagem RN-91 se offline |
+| **Cartas-imagem** *(A27, ADR-0022)* | Carta individual (também pela página da propriedade) ou geral (filtros do Painel); datas de imagem com nuvens e sugestão; prévia Leaflet com pinos; carta PDF/PNG guardada e reaberta sem internet; configuração do acesso ao Copernicus e limpeza das imagens. Mensagem RN-91 sem internet. Detalhes: [cartografia.md](cartografia.md) |
 | **Relatórios** | **Feito (A26, ADR-0021):** botão "Exportar" no Painel e em Propriedades: PDF, Word (.docx) ou Excel (.xlsx) com os filtros ativos (panorama, por equipe e área, itens, tamanhos, por família e, opcionalmente, uma ficha por família); "Exportar ficha" na página da propriedade (PDF ou Word). Depois: carta-imagem individual e geral *(online)* |
 | **Backup** | Fazer backup, verificar, restaurar (assistente), histórico |
 | **Configurações** | Nome do operador, pasta de dados, porta, provedor cartográfico e chave |

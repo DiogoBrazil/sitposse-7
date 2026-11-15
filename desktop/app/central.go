@@ -20,30 +20,30 @@ import (
 )
 
 // Versao do aplicativo Central.
-const Versao = "0.4.0-mvp"
+const Versao = "0.5.0-mvp"
 
 // Central inicializa o núcleo e mantém o servidor de sincronização.
 type Central struct {
 	PastaDados string
 	// Arquivos: janelas de salvar/abrir do sistema (main.go). Pode ser nil nos testes.
-	Arquivos   Arquivos
-	n          *nucleo.Nucleo
-	c          *consultas.Consultas
-	erroServ   string
+	Arquivos Arquivos
+	n        *nucleo.Nucleo
+	c        *consultas.Consultas
+	erroServ string
 }
 
 // Info é o diagnóstico exibido na tela de Sincronização.
 type Info struct {
-	Versao             string   `json:"versao"`
-	CentralID          string   `json:"central_id"`
-	PastaDados         string   `json:"pasta_dados"`
-	IPs                []string `json:"ips"`
-	Porta              int      `json:"porta"`
-	Pin                string   `json:"pin"`
-	ServidorAtivo      bool     `json:"servidor_ativo"`
-	ErroServidor       string   `json:"erro_servidor"`
-	VersaoEsquema      int      `json:"versao_esquema"`
-	FotosSemArquivo    []string `json:"fotos_sem_arquivo"` // alarme do reconciliador
+	Versao          string   `json:"versao"`
+	CentralID       string   `json:"central_id"`
+	PastaDados      string   `json:"pasta_dados"`
+	IPs             []string `json:"ips"`
+	Porta           int      `json:"porta"`
+	Pin             string   `json:"pin"`
+	ServidorAtivo   bool     `json:"servidor_ativo"`
+	ErroServidor    string   `json:"erro_servidor"`
+	VersaoEsquema   int      `json:"versao_esquema"`
+	FotosSemArquivo []string `json:"fotos_sem_arquivo"` // alarme do reconciliador
 }
 
 // Iniciar abre o núcleo e sobe o servidor HTTPS.
@@ -231,6 +231,8 @@ func (s *ConsultaService) Estatisticas(filtro estatisticas.Filtro) (*estatistica
 }
 
 // Equipes lista as equipes.
-func (s *ConsultaService) Equipes() ([]consultas.EquipeLinha, error) { return s.C.c.Equipes(contexto()) }
+func (s *ConsultaService) Equipes() ([]consultas.EquipeLinha, error) {
+	return s.C.c.Equipes(contexto())
+}
 
 func contexto() context.Context { return context.Background() }

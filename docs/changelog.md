@@ -2,6 +2,19 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-14 (A27) — cartas-imagem com Sentinel-2 (Copernicus)
+- **docs** · A27 e **ADR-0022**: imagem Sentinel-2 L2A do Copernicus CDSE (gratuito); **RN-90 alterada** (imagens consultadas e cartas guardadas sem validade; continua proibido mapa-base offline e pré-download); AGENTS.md §6 e §8 atualizados; P1 resolvida para imagem de satélite. Novo `desktop/docs/cartografia.md`.
+- **desktop** · Novos pacotes:
+  - `internal/cartografia/geo` (Web Mercator, enquadramento, pino ↔ pixel, escala, agrupamento);
+  - `internal/cartografia/cdse` (OAuth2, catálogo, imagem, erros de rede, credenciais e cota);
+  - armazém de imagens e cartas;
+  - `internal/cartografia/carta` (mapa com pinos, norte, escala e atribuição; folhas PNG e PDF A4/A3 com cabeçalho institucional, legenda, quadro de informações, ressalva RN-92 e tabela de coordenadas);
+  - `internal/credenciais` (Gerenciador de Credenciais do Windows);
+  - `internal/fontes` (fontes compartilhadas).
+- **desktop** · `CartaService` e rota local `/cartografia/`. Tela **Cartas-imagem** (Leaflet): carta individual ou geral com os filtros do Painel, datas com nuvens e sugestão, prévia, geração, cartas salvas e configuração do acesso. Botão "Carta-imagem" na página da propriedade.
+- **desktop** · **Dependências novas** (versões exatas): `leaflet` 1.9.4 (BSD-2), `@types/leaflet` 1.9.22 (dev), `golang.org/x/image` v0.48.0 (BSD-3; `x/sys` → v0.50.0). Central `0.5.0-mvp`, instalador `0188293a…` (o anterior ficou como `…-installer-11e36a52.exe`).
+- **desktop** · Testes: `geo`, `cdse` (servidor falso), `armazem`, `carta`, `credenciais` (também no Windows real) e `app/cartas_test.go`. Falta o teste com o Copernicus real (depende da conta do usuário).
+
 ## 2026-11-14 (A26) — exportação em PDF, Word e Excel; listas centralizadas
 - **desktop** · Listas: textos e cabeçalhos centralizados e divisórias entre colunas (`TabelaDados`).
 - **desktop** · `internal/relatorios` (ADR-0021):

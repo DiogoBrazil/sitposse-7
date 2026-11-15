@@ -1,6 +1,6 @@
 # ADR-0013 — Cartografia online com provedor plugável
 
-- **Status:** Aprovado (escolha do provedor pendente: P1)
+- **Status:** Aprovado. **Alterado pelo [ADR-0022](0022-cartas-imagem-sentinel2-cdse.md)** (14/11/2026): imagem de satélite do Copernicus CDSE (Sentinel-2) e imagens/cartas guardadas na pasta de dados
 - **Data:** 2026-11-13
 
 ## Contexto

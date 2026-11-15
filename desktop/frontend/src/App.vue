@@ -7,6 +7,7 @@ import Propriedades from './telas/Propriedades.vue'
 import Propriedade from './telas/Propriedade.vue'
 import Equipes from './telas/Equipes.vue'
 import Sincronizacao from './telas/Sincronizacao.vue'
+import Cartas from './telas/Cartas.vue'
 import InfoTecnica from './componentes/InfoTecnica.vue'
 import { mensagem } from './formato'
 import type { Tela } from './navegacao'
@@ -14,6 +15,7 @@ import type { Tela } from './navegacao'
 const menu: { id: Tela; rotulo: string; icone: string }[] = [
   { id: 'painel', rotulo: 'Painel', icone: 'M3 13h7V3H3zm0 8h7v-6H3zm11 0h7V11h-7zm0-18v6h7V3z' },
   { id: 'propriedades', rotulo: 'Propriedades', icone: 'M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z' },
+  { id: 'cartas', rotulo: 'Cartas-imagem', icone: 'M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5zM9 4v13.5M15 6.5V20' },
   { id: 'equipes', rotulo: 'Equipes', icone: 'M8 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm8 0a3 3 0 1 0 0-6M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 14c3 0 6 2.2 6 6' },
   { id: 'sincronizacao', rotulo: 'Sincronização', icone: 'M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4' },
 ]
@@ -23,6 +25,9 @@ const aberta = ref<{ uuid: string; de: Tela } | null>(null)
 const versao = ref('')
 const operacao = ref<Operacao | null>(null)
 const infoAberta = ref(false)
+/** Propriedade escolhida na página dela para a carta individual. */
+const cartaUuid = ref<string | null>(null)
+function cartaDe(uuid: string) { cartaUuid.value = uuid; ir('cartas') }
 
 function ir(t: Tela) { tela.value = t; aberta.value = null; window.scrollTo(0, 0) }
 let rolagem = 0
@@ -80,7 +85,7 @@ onUnmounted(() => window.clearInterval(timer))
     </nav>
 
     <main>
-      <Propriedade v-if="aberta" :key="aberta.uuid" :uuid="aberta.uuid" :de="aberta.de" @voltar="voltar" />
+      <Propriedade v-if="aberta" :key="aberta.uuid" :uuid="aberta.uuid" :de="aberta.de" @voltar="voltar" @carta="cartaDe" />
       <!-- As telas ficam montadas (só escondidas) enquanto a propriedade está aberta: ao voltar,
            filtros, aba e detalhamento continuam como estavam. -->
       <div v-show="!aberta">
@@ -88,6 +93,7 @@ onUnmounted(() => window.clearInterval(timer))
           <Painel v-if="tela === 'painel'" @ir="ir" @abrir="abrirPropriedade" />
           <Propriedades v-else-if="tela === 'propriedades'" @abrir="abrirPropriedade" />
           <Equipes v-else-if="tela === 'equipes'" />
+          <Cartas v-else-if="tela === 'cartas'" :uuid-inicial="cartaUuid" />
           <Sincronizacao v-else @info="infoAberta = true" />
         </KeepAlive>
       </div>

@@ -12,7 +12,7 @@ Postura aprovada (A18): **prioridade em integridade e não perda de dados**. O r
 | Android: armazenamento | Banco e fotos no armazenamento **privado** do app; `allowBackup=false`; `dataExtractionRules` excluindo tudo (nada vai à nuvem) | R10 |
 | Pacote USB | ZIP **sem cifra**, com hashes para integridade. Orientação operacional de guarda | ADR-0008 |
 | Identificadores | Sem ID de hardware; UUIDs aleatórios | RN-03 |
-| Rede | Sem telemetria (inclusive de bibliotecas: por isso o leitor de QR é o ZXing, ADR-0015); tráfego externo só para tiles do provedor cartográfico aprovado, que não levam dados de cadastro | AGENTS §6 |
+| Rede | Sem telemetria (inclusive de bibliotecas: por isso o leitor de QR é o ZXing, ADR-0015); tráfego externo só para o provedor de imagens aprovado (Copernicus CDSE: retângulo geográfico, período e parâmetros, sem dados de cadastro); credenciais no Gerenciador de Credenciais do Windows | AGENTS §6 e §8, ADR-0022 |
 | Firewall | Regra de entrada restrita a `LocalSubnet`, só para o executável da Central | `desktop/docs/arquitetura.md` |
 
 ## Evolução (fora do escopo atual)

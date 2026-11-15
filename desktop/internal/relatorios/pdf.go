@@ -1,23 +1,12 @@
 package relatorios
 
 import (
-	_ "embed"
 	"fmt"
 	"strings"
 
 	"github.com/signintech/gopdf"
-)
 
-// Fontes Archivo estáticas (OFL-1.1, fontes/OFL.txt), as mesmas da tela da Central.
-var (
-	//go:embed fontes/Archivo-Regular.ttf
-	fonteRegular []byte
-	//go:embed fontes/Archivo-SemiBold.ttf
-	fonteSemi []byte
-	//go:embed fontes/Archivo-Bold.ttf
-	fonteNegrito []byte
-	//go:embed fontes/ArchivoCondensed-Bold.ttf
-	fonteCondensada []byte
+	"sitposse7/desktop/internal/fontes"
 )
 
 type rgb struct{ r, g, b uint8 }
@@ -291,7 +280,7 @@ func (p *pdf) secao(s Secao, primeira bool) {
 func PDF(d Documento) ([]byte, error) {
 	gp := &gopdf.GoPdf{}
 	gp.Start(gopdf.Config{Unit: gopdf.UnitPT, PageSize: *gopdf.PageSizeA4})
-	for nome, dados := range map[string][]byte{"regular": fonteRegular, "semi": fonteSemi, "negrito": fonteNegrito, "condensada": fonteCondensada} {
+	for nome, dados := range map[string][]byte{"regular": fontes.Regular, "semi": fontes.SemiBold, "negrito": fontes.Bold, "condensada": fontes.CondensedBold} {
 		if err := gp.AddTTFFontData(nome, dados); err != nil {
 			return nil, fmt.Errorf("fonte %s: %w", nome, err)
 		}

@@ -46,6 +46,8 @@ A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-d
 3. ~~**Painel/Estatísticas**~~ **feito (14/11):** barra de filtros, cartões, abas, drill-down; Propriedades com os mesmos filtros. Central `0.3.0-mvp` (`391936a4…`). **Falta o usuário testar no Windows.**
 **Exportação (A26, 14/11, noite):** PDF, Word e Excel com os filtros ativos + listas centralizadas com divisórias entre colunas. Feito; ver ADR-0021. Central `0.4.0-mvp` (`11e36a52…`). **Falta o usuário testar no Windows.**
 
+**Cartas-imagem (A27, 14/11, noite):** Sentinel-2/Copernicus, ADR-0022, `desktop/docs/cartografia.md`. Feito e testado com provedor falso; Central `0.5.0-mvp` (`0188293a…`). **Falta:** o usuário criar a conta gratuita no Copernicus e testar com imagens reais (roteiro em `cartografia.md` §Cadastro).
+
 4. **Aliases e duplicatas** (P5 resolvida): migração 0003 + ADR, telas.
 
 Revisão visual sem o Windows: `cd desktop/frontend && npm run demo` (dados fictícios) e capturas pelo navegador.
