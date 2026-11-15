@@ -1,7 +1,7 @@
 # Continuação do trabalho (passagem de bastão)
 
 > **Leia isto primeiro** ao retomar o projeto em outra máquina ou com outro agente.
-> Atualizado em **14/11/2026 (tarde)**. Mantenha este arquivo em dia ao final de cada sessão.
+> Atualizado em **14/11/2026 (noite)**. Mantenha este arquivo em dia ao final de cada sessão.
 > Ambiente da §3 pronto no PC desktop, com a VM de teste. Comece pela §2.
 
 ## 1. Onde estamos
@@ -46,7 +46,11 @@ A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-d
 3. ~~**Painel/Estatísticas**~~ **feito (14/11):** barra de filtros, cartões, abas, drill-down; Propriedades com os mesmos filtros. Central `0.3.0-mvp` (`391936a4…`). **Falta o usuário testar no Windows.**
 **Exportação (A26, 14/11, noite):** PDF, Word e Excel com os filtros ativos + listas centralizadas com divisórias entre colunas. Feito; ver ADR-0021. Central `0.4.0-mvp` (`11e36a52…`). **Falta o usuário testar no Windows.**
 
-**Cartas-imagem (A27, 14/11, noite):** Sentinel-2/Copernicus, ADR-0022, `desktop/docs/cartografia.md`. Feito e testado com provedor falso; Central `0.5.0-mvp` (`0188293a…`). **Falta:** o usuário criar a conta gratuita no Copernicus e testar com imagens reais (roteiro em `cartografia.md` §Cadastro).
+**Cartas-imagem (A27, 14/11, noite):** Sentinel-2/Copernicus, ADR-0022, `desktop/docs/cartografia.md`. Central atual **`0.5.1-mvp` (`61e7c91b…`)**, instalada no PC.
+- **Conta Copernicus criada pelo usuário** (categoria *Public*, finalidade *Public sector*, tipo *National/regional/local public authorities*). Cliente OAuth "SITPOSSE-7 Central" (*Client Credentials*, sem SPA, validade de 90 dias: **vence em 13/02/2027**; depois disso, criar outro e colar em Cartas-imagem → Configurar). As credenciais ficam só no Gerenciador de Credenciais do Windows (alvo `SITPOSSE-7/Copernicus-CDSE`).
+- **1º teste real:** a conexão e a busca de datas funcionaram. A prévia ficou no zoom máximo e a imagem virou borrões. Corrigido na 0.5.1 (zoom máximo 16, área mínima de 1,5 km, enquadramento com `ResizeObserver`); a causa exata não foi reproduzida.
+- **Coordenadas de teste (14/11, ~23h):** a pedido do usuário, Jaraguá e Lua De Prata foram movidas para área rural (-10.0754, -63.1741 e -10.0750, -63.1689) direto no banco da Central, como correção da Central (`corrigido_desde_rev_origem = 1`, `rev_central = 1`, auditoria `corrigir`). Cópia anterior: `%LOCALAPPDATA%\SITPOSSE-7\sitposse7.db.antes-coordenadas-teste-20261114-232248`. Uma versão nova dessas duas vinda do celular será **recusada** ("corrigido na Central") até existir a resolução de conflitos.
+- **Próximo passo:** o usuário testa a 0.5.1 numa carta geral com as duas propriedades e responde: (1) se a prévia abriu com a régua em torno de 500 m sem aproximar (para identificar a causa); (2) se a nitidez de 10 m atende ou se é preciso enxergar construções. Nesse caso, avaliar outro provedor pela interface `Provedor`: Brasil MAIS/Planet (~3 m, gratuito para a segurança pública com adesão) ou Esri World Imagery (< 1 m, chave ArcGIS). Depois, calibrar as cores (névoa leve; ganho fixo de 2,5).
 
 4. **Aliases e duplicatas** (P5 resolvida): migração 0003 + ADR, telas.
 
