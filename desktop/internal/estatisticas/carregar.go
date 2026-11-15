@@ -87,7 +87,7 @@ func Carregar(ctx context.Context, db *sql.DB) (*Base, error) {
 		p.equipe_uuid, p.equipe_nome, p.equipe_codigo, p.jornada_uuid, p.jornada_numero, p.jornada_data, p.estudo_uuid, p.estudo_nome,
 		p.pessoas_adultos, p.pessoas_jovens, p.pessoas_criancas, p.veic_caminhoes, p.veic_automoveis_utilitarios, p.veic_motos_ciclomotores,
 		p.bov_adultos, p.bov_bezerros, p.equ_adultos, p.equ_potros, p.area_valor_milesimos, p.area_unidade, p.lat IS NOT NULL, p.lat, p.lon, p.gps_origem, p.gps_precisao_m,
-		(SELECT count(*) FROM v_fotos_vigentes f WHERE f.propriedade_uuid = p.uuid), p.created_at, p.recebido_em
+		(SELECT count(*) FROM v_fotos_vigentes f WHERE f.propriedade_uuid = p.uuid), p.created_at, p.recebido_em, coalesce(p.numero_no_estudo, 0)
 		FROM v_propriedades_vigentes p
 		ORDER BY p.nome_propriedade COLLATE NOCASE, p.uuid`)
 	if err != nil {
@@ -101,7 +101,7 @@ func Carregar(ctx context.Context, db *sql.DB) (*Base, error) {
 		var un sql.NullString
 		if err := rows.Scan(&p.UUID, &p.Nome, &p.Responsavel, &p.Observacoes, &p.EquipeUUID, &p.Equipe, &p.EquipeCodigo,
 			&p.JornadaUUID, &p.JornadaNumero, &p.JornadaData, &p.EstudoUUID, &p.Estudo,
-			&ad, &jo, &cr, &ca, &au, &mo, &ba, &bb, &ea, &ep, &mil, &un, &p.ComLocalizacao, &p.Lat, &p.Lon, &p.GpsOrigem, &p.GpsPrecisaoM, &fotos, &p.CriadoEm, &p.RecebidoEm); err != nil {
+			&ad, &jo, &cr, &ca, &au, &mo, &ba, &bb, &ea, &ep, &mil, &un, &p.ComLocalizacao, &p.Lat, &p.Lon, &p.GpsOrigem, &p.GpsPrecisaoM, &fotos, &p.CriadoEm, &p.RecebidoEm, &p.Numero); err != nil {
 			return nil, err
 		}
 		v := map[string]int64{

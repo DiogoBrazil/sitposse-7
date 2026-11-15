@@ -63,6 +63,7 @@ type Campo struct {
 // Familia é uma propriedade vigente (cada propriedade corresponde a uma família).
 type Familia struct {
 	UUID           string           `json:"uuid"`
+	Numero         int              `json:"numero"` // número fixo no estudo (RN-96); 0 = ainda sem número
 	Nome           string           `json:"nome"`
 	Responsavel    string           `json:"responsavel"`
 	Observacoes    *string          `json:"observacoes"`

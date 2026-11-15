@@ -296,11 +296,24 @@ func (a *aplicador) propriedade(p *contratos.Propriedade, coleta string) (string
 			updated_at, excluido_em, rev_origem, recebido_em, origem_instalacao, registro_json,
 			uuid, coleta_uuid, equipe_uuid, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			append(args, p.UUID, coleta, a.equipe, ms(p.CreatedAt))...)
+		if err == nil {
+			err = a.numerar(p.UUID)
+		}
 	}
 	if err != nil {
 		return "", err
 	}
 	return contratos.ResultadoAplicado, a.auditar("propriedade", p.UUID, acaoDe(antes, p.ExcluidoEm), antes, js)
+}
+
+// numerar atribui o próximo número da propriedade no estudo de destino (RN-96), na mesma
+// transação da primeira inserção. O número nunca muda nem é reaproveitado (triggers da 0003).
+func (a *aplicador) numerar(propriedade string) error {
+	_, err := a.tx.ExecContext(a.ctx, `INSERT INTO numeracao_propriedades (propriedade_uuid, estudo_uuid, numero, atribuido_em)
+		SELECT ?, j.estudo_uuid,
+		       COALESCE((SELECT max(n.numero) FROM numeracao_propriedades n WHERE n.estudo_uuid = j.estudo_uuid), 0) + 1, ?
+		FROM equipes e JOIN jornadas j ON j.uuid = e.jornada_uuid WHERE e.uuid = ?`, propriedade, a.agora, a.equipe)
+	return err
 }
 
 // propriedadeDaColeta confere que a propriedade existe na Central e é da coleta.

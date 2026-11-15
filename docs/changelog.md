@@ -2,6 +2,10 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-15 (A30, E1) — número fixo da propriedade no estudo
+- **esquema** · Migração não destrutiva `0003_numeracao_propriedades.sql` (ADR-0027, RN-96): tabela `numeracao_propriedades` somente acréscimo, numeração dos cadastros existentes e `v_propriedades_vigentes.numero_no_estudo`. A importação atribui o próximo número na mesma transação da primeira inserção. `Familia.Numero`, `PropriedadeLinha.Numero` e `PropriedadeDetalhe.Numero`.
+- **testes** · Numeração na importação: estável entre versões, não reaproveitada após exclusão, imutável. Migração 0003 sobre banco da geração 2 com dados.
+
 ## 2026-11-15 (A30, E0) — decisões das cartas-imagem inteligentes
 - **docs** · ADR-0027 (altera ADR-0022): INPE como fonte principal (CBERS-4A WPM 2 m, Sentinel-2 L2A, mosaico trimestral) e CDSE como reserva, seleção automática, mosaicos sinalizados, setores e número fixo da propriedade. RN-93 reescrita; RN-95, RN-96 e RN-97 novas; RN-90 e AGENTS.md §6/§8 acrescentam o INPE e a guarda de blocos e composições. Matriz A30.
 

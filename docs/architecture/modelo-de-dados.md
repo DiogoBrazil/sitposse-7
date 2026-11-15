@@ -126,6 +126,7 @@ Status: **Recomendado R1/R2, aprovado com o plano em 13/11/2026; estrutura de es
 - `aliases_itens(nome_normalizado PK, grupo_canonico, created_at, updated_at)`.
 - `backups(uuid, caminho, criado_em, verificado_em NULL, cobre_ate_recebido_em, manifesto_sha256)`.
 - **Geração 2 (A28, migração 0002 reescrita, ADR-0025):** `estudos`, `jornadas`, `equipes`, `coletas`, `decisoes_destino`, `lotes_recebidos` com os estados novos, `meta.esquema_geracao = '2'`; o resto como no MVP, sem `operacoes`.
+- **Migração 0003 (A30, ADR-0027, RN-96):** `numeracao_propriedades(propriedade_uuid PK, estudo_uuid, numero, atribuido_em)`, `UNIQUE(estudo_uuid, numero)`, sem UPDATE/DELETE (gatilhos). O número é atribuído na primeira aplicação da propriedade, na mesma transação. A migração numera os cadastros já existentes (inclusive excluídos) por `recebido_em, uuid` e recria só a visão `v_propriedades_vigentes`, que passa a expor `numero_no_estudo`.
 - **MVP (migração 0002 original, ADR-0017), substituído:** `operacoes` (no máximo uma `ativa`), `equipes`, `tokens_pareamento`, `dispositivos`, `propriedades`, `catalogo_itens` (semeado; igual a `shared/test-fixtures/catalogo/itens.v1.json`), `itens_propriedade`, `fotografias`, `lotes_recebidos` (+ `manifesto_sha256`, `ack_em`), `fotos_esperadas`, `aplicacoes`, `auditoria` (somente acréscimo, por gatilhos) e as visões vigentes. Cada entidade recebida tem `registro_json` (último payload aplicado, usado como "antes" na auditoria). `conflitos`, `aliases_itens` e `backups` ficam para as fases deles.
 
 ## Índices e visões

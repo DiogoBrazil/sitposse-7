@@ -105,6 +105,7 @@ func (c *Consultas) Resumo(ctx context.Context, estudo string) (*Resumo, error) 
 // PropriedadeLinha é uma linha da tabela de propriedades.
 type PropriedadeLinha struct {
 	UUID         string  `json:"uuid"`
+	Numero       int     `json:"numero"` // número fixo no estudo (RN-96)
 	Nome         string  `json:"nome"`
 	Responsavel  string  `json:"responsavel"`
 	EquipeUUID   string  `json:"equipe_uuid"`
@@ -127,7 +128,7 @@ func (c *Consultas) Propriedades(ctx context.Context, busca, estudo, equipe stri
 	q := `SELECT p.uuid, p.nome_propriedade, p.responsavel_familia, p.equipe_uuid, p.equipe_nome, p.jornada_numero, p.jornada_data,
 		p.pessoas_adultos + p.pessoas_jovens + p.pessoas_criancas, p.bov_adultos + p.bov_bezerros,
 		p.area_valor_milesimos, p.area_unidade, p.lat IS NOT NULL,
-		(SELECT count(*) FROM v_fotos_vigentes f WHERE f.propriedade_uuid = p.uuid), p.updated_at, p.recebido_em
+		(SELECT count(*) FROM v_fotos_vigentes f WHERE f.propriedade_uuid = p.uuid), p.updated_at, p.recebido_em, coalesce(p.numero_no_estudo, 0)
 		FROM v_propriedades_vigentes p WHERE 1 = 1`
 	var args []any
 	termo, temBusca := dominio.NormalizarNome(busca)
@@ -151,7 +152,7 @@ func (c *Consultas) Propriedades(ctx context.Context, busca, estudo, equipe stri
 		var m sql.NullInt64
 		var u sql.NullString
 		var nj int
-		if err := rows.Scan(&l.UUID, &l.Nome, &l.Responsavel, &l.EquipeUUID, &l.Equipe, &nj, &l.JornadaData, &l.Pessoas, &l.Bovinos, &m, &u, &l.TemGPS, &l.Fotos, &l.AtualizadoEm, &l.RecebidoEm); err != nil {
+		if err := rows.Scan(&l.UUID, &l.Nome, &l.Responsavel, &l.EquipeUUID, &l.Equipe, &nj, &l.JornadaData, &l.Pessoas, &l.Bovinos, &m, &u, &l.TemGPS, &l.Fotos, &l.AtualizadoEm, &l.RecebidoEm, &l.Numero); err != nil {
 			return nil, err
 		}
 		l.Jornada = RotuloJornada(nj, l.JornadaData)
@@ -213,6 +214,7 @@ type FotoLinha struct {
 // PropriedadeDetalhe é o cadastro completo.
 type PropriedadeDetalhe struct {
 	UUID                      string      `json:"uuid"`
+	Numero                    int         `json:"numero"` // número fixo no estudo (RN-96)
 	Nome                      string      `json:"nome"`
 	Responsavel               string      `json:"responsavel"`
 	Observacoes               *string     `json:"observacoes"`
@@ -259,12 +261,12 @@ func (c *Consultas) Propriedade(ctx context.Context, uuid string) (*PropriedadeD
 		p.equipe_nome, p.equipe_codigo, p.jornada_numero, p.jornada_data, p.estudo_uuid, p.estudo_nome, p.estudo_codigo,
 		p.pessoas_adultos, p.pessoas_jovens, p.pessoas_criancas, p.veic_caminhoes, p.veic_automoveis_utilitarios, p.veic_motos_ciclomotores,
 		p.bov_adultos, p.bov_bezerros, p.equ_adultos, p.equ_potros, p.area_valor_milesimos, p.area_unidade,
-		p.lat, p.lon, p.gps_origem, p.gps_precisao_m, p.gps_capturado_em, p.gps_satelites, p.created_at, p.updated_at, p.recebido_em, p.rev_origem
+		p.lat, p.lon, p.gps_origem, p.gps_precisao_m, p.gps_capturado_em, p.gps_satelites, p.created_at, p.updated_at, p.recebido_em, p.rev_origem, coalesce(p.numero_no_estudo, 0)
 		FROM v_propriedades_vigentes p WHERE p.uuid = ?`, uuid).Scan(
 		&d.UUID, &d.Nome, &d.Responsavel, &d.Observacoes, &d.Equipe, &d.EquipeCodigo, &d.JornadaNumero, &d.JornadaData, &d.EstudoUUID, &d.Estudo, &d.EstudoCodigo,
 		&d.PessoasAdultos, &d.PessoasJovens, &d.PessoasCriancas, &d.VeicCaminhoes, &d.VeicAutomoveisUtilitarios, &d.VeicMotosCiclomotores,
 		&d.BovAdultos, &d.BovBezerros, &d.EquAdultos, &d.EquPotros, &m, &u,
-		&d.Lat, &d.Lon, &d.GPSOrigem, &d.GPSPrecisaoM, &d.GPSCapturadoEm, &d.GPSSatelites, &d.CriadoEm, &d.AtualizadoEm, &d.RecebidoEm, &d.Rev)
+		&d.Lat, &d.Lon, &d.GPSOrigem, &d.GPSPrecisaoM, &d.GPSCapturadoEm, &d.GPSSatelites, &d.CriadoEm, &d.AtualizadoEm, &d.RecebidoEm, &d.Rev, &d.Numero)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
