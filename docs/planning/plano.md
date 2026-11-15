@@ -23,6 +23,18 @@ Aprovado em **13/11/2026**. As estimativas são para **um desenvolvedor em tempo
 ## Antecipação A29 — Central (15/11/2026)
 Autorizadas as correções/exclusões e a melhoria das listagens, conforme ADR-0026. Fila de conflitos continua adiada por escolha explícita do usuário (recusa temporária de novas versões); sem ampliação para USB ou backups. Sem mudança de protocolo ou esquema. Instalador 0.7.0-mvp; validação Windows pendente.
 
+## Antecipação A30 — Cartas-imagem inteligentes (15/11/2026)
+Plano aprovado pelo usuário (ADR-0027): imagens do INPE (CBERS-4A 2 m, Sentinel-2 L2A, mosaico trimestral), seleção automática, mosaicos sinalizados, carta geral + setores, número fixo da propriedade no estudo e pinos interativos. Etapas:
+- **E0:** decisões e documentação;
+- **E1:** numeração (migração 0003);
+- **E2:** geo/UTM, setores, leitor COG, STAC, INPE;
+- **E3:** seleção e raster;
+- **E4:** cartas multifolha e serviço;
+- **E5:** telas;
+- **E6:** build 0.8.0-mvp e teste regional.
+
+O app Campo não muda.
+
 ## Detalhes por produto
 - Android: [mobile/docs](../../mobile/docs/arquitetura.md)
 - Central: [desktop/docs](../../desktop/docs/arquitetura.md)

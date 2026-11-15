@@ -2,6 +2,9 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-15 (A30, E0) — decisões das cartas-imagem inteligentes
+- **docs** · ADR-0027 (altera ADR-0022): INPE como fonte principal (CBERS-4A WPM 2 m, Sentinel-2 L2A, mosaico trimestral) e CDSE como reserva, seleção automática, mosaicos sinalizados, setores e número fixo da propriedade. RN-93 reescrita; RN-95, RN-96 e RN-97 novas; RN-90 e AGENTS.md §6/§8 acrescentam o INPE e a guarda de blocos e composições. Matriz A30.
+
 ## 2026-11-15 — ADRs da A28 aprovados
 - **docs** · ADR-0023 (estudos, jornadas, equipes e códigos), ADR-0024 (coletas e confirmação do destino, protocolo v2) e ADR-0025 (reinício único dos bancos de teste) passam de Proposto para **Aprovado** pelo usuário, após implementação e teste em bancada.
 

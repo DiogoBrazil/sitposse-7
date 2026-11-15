@@ -28,10 +28,11 @@ Um ADR aprovado **não é editado** para mudar a decisão: cria-se um novo ADR q
 | [0019](0019-frontend-central-tabelas-proprias-echarts.md) | Frontend da Central: tabelas próprias, ECharts e fonte empacotada (substitui o PrimeVue) | Aprovado |
 | [0020](0020-filtroestudo-em-memoria.md) | FiltroEstudo calculado em memória sobre as visões vigentes | Aprovado |
 | [0021](0021-relatorios-pdf-docx-xlsx.md) | Relatórios em PDF, DOCX e XLSX gerados na Central | Aprovado |
-| [0022](0022-cartas-imagem-sentinel2-cdse.md) | Cartas-imagem com Sentinel-2 (Copernicus CDSE) e imagens guardadas localmente (altera RN-90) | Aprovado |
+| [0022](0022-cartas-imagem-sentinel2-cdse.md) | Cartas-imagem com Sentinel-2 (Copernicus CDSE) e imagens guardadas localmente (altera RN-90) | Aprovado (alterado pelo ADR-0027) |
 | [0023](0023-estudo-jornada-equipe-e-codigos.md) | Estudo de situação, jornadas, equipes por jornada e códigos públicos (substitui o ADR-0012) | Aprovado |
 | [0024](0024-coletas-e-confirmacao-de-destino.md) | Coletas no celular, protocolo v2 e confirmação do destino na Central | Aprovado |
 | [0025](0025-reinicio-dos-bancos-de-teste.md) | Reinício único dos bancos de teste (geração 2 do esquema) | Aprovado |
 | [0026](0026-correcoes-e-exclusoes-central.md) | Correções e exclusões na Central, recusa temporária e paginação | Aprovado |
+| [0027](0027-cartas-imagem-inpe-selecao-automatica.md) | Cartas-imagem com imagens do INPE (CBERS-4A 2 m), seleção automática, mosaicos e setores (altera ADR-0022) | Aprovado |
 
 Modelo para novos ADRs: copie [`template.md`](template.md).

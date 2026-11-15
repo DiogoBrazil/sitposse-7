@@ -81,8 +81,19 @@
 - **RN-83** Estatísticas **nunca dependem** de mapa ou de internet.
 
 ## Mapas e cartas-imagem
-- **RN-90** Obter imagem de satélite nova **exige internet** nesta versão. É proibido mapa-base offline e pré-download. As imagens que o operador já consultou e as cartas-imagem geradas ficam guardadas na pasta de dados, **sem validade**, e podem ser reabertas sem internet; só a imagem bruta pode ser apagada pelo operador (ADR-0022, que alterou a regra em 14/11/2026).
+- **RN-90** Obter imagem de satélite nova **exige internet** nesta versão (os blocos de imagem e as composições da área consultada também são guardados, ADR-0027). É proibido mapa-base offline e pré-download. As imagens que o operador já consultou e as cartas-imagem geradas ficam guardadas na pasta de dados, **sem validade**, e podem ser reabertas sem internet; só a imagem bruta pode ser apagada pelo operador (ADR-0022, que alterou a regra em 14/11/2026).
 - **RN-91** Sem conexão efetiva ao serviço, exibir: *"O mapa e a carta-imagem precisam de conexão com a internet. Seus cadastros, coordenadas, estatísticas e filtros continuam disponíveis offline. Conecte-se e tente novamente."*, com os botões **Tentar novamente** e **Voltar**.
 - **RN-92** A carta-imagem traz título "SITPOSSE-7 — 7º BPM/PMRO", identificação, coordenadas, legenda, data, fonte/atribuição e a ressalva *"Ponto(s) coletado(s) no levantamento; não representa(m) limites fundiários nem documento cartográfico oficial"*. Escala e norte só aparecem se forem tecnicamente corretos.
-- **RN-93** Sem conexão ou com tile faltando, **não** é gerada carta-imagem incompleta.
+- **RN-93** Não é gerada carta-imagem com área **sem nenhuma imagem**. A carta pode ser um **mosaico** de cenas de datas e resoluções diferentes, desde que sinalizado (RN-97). Sem conexão, usa-se a composição já guardada da mesma área, com aviso da data; sem ela, aparece a mensagem da RN-91. *(Reescrita em 15/11/2026, ADR-0027.)*
 - **RN-94** Não se inventam coordenadas para propriedades sem GPS.
+- **RN-95** A imagem da carta é escolhida **automaticamente**:
+  - **Ordem de preferência:** CBERS-4A de 2 m com até 12 meses; Sentinel-2 de 10 m mais recente sem nuvens; mosaico trimestral do INPE; Copernicus (CDSE) só se o INPE estiver inacessível.
+  - **Critério:** nuvem e área sem dados **sobre a área das propriedades**, não sobre a cena inteira.
+  - **Nuvem estimada:** quando a nuvem é estimada (CBERS), a interface diz "estimativa".
+  - **Reprodutibilidade:** a escolha é reproduzível e fica gravada.
+  - **Transparência:** o operador sempre vê a fonte, a data (ou o intervalo) e a resolução. *(ADR-0027.)*
+- **RN-96** Cada propriedade recebe um **número fixo no estudo**:
+  - atribuído quando o cadastro chega à Central, em ordem de recebimento;
+  - nunca reutilizado, nem depois de uma exclusão;
+  - é o número dos pinos, das legendas e de todas as folhas e arquivos das cartas. *(ADR-0027.)*
+- **RN-97** Quando a carta geral fica com detalhe muito menor que o da imagem, ou com pinos sobrepostos, são geradas automaticamente **folhas de setor**, além da geral: o PDF reúne todas as folhas e há um PNG por folha. Um mosaico traz o quadro de proveniência (fonte, data e resolução de cada parte) e nunca é apresentado como imagem de uma data só. *(ADR-0027.)*
