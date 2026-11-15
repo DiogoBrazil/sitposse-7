@@ -173,3 +173,23 @@ func TestHTTPRecusaServidorSemRangeERepete5xx(t *testing.T) {
 		t.Fatal("ignorou o cancelamento")
 	}
 }
+
+// Tabelas de blocos enormes (mosaico do Brasil: 13,7 milhões de blocos) são lidas por pedaços.
+func TestTabelaDeBlocosSobDemanda(t *testing.T) {
+	defer cog.LimiteTabela(16)()
+	base := cogteste.Gradiente(300, 200)
+	for _, big := range []bool{false, true} {
+		arq := cogteste.Escrever([]cogteste.Imagem{base, cogteste.Reduzir(base)}, cogteste.Opcoes{Big: big, EPSG: 32720, ResX: 2, ResY: 2, Bloco: 32})
+		a, err := cog.Abrir(context.Background(), cogteste.Memoria(arq))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, xy := range [][2]int{{0, 0}, {299, 199}, {150, 77}} {
+			got := pixel(t, a, 0, xy[0], xy[1])
+			i := (xy[1]*300 + xy[0]) * 3
+			if !bytes.Equal(got, base.Pix[i:i+3]) {
+				t.Fatalf("big=%v pixel %v = %v", big, xy, got)
+			}
+		}
+	}
+}

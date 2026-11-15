@@ -26,6 +26,21 @@ As cartas e as imagens consultadas ficam na pasta de dados (`cartografia/`), **s
 
 **Pontos distantes:** se a carta geral passar de 20 m por pixel, a tela propõe dividi-la em grupos de até 40 km.
 
+## Imagens do INPE, seleção e composição (A30, ADR-0027)
+| Parte | Onde | Papel |
+|---|---|---|
+| UTM e setores | `geo/utm.go`, `geo/setores.go` | Krüger 6ª ordem (ida e volta); carta geral + setores de escala fixa (2 m → 3 m/px; 10 m → 15 m/px), determinísticos |
+| Leitor COG | `cog/` | TIFF/BigTIFF em blocos, deflate, preditor 2, overviews, GeoKeys UTM/4326; HTTP Range com cache em disco (`blocos/`, por URL + ETag); tabelas de blocos enormes lidas por pedaços (mosaico do Brasil: 13,7 milhões de blocos) |
+| Catálogo | `stac/`, `inpe/` | STAC do INPE: CBERS-4A WPM fusionado (≤ 12 meses), Sentinel-2 L2A (TCI + SCL), mosaico trimestral |
+| Raster | `raster/` | Leitura numa grade 3857 (coordenada exata a cada 16 px, interpolada entre eles; bilinear), SCL como máscara, cor por ajuste afim robusto contra o mosaico ou casamento de percentis, nuvem do CBERS **estimada** pelo resíduo do brilho, composição por célula com costura de ≈ 40 m, tom único, tiles XYZ |
+| Seleção | `selecao/` | Critérios num só struct; elegibilidade por célula (≤ 0,5% sem dados, ≤ 2% nuvem); regra hierárquica: nível de resolução, depois pontuação; desempate determinístico |
+| Composição | `composicao/` | Orquestra tudo; refaz os setores na escala de 10 m quando não há 2 m; guarda `composicoes/<id>/` (receita, folhas, tiles) e reabre offline pela área; reserva CDSE |
+
+**Calibração em Ariquemes (15/11/2026, teste `SITPOSSE7_REDE=1`):**
+- **Cenas usadas:** CBERS-4A de 13/10/2026 em 94–96% da área; Sentinel-2 nas células com nuvem estimada.
+- **Primeiro preparo, sem cache:** 5 propriedades levaram cerca de 13 s e 24 MB; 20 propriedades em 2 × 10 km (4 setores) levaram 38 s e 89 MB.
+- **Ajuste de cor afim:** no CBERS, o ajuste afim irrestrito chegou a R² = 0,69, mas apagava o detalhe (soma dos ganhos de 0,17) e escondia nuvens. Por isso a transformação exige soma dos ganhos ≥ 0,6, e nessa cena valeu o casamento de percentis.
+
 ## O que sai para a internet
 Só para o Copernicus: o token (identificador e segredo do cliente), o retângulo da área em EPSG:3857 (ou em graus, no catálogo), o período e os parâmetros da imagem. **Nenhum dado de cadastro** (teste `TestNadaDeCadastroSaiParaAInternet`).
 

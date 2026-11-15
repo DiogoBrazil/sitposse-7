@@ -2,6 +2,23 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-15 (A30, E3) — seleção automática, cor e composição
+- **desktop** · `raster/`:
+  - leitura de COG numa grade Web Mercator, com busca paralela de blocos e cache em memória;
+  - SCL do Sentinel-2 como máscara;
+  - cor por ajuste afim robusto contra o mosaico, aceito só se preservar o detalhe (soma dos ganhos ≥ 0,6); senão, casamento de percentis;
+  - nuvem e sombra do CBERS **estimadas** pelo resíduo robusto do brilho contra a referência;
+  - composição por célula com costura suavizada e tom único;
+  - tiles XYZ em JPEG.
+- **desktop** · `selecao/`: critérios num só struct e escolha gulosa hierárquica (resolução, depois pontuação), determinística.
+- **desktop** · `composicao/`:
+  - orquestração completa: busca, avaliação, escolha, tom, folhas e tiles pré-gerados;
+  - refaz os setores em 10 m quando não há 2 m;
+  - guarda as composições, que reabrem offline pela área;
+  - reserva CDSE.
+- **desktop** · `cog/`: tabelas de blocos grandes lidas por pedaços (o mosaico do Brasil tem 13,7 milhões de blocos).
+- **testes** · Reprojeção preserva a posição (≤ 1 px), SCL, ajuste de cor recupera uma transformação conhecida, costura e buracos, tiles e zoom, seleção (2 m antes de 10 m, retalhos, células limitadas ou sem imagem, independência da ordem), ponta a ponta com servidor falso (escolha, folhas, tiles, offline). Teste real em Ariquemes (resultados em `desktop/docs/cartografia.md`).
+
 ## 2026-11-15 (A30, E2) — leitura de imagens do INPE
 - **desktop** · `geo/utm.go`: UTM pelas séries de Krüger (6ª ordem), com ida e volta. `geo/setores.go`: carta geral + setores de escala fixa, determinística, com grupos distantes em setores próprios e coordenadas suspeitas.
 - **desktop** · `cog/`: leitor de COG em Go puro (TIFF/BigTIFF, deflate, preditor 2, overviews, GeoKeys UTM/4326) por HTTP Range, com cache em disco por URL + ETag, leitura offline do que já foi baixado, novas tentativas e recusa de servidor sem Range. `stac/`: busca STAC com paginação POST/GET.

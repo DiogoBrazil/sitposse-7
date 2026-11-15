@@ -17,6 +17,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // Faixas lê n bytes a partir de off (HTTP Range, arquivo local, memória…).
@@ -31,9 +32,21 @@ var ErrNaoSuportado = errors.New("formato de imagem não suportado")
 type Nivel struct {
 	Largura, Altura int
 	BlocoL, BlocoA  int
-	ResX, ResY      float64 // unidades do SRC por pixel
-	offsets, tams   []uint64
+	ResX, ResY      float64       // unidades do SRC por pixel
+	offsets, tams   []uint64      // tabelas carregadas (arquivos comuns)
+	tabela          *tabelaAdiada // ou lidas sob demanda (mosaicos com milhões de blocos)
 }
+
+// tabelaAdiada: TileOffsets/TileByteCounts lidas por pedaços quando a tabela é grande.
+type tabelaAdiada struct {
+	posOff, posTam uint64
+	tipoOff        uint16
+	tipoTam        uint16
+	mu             sync.Mutex
+	pedacos        map[[2]int][]uint64 // (0 = offsets | 1 = tamanhos, pedaço) → valores
+}
+
+const tamPedaco = 4096 // entradas por leitura (32 KB em BigTIFF)
 
 // BlocosX e BlocosY: quantos blocos há em cada direção.
 func (n Nivel) BlocosX() int { return (n.Largura + n.BlocoL - 1) / n.BlocoL }
@@ -42,6 +55,7 @@ func (n Nivel) BlocosY() int { return (n.Altura + n.BlocoA - 1) / n.BlocoA }
 // Arquivo COG aberto (só o cabeçalho é lido na abertura).
 type Arquivo struct {
 	fonte      Faixas
+	ordem      binary.ByteOrder
 	Niveis     []Nivel
 	Amostras   int
 	compressao int
@@ -92,10 +106,15 @@ func (c *cabecalho) ler(off, n uint64) ([]byte, error) {
 }
 
 type entrada struct {
-	tipo  uint16
-	cont  uint64
-	valor []byte // bytes dos valores (já buscados)
+	tipo   uint16
+	cont   uint64
+	valor  []byte // bytes dos valores (já buscados)
+	adiado bool   // valores grandes deixados no arquivo (tabelas de blocos)
+	pos    uint64 // posição dos valores no arquivo
 }
+
+// limiteTabela: tabelas de blocos maiores que isso são lidas sob demanda.
+var limiteTabela uint64 = 1 << 20
 
 var tamTipo = map[uint16]uint64{1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8, 16: 8, 17: 8, 18: 8}
 
@@ -161,7 +180,7 @@ func Abrir(ctx context.Context, f Faixas) (*Arquivo, error) {
 	default:
 		return nil, fmt.Errorf("%w: versão TIFF desconhecida", ErrNaoSuportado)
 	}
-	a := &Arquivo{fonte: f}
+	a := &Arquivo{fonte: f, ordem: c.ordem}
 	for i := 0; prox != 0 && i < 64; i++ {
 		tags, seguinte, err := c.ifd(prox, big)
 		if err != nil {
@@ -227,6 +246,10 @@ func (c *cabecalho) ifd(off uint64, big bool) (map[uint16]entrada, uint64, error
 			} else {
 				pos = uint64(c.ordem.Uint32(campo))
 			}
+			if (tag == 324 || tag == 325) && cont*8 > limiteTabela && (tipo == 4 || tipo == 16) {
+				tags[tag] = entrada{tipo: tipo, cont: cont, adiado: true, pos: pos}
+				continue
+			}
 			v, err := c.ler(pos, total)
 			if err != nil {
 				return nil, 0, err
@@ -291,9 +314,20 @@ func (a *Arquivo) acrescentar(c *cabecalho, tags map[uint16]entrada, primeiro bo
 	if n.Largura <= 0 || n.Altura <= 0 || n.BlocoL <= 0 || n.BlocoA <= 0 || n.BlocoL > 4096 || n.BlocoA > 4096 {
 		return fmt.Errorf("%w: dimensões inválidas", ErrNaoSuportado)
 	}
-	n.offsets, n.tams = c.inteiros(tags[324]), c.inteiros(tags[325])
-	if len(n.offsets) != n.BlocosX()*n.BlocosY() || len(n.tams) != len(n.offsets) {
-		return fmt.Errorf("%w: tabela de blocos inconsistente", ErrNaoSuportado)
+	eo, et := tags[324], tags[325]
+	if eo.adiado || et.adiado {
+		if eo.cont != uint64(n.BlocosX()*n.BlocosY()) || et.cont != eo.cont {
+			return fmt.Errorf("%w: tabela de blocos inconsistente", ErrNaoSuportado)
+		}
+		if !eo.adiado || !et.adiado {
+			return fmt.Errorf("%w: tabela de blocos mista", ErrNaoSuportado)
+		}
+		n.tabela = &tabelaAdiada{posOff: eo.pos, posTam: et.pos, tipoOff: eo.tipo, tipoTam: et.tipo, pedacos: map[[2]int][]uint64{}}
+	} else {
+		n.offsets, n.tams = c.inteiros(eo), c.inteiros(et)
+		if len(n.offsets) != n.BlocosX()*n.BlocosY() || len(n.tams) != len(n.offsets) {
+			return fmt.Errorf("%w: tabela de blocos inconsistente", ErrNaoSuportado)
+		}
 	}
 	if primeiro {
 		a.Amostras, a.compressao, a.preditor = spp, comp, pred
@@ -367,13 +401,17 @@ func (a *Arquivo) Bloco(ctx context.Context, nivel, bx, by int) ([]byte, error) 
 	}
 	i := by*n.BlocosX() + bx
 	tam := n.BlocoL * n.BlocoA * a.Amostras
-	if n.offsets[i] == 0 || n.tams[i] == 0 {
+	off, tb, err := a.posBloco(ctx, n, i)
+	if err != nil {
+		return nil, err
+	}
+	if off == 0 || tb == 0 {
 		return make([]byte, tam), nil
 	}
-	if n.tams[i] > 64<<20 {
+	if tb > 64<<20 {
 		return nil, fmt.Errorf("%w: bloco grande demais", ErrNaoSuportado)
 	}
-	bruto, err := a.fonte.LerFaixa(ctx, int64(n.offsets[i]), int64(n.tams[i]))
+	bruto, err := a.fonte.LerFaixa(ctx, int64(off), int64(tb))
 	if err != nil {
 		return nil, err
 	}
@@ -404,6 +442,55 @@ func (a *Arquivo) Bloco(ctx context.Context, nivel, bx, by int) ([]byte, error) 
 		}
 	}
 	return px, nil
+}
+
+// posBloco devolve a posição e o tamanho do bloco i (das tabelas carregadas ou por pedaços).
+func (a *Arquivo) posBloco(ctx context.Context, n Nivel, i int) (uint64, uint64, error) {
+	if n.tabela == nil {
+		return n.offsets[i], n.tams[i], nil
+	}
+	off, err := a.valorTabela(ctx, n.tabela, 0, i)
+	if err != nil {
+		return 0, 0, err
+	}
+	tb, err := a.valorTabela(ctx, n.tabela, 1, i)
+	return off, tb, err
+}
+
+func (a *Arquivo) valorTabela(ctx context.Context, t *tabelaAdiada, qual, i int) (uint64, error) {
+	p := i / tamPedaco
+	t.mu.Lock()
+	v, ok := t.pedacos[[2]int{qual, p}]
+	t.mu.Unlock()
+	if !ok {
+		pos, tipo := t.posOff, t.tipoOff
+		if qual == 1 {
+			pos, tipo = t.posTam, t.tipoTam
+		}
+		lado := uint64(4)
+		if tipo == 16 {
+			lado = 8
+		}
+		b, err := a.fonte.LerFaixa(ctx, int64(pos+uint64(p*tamPedaco)*lado), int64(tamPedaco*lado))
+		if err != nil {
+			return 0, err
+		}
+		v = make([]uint64, len(b)/int(lado))
+		for k := range v {
+			if lado == 8 {
+				v[k] = a.ordem.Uint64(b[k*8:])
+			} else {
+				v[k] = uint64(a.ordem.Uint32(b[k*4:]))
+			}
+		}
+		t.mu.Lock()
+		t.pedacos[[2]int{qual, p}] = v
+		t.mu.Unlock()
+	}
+	if i%tamPedaco >= len(v) {
+		return 0, fmt.Errorf("%w: tabela de blocos truncada", ErrNaoSuportado)
+	}
+	return v[i%tamPedaco], nil
 }
 
 // PixelParaSRC: coordenada (no SRC do arquivo) do canto superior esquerdo do pixel (col, lin).
