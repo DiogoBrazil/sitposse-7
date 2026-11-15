@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_nome">SITPOSSE-7 Campo</string>
+    <string name="diag_titulo">Diagnóstico</string>
+    <string name="diag_aparelho">Android %1$s (API %2$d)</string>
+
+    <string name="diag_banco_titulo">Banco de dados</string>
+    <string name="diag_banco_lendo">Verificando o banco…</string>
+    <string name="diag_banco_escrita">Escrita: journal=%1$s · synchronous=%2$d · foreign_keys=%3$d</string>
+    <string name="diag_banco_leitura">Leitura: journal=%1$s · synchronous=%2$d · foreign_keys=%3$d</string>
+    <string name="diag_banco_versao">SQLite %1$s</string>
+    <string name="diag_banco_ok">Configuração de durabilidade correta</string>
+    <string name="diag_banco_falha">Configuração de durabilidade INCORRETA</string>
+    <string name="diag_banco_erro">Não foi possível abrir o banco: %1$s</string>
+
+    <string name="diag_central_titulo">Conexão com a Central</string>
+    <string name="diag_ler_qr">Ler QR da Central</string>
+    <string name="diag_cancelar">Cancelar</string>
+    <string name="diag_qr_aponte">Aponte a câmera para o QR exibido na Central.</string>
+    <string name="diag_qr_invalido">Este QR não é de uma Central SITPOSSE-7 (%1$s).</string>
+    <string name="diag_qr_lido">Central %1$s · IPs %2$s · porta %3$d</string>
+    <string name="diag_qr_sem_ips">nenhum</string>
+    <string name="diag_testar">Testar conexão</string>
+    <string name="diag_conectando">Conectando pela rede Wi‑Fi…</string>
+    <string name="diag_sem_wifi">Nenhuma rede Wi‑Fi disponível. Conecte o celular ao Wi‑Fi da Central e tente de novo.</string>
+    <string name="diag_conectado">Conectado a %1$s (%2$s) em %3$d ms</string>
+    <string name="diag_conectado_operacao">Operação: %1$s</string>
+    <string name="diag_conectado_sem_operacao">Nenhuma operação ativa</string>
+    <string name="diag_conectado_horario">Horário da Central: %1$s</string>
+    <string name="diag_incompativel">Versão de protocolo incompatível com este aplicativo.</string>
+    <string name="diag_pin_divergente">O computador respondeu, mas NÃO é a Central pareada. Leia o QR novamente.</string>
+    <string name="diag_sem_conexao">Não foi possível conectar em %1$s: %2$s</string>
+    <string name="diag_resposta_invalida">Resposta inesperada de %1$s: %2$s</string>
+
+    <string name="perm_camera_negada">Sem permissão da câmera não é possível ler o QR.</string>
+    <string name="perm_rede_local_explicacao">Para enviar os cadastros, o aplicativo precisa acessar a rede local onde está a Central. Nada é enviado para a internet.</string>
+    <string name="perm_rede_local_negada">Sem a permissão de rede local não é possível conectar à Central.</string>
+    <string name="perm_permitir">Permitir</string>
+
+    <!-- Geral -->
+    <string name="ok">OK</string>
+    <string name="cancelar">Cancelar</string>
+    <string name="salvar">Salvar</string>
+    <string name="voltar">Voltar</string>
+    <string name="editar">Editar</string>
+    <string name="excluir">Excluir</string>
+    <string name="remover">Remover</string>
+    <string name="adicionar">Adicionar</string>
+    <string name="descartar">Descartar</string>
+    <string name="retomar">Retomar</string>
+    <string name="aumentar">Aumentar</string>
+    <string name="diminuir">Diminuir</string>
+    <string name="obrigatorio">Obrigatório</string>
+    <string name="sem_nome">sem nome</string>
+    <string name="sincronizar">Sincronizar</string>
+    <string name="nova_propriedade">Nova propriedade</string>
+
+    <!-- Equipe -->
+    <string name="equipe_titulo">Equipe</string>
+    <string name="equipe_titulo_nova">Configurar equipe</string>
+    <string name="equipe_explicacao">Os dados ficam neste aparelho e funcionam sem internet. Depois, envie-os para a Central pelo Wi‑Fi do computador.</string>
+    <string name="equipe_nome">Nome da equipe *</string>
+    <string name="equipe_responsavel">Responsável *</string>
+    <string name="equipe_area">Identificação da área</string>
+    <string name="equipe_area_ajuda">Opcional. Ex.: Gleba A, Linha 25, Setor Norte</string>
+    <string name="equipe_comecar">Começar</string>
+
+    <!-- Início -->
+    <string name="inicio_responsavel">Responsável: %1$s</string>
+    <string name="inicio_operacao">Pareada com a operação: %1$s</string>
+    <string name="inicio_nao_pareada">Ainda não pareada com a Central</string>
+    <string name="inicio_propriedades">Propriedades</string>
+    <string name="inicio_pendentes">Pendentes</string>
+    <string name="inicio_confirmadas">Confirmadas</string>
+    <string name="inicio_ultima_sinc">Última sincronização confirmada: %1$s</string>
+    <string name="inicio_nunca_sinc">Nenhuma sincronização confirmada ainda</string>
+    <string name="inicio_ver_lista">Ver lista</string>
+    <string name="inicio_rascunho">Rascunho de “%1$s” ainda não salvo como cadastro.</string>
+    <string name="inicio_fotos_ausentes">%1$d foto(s) registrada(s) sem arquivo no aparelho. Não desinstale o app e avise o suporte.</string>
+
+    <!-- Lista -->
+    <string name="lista_titulo">Propriedades (%1$d)</string>
+    <string name="lista_buscar">Buscar por propriedade ou responsável</string>
+    <string name="lista_vazia">Nenhuma propriedade cadastrada ainda. Toque em “+” para começar.</string>
+    <string name="lista_nenhum_resultado">Nenhuma propriedade encontrada com esse filtro.</string>
+    <string name="filtro_pendentes">Pendentes</string>
+    <string name="filtro_sem_gps">Sem GPS</string>
+    <string name="filtro_sem_foto">Sem foto</string>
+    <string name="filtro_erro">Erro</string>
+    <string name="estado_pendente">Pendente de envio</string>
+    <string name="estado_confirmado">Confirmado</string>
+    <string name="estado_erro">Erro</string>
+    <string name="tem_gps">Com localização</string>
+    <string name="sem_gps">Sem localização</string>
+
+    <!-- Detalhe -->
+    <string name="detalhe_nao_encontrado">Cadastro não encontrado.</string>
+    <string name="detalhe_atualizado">Atualizado em</string>
+    <string name="nenhum_item">Nenhum item</string>
+    <string name="sem_fotos">Nenhuma foto</string>
+    <string name="excluir_titulo">Excluir cadastro?</string>
+    <string name="excluir_texto">O cadastro sai da lista e a exclusão é enviada à Central na próxima sincronização. Os dados não são apagados do histórico.</string>
+
+    <!-- Formulário -->
+    <string name="form_titulo_novo">Nova propriedade</string>
+    <string name="form_titulo_editar">Editar propriedade</string>
+    <string name="form_rascunho">Rascunho — ainda não salvo como cadastro</string>
+    <string name="form_corrija">Corrija %1$d campo(s)</string>
+    <string name="form_falha">Não foi possível salvar: %1$s. Nada foi perdido do formulário.</string>
+    <string name="form_sair_titulo">Sair sem salvar?</string>
+    <string name="form_sair_texto">As alterações ficam guardadas como rascunho e podem ser retomadas pela tela inicial.</string>
+    <string name="form_manter_rascunho">Manter rascunho</string>
+    <string name="secao_identificacao">Identificação</string>
+    <string name="secao_area">Área</string>
+    <string name="secao_localizacao">Localização</string>
+    <string name="secao_fotos">Fotos</string>
+    <string name="campo_nome">Nome da propriedade</string>
+    <string name="campo_nome_obrigatorio">Nome da propriedade *</string>
+    <string name="campo_responsavel">Responsável pela família</string>
+    <string name="area_valor">Área</string>
+    <string name="area_ajuda">Opcional. Use vírgula para decimais (até 3 casas).</string>
+    <string name="area_conversao">= %1$s ha</string>
+    <string name="area_nao_informada">Área não informada</string>
+    <string name="unidade_ha">Hectares</string>
+    <string name="unidade_alq">Alqueire paulista</string>
+    <string name="itens_outros_adicionar">Outros…</string>
+    <string name="itens_outros_titulo">Outros — %1$s</string>
+    <string name="itens_outros_nome">Nome do item</string>
+    <string name="itens_outros_repetido">Já existe “%1$s” nesta categoria. Somar 1 à quantidade existente ou manter como item separado?</string>
+    <string name="itens_somar">Somar</string>
+    <string name="itens_manter_separado">Manter separado</string>
+    <string name="foto_tirar">Tirar foto</string>
+    <string name="foto_processando">Gravando a foto…</string>
+    <string name="foto_remover">Remover foto</string>
+    <string name="foto_remover_texto">A foto deixa de fazer parte do cadastro ao salvar.</string>
+    <string name="foto_sem_espaco">Pouco espaço livre no aparelho (menos de 200 MB). Libere espaço antes de fotografar.</string>
+
+    <!-- GPS -->
+    <string name="gps_titulo">Obter localização</string>
+    <string name="gps_aba_gnss">GPS</string>
+    <string name="gps_aba_manual">Digitar</string>
+    <string name="gps_obter">Obter localização</string>
+    <string name="gps_usar">Usar</string>
+    <string name="gps_continuar">Tentar de novo</string>
+    <string name="gps_permissao">É preciso permitir a localização para usar o GPS. Funciona sem internet.</string>
+    <string name="gps_permissao_negada">Sem a permissão de localização, digite as coordenadas na aba “Digitar”.</string>
+    <string name="gps_desligado">O GPS do aparelho está desligado.</string>
+    <string name="gps_abrir_config">Abrir configurações de localização</string>
+    <string name="gps_procurando">Procurando satélites… fique em local aberto.</string>
+    <string name="gps_satelites">Satélites: %1$d em uso de %2$d vistos</string>
+    <string name="gps_precisao_atual">Precisão atual: %1$.0f m</string>
+    <string name="gps_melhor">Melhor precisão: %1$.0f m</string>
+    <string name="gps_acima_meta">Acima da meta de 15 m. Pode tentar de novo ou usar assim mesmo.</string>
+    <string name="gps_parou">Busca encerrada após %1$d s.</string>
+    <string name="gps_manual_ajuda">Graus decimais (WGS84), ex.: -10,123456 e -62,654321. Coordenada digitada não tem precisão.</string>
+    <string name="gps_latitude">Latitude</string>
+    <string name="gps_longitude">Longitude</string>
+    <string name="gps_nao_informado">Localização não informada</string>
+    <string name="gps_coordenadas">Coordenadas</string>
+    <string name="gps_origem">Origem</string>
+    <string name="gps_gnss">GPS do aparelho</string>
+    <string name="gps_manual">Digitada</string>
+    <string name="gps_precisao">Precisão</string>
+    <string name="gps_precisao_satelites">GPS · %1$.0f m · %2$d satélites</string>
+
+    <!-- Sincronização -->
+    <string name="sinc_nao_pareado">Este aparelho ainda não foi pareado com a Central.</string>
+    <string name="sinc_pareado_com">Pareado com a operação %1$s</string>
+    <string name="sinc_pareado_em">Desde %1$s</string>
+    <string name="sinc_explicacao">Conecte o celular ao Wi‑Fi (hotspot) do computador da Central. Nada é enviado para a internet.</string>
+    <string name="sinc_parear">Ler QR de pareamento</string>
+    <string name="sinc_parear_de_novo">Ler QR da Central de novo</string>
+    <string name="sinc_enviar">Enviar para a Central</string>
+    <string name="sinc_procurando">Procurando a rede Wi‑Fi…</string>
+    <string name="sinc_aguardando_operador">Aguardando o operador confirmar na Central…</string>
+    <string name="sinc_conectando">Conectando à Central…</string>
+    <string name="sinc_enviando_cadastros">Enviando cadastros (%1$d)…</string>
+    <string name="sinc_enviando_fotos">Enviando fotos %1$d/%2$d (%3$d MB)</string>
+    <string name="sinc_aguardando_importacao">Aguardando a Central conferir e importar…</string>
+    <string name="sinc_nada">Nada pendente: tudo já está confirmado na Central.</string>
+    <string name="sinc_resultado">%1$d cadastro(s) confirmado(s) · %2$d em análise na Central · %3$d erro(s)</string>
+    <string name="sinc_rejeitados">Registros recusados pela Central (continuam pendentes):\n%1$s</string>
+    <string name="sinc_erro_inesperado">Erro inesperado na sincronização (%1$s, ref. %2$s). Os cadastros continuam guardados no aparelho. Tente de novo.</string>
+    <string name="sinc_permissoes_negadas">Sem as permissões pedidas não é possível ler o QR ou conectar à Central.</string>
+</resources>

@@ -1,0 +1,17 @@
+{
+	"fixed": {
+		"file_version": "0.0.1",
+		"product_version": "0.0.1"
+	},
+	"info": {
+		"0409": {
+			"FileVersion": "0.0.1",
+			"ProductVersion": "0.0.1",
+			"CompanyName": "7º BPM/PMRO",
+			"FileDescription": "Central de consolidação do SITPOSSE-7 — 7º BPM/PMRO",
+			"LegalCopyright": "© 2026 7º BPM/PMRO",
+			"ProductName": "SITPOSSE-7 Central",
+			"Comments": "Estudo de situação para reintegração de posse"
+		}
+	}
+}

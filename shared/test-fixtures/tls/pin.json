@@ -1,0 +1,7 @@
+{
+  "descricao": "Pin SPKI (ADR-0007): SHA-256 do SubjectPublicKeyInfo DER em base64url sem padding. Valor esperado calculado de forma independente com OpenSSL (x509 -pubkey | pkey -outform DER | dgst -sha256 | base64url). Go e Kotlin devem obter o mesmo valor. Só o certificado é versionado; a chave privada foi descartada.",
+  "versao": 1,
+  "casos": [
+    {"certificado": "central-fixture.crt.pem", "pin": "LebAdzGYtDPoyDIJZAO3bxa_zvkK8dw6lhVmgEsPdfk"}
+  ]
+}

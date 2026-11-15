@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Ícone do SITPOSSE-7: marcador de localização fincado sobre lotes de terra
+       (levantamento georreferenciado de áreas ocupadas), com o "7" do 7º BPM.
+       Fonte do build/appicon.png (1024x1024, fundo transparente). Comando para regerar:
+       ver docs/planning/continuacao.md, seção 4 (Edge headless + wails3 generate icons).
+       Atenção: comentário XML não pode conter dois hifens seguidos. -->
+  <defs>
+    <linearGradient id="ceu" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1D5694"/>
+      <stop offset="1" stop-color="#0E2A4D"/>
+    </linearGradient>
+    <linearGradient id="pino" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFD54F"/>
+      <stop offset="1" stop-color="#F2A900"/>
+    </linearGradient>
+    <clipPath id="moldura">
+      <rect width="1024" height="1024" rx="224"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#moldura)">
+    <rect width="1024" height="1024" fill="url(#ceu)"/>
+
+    <!-- Lotes em perspectiva (horizonte em y=600, fuga em 512,300) -->
+    <g>
+      <polygon points="0,600 217,600 60,760 0,760" fill="#3B8044"/>
+      <polygon points="217,600 424,600 377,760 60,760" fill="#6DB35A"/>
+      <polygon points="424,600 615,600 670,760 377,760" fill="#4C9A4F"/>
+      <polygon points="615,600 818,600 981,760 670,760" fill="#8D6E4A"/>
+      <polygon points="818,600 1024,600 1024,760 981,760" fill="#3B8044"/>
+      <polygon points="0,760 60,760 -200,1024 0,1024" fill="#6DB35A"/>
+      <polygon points="60,760 377,760 300,1024 -200,1024" fill="#8D6E4A"/>
+      <polygon points="377,760 670,760 760,1024 300,1024" fill="#6DB35A"/>
+      <polygon points="670,760 981,760 1250,1024 760,1024" fill="#3B8044"/>
+      <polygon points="981,760 1024,760 1024,1024 1250,1024" fill="#4C9A4F"/>
+    </g>
+    <g stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="10" stroke-linecap="round" fill="none">
+      <line x1="0" y1="600" x2="1024" y2="600"/>
+      <line x1="0" y1="760" x2="1024" y2="760"/>
+      <line x1="217" y1="600" x2="-200" y2="1024"/>
+      <line x1="424" y1="600" x2="300" y2="1024"/>
+      <line x1="615" y1="600" x2="760" y2="1024"/>
+      <line x1="818" y1="600" x2="1250" y2="1024"/>
+    </g>
+
+    <!-- Sombra e marcador -->
+    <ellipse cx="512" cy="842" rx="130" ry="30" fill="#000000" fill-opacity="0.30"/>
+    <path d="M512,836 C470,780 300,600 300,410 A212,212 0 1 1 724,410 C724,600 554,780 512,836 Z"
+          fill="url(#pino)" stroke="#0E2A4D" stroke-width="14" stroke-linejoin="round"/>
+    <circle cx="512" cy="410" r="122" fill="#0E2A4D"/>
+    <text x="512" y="413" text-anchor="middle" dominant-baseline="central"
+          font-family="Segoe UI, Arial, sans-serif" font-weight="800" font-size="190"
+          fill="#FFFFFF">7</text>
+  </g>
+</svg>

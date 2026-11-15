@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sitposse7.local/schemas/pareamento.v1.schema.json",
+  "title": "POST /v1/pareamento: pedido e resposta (v1)",
+  "description": "protocolo.md §2. O pedido usa o token do QR; a Central só responde depois de o operador confirmar ou recusar (espera de até 90 s).",
+  "$defs": {
+    "pedido": {
+      "type": "object",
+      "required": ["protocolo_versao", "schema_versao", "token_pareamento", "instalacao_uuid", "equipe"],
+      "additionalProperties": false,
+      "properties": {
+        "protocolo_versao": { "const": 1 },
+        "schema_versao": { "const": 1 },
+        "token_pareamento": { "type": "string", "minLength": 32, "maxLength": 128 },
+        "instalacao_uuid": { "$ref": "comum.v1.schema.json#/$defs/uuid" },
+        "rotulo_aparelho": { "$ref": "comum.v1.schema.json#/$defs/textoOpcional" },
+        "equipe": { "$ref": "comum.v1.schema.json#/$defs/equipe" }
+      }
+    },
+    "resposta": {
+      "type": "object",
+      "required": ["protocolo_versao", "central_id", "credencial_dispositivo", "operacao"],
+      "additionalProperties": false,
+      "properties": {
+        "protocolo_versao": { "const": 1 },
+        "central_id": { "$ref": "comum.v1.schema.json#/$defs/uuid" },
+        "credencial_dispositivo": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$", "description": "32 bytes aleatórios em base64url sem padding. A Central guarda só o SHA-256." },
+        "operacao": {
+          "type": "object",
+          "required": ["uuid", "nome"],
+          "additionalProperties": false,
+          "properties": { "uuid": { "$ref": "comum.v1.schema.json#/$defs/uuid" }, "nome": { "type": "string", "minLength": 1 } }
+        }
+      }
+    }
+  },
+  "oneOf": [ { "$ref": "#/$defs/pedido" }, { "$ref": "#/$defs/resposta" } ]
+}
