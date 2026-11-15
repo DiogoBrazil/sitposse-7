@@ -12,8 +12,8 @@ android {
         applicationId = "br.gov.ro.pm.sitposse7.campo"
         minSdk { version = release(26) }   // A15
         targetSdk { version = release(37) } // P7
-        versionCode = 3
-        versionName = "0.1.1-mvp"
+        versionCode = 4
+        versionName = "0.2.0-mvp"
     }
 
     buildFeatures { compose = true }

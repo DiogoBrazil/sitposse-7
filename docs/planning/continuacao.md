@@ -61,7 +61,7 @@ A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-d
 - [x] **E3** (15/11) Android, dados: Room v3 + guarda, coletas, códigos, responsável obrigatório, observações.
 - [x] **E4** (15/11) Android, sincronização v2 por coleta: `:core:sync` com todos os testes cruzados verdes contra a Central Go.
 - [x] **E5** (15/11; falta testar no aparelho) Android, telas: código da equipe, coletas, formulário em 7 etapas com revisão.
-- [ ] **E6** builds, reinício controlado dos bancos (com confirmação do usuário na hora) e bancada.
+- [~] **E6** (15/11) builds feitos: Central `0.6.0-mvp` (`2c43a150…`) e Campo `0.2.0-mvp` (`8e545c35…`) em `Downloads\sitposse7-teste` (anteriores com sufixo `-61e7c91b` e `-f4a7fd54`); roteiro e procedimento de reinício em [teste-de-campo-mvp.md](../operacao/teste-de-campo-mvp.md). **Falta:** reinício dos dados de teste no notebook e no moto g56 (com confirmação do usuário na hora) e a bancada.
 
 Revisão visual sem o Windows: `cd desktop/frontend && npm run demo` (dados fictícios) e capturas pelo navegador.
 

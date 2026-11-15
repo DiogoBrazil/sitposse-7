@@ -2,6 +2,9 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-15 (A28, E6) — builds e roteiro de teste
+- **build** · Central `0.6.0-mvp`, instalador `2c43a150…`; Campo `0.2.0-mvp` (versionCode 4), APK `8e545c35…` (anteriores guardados com sufixo). Roteiro do teste em campo reescrito para estudos, códigos, 7 etapas e confirmação do destino, com o **procedimento único de reinício dos dados de teste** (ADR-0025): mover, não apagar, os arquivos do banco e as fotos da Central; desinstalar e reinstalar o app.
+
 ## 2026-11-15 (A28, E2) — Central: telas de estudos e confirmação do destino
 - **desktop** · Frontend: tela **Estudos** (lista, página do estudo com jornadas e códigos das equipes, novo estudo, nova jornada copiando nomes de equipes, + equipe, excluir equipe sem cadastros, copiar códigos); **estudo em foco** na barra lateral (Painel, Propriedades e Cartas trabalham com ele); modal global **Confirmar destino da sincronização** (confirmar, alterar destino/corrigir no Central em cascata Estudo → Jornada → Equipe, cancelar; destino travado; fila); pareamento só do aparelho; Sincronização sem operação e lotes com código recebido, destino e situação; Painel e Propriedades com filtro e aba **por jornada** no lugar de "área identificada"; página da propriedade com estudo, jornada, equipe, código e **Observações relevantes**; tela de bloqueio para banco de geração anterior. `Equipes.vue` removida. Bindings regenerados.
 - **desktop** · `npm run demo` com estudos, jornadas e os modais (`#destino`, `#codigo-errado`, `#pedido`, `#bloqueio`). Vitest: filtros com estudo em foco e jornadas.
