@@ -1,29 +1,43 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onActivated, onMounted, ref } from 'vue'
 import { ConsultaService as Consulta } from '../../bindings/sitposse7/desktop/app'
 import type { EquipeLinha } from '../../bindings/sitposse7/desktop/internal/consultas/models'
-import { mensagem, num, quando } from '../formato'
+import TabelaDados from '../componentes/TabelaDados.vue'
+import { mensagem, num, plural, quando } from '../formato'
+import type { Coluna } from '../tabela'
 
 const equipes = ref<EquipeLinha[]>([])
 const erro = ref('')
-onMounted(async () => { try { equipes.value = (await Consulta.Equipes()) ?? [] } catch (e) { erro.value = mensagem(e) } })
+const carregando = ref(true)
+async function carregar() {
+  try { equipes.value = (await Consulta.Equipes()) ?? []; erro.value = '' } catch (e) { erro.value = mensagem(e) } finally { carregando.value = false }
+}
+onMounted(carregar)
+onActivated(carregar)
+
+const colunas: Coluna<EquipeLinha>[] = [
+  { chave: 'nome', rotulo: 'Equipe' },
+  { chave: 'responsavel', rotulo: 'Responsável' },
+  { chave: 'identificacao_area', rotulo: 'Área de atuação' },
+  { chave: 'aparelhos', rotulo: 'Aparelhos', tipo: 'numero' },
+  { chave: 'propriedades', rotulo: 'Famílias', tipo: 'numero', formatar: (l) => num(l.propriedades) },
+  { chave: 'ultima_importacao', rotulo: 'Última importação', formatar: (l) => quando(l.ultima_importacao), secundaria: true },
+]
 </script>
 
 <template>
   <div class="pilha">
-    <h1>Equipes</h1>
-    <p v-if="erro" class="aviso-erro">{{ erro }}</p>
-    <div class="cartao rolavel" style="padding: 0">
-      <table class="tabela">
-        <thead><tr><th>Equipe</th><th>Responsável</th><th>Área</th><th class="num">Aparelhos</th><th class="num">Propriedades</th><th>Última importação</th></tr></thead>
-        <tbody>
-          <tr v-for="e in equipes" :key="e.uuid">
-            <td><strong>{{ e.nome }}</strong></td><td>{{ e.responsavel }}</td><td>{{ e.identificacao_area || '—' }}</td>
-            <td class="num">{{ e.aparelhos }}</td><td class="num">{{ num(e.propriedades) }}</td><td>{{ quando(e.ultima_importacao) }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <div v-if="!equipes.length" class="vazio">Nenhuma equipe ainda. As equipes entram na operação quando o celular é pareado.</div>
-    </div>
+    <header class="cabeca">
+      <h1>Equipes</h1>
+      <p class="suave">{{ plural(equipes.length, 'equipe', 'equipes') }} na operação. Uma equipe entra na operação quando o primeiro celular dela é pareado.</p>
+    </header>
+    <TabelaDados :colunas="colunas" :linhas="equipes" :chave="(l) => l.uuid" rotulo="Equipes" :carregando="carregando" :erro="erro"
+                 :ordem="{ chave: 'nome', dir: 'asc' }" texto-vazio="Nenhuma equipe ainda. Pareie o primeiro celular em Sincronização.">
+      <template #nome="{ linha }"><strong>{{ linha.nome }}</strong></template>
+    </TabelaDados>
   </div>
 </template>
+
+<style scoped>
+.cabeca { display: flex; flex-direction: column; gap: .35rem; }
+</style>

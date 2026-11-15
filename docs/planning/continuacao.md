@@ -40,6 +40,14 @@ A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-d
 
 **Teste de bancada (14/11, noite): o app fechava ao confirmar o pareamento.** Corrigido no `0.1.1-mvp` (`sitposse7-campo-debug.apk`, `f4a7fd54…`; instala por cima, mesma chave). Causa: socket TLS fechado na thread principal. Ver [incidente](../../mobile/docs/incidentes/2026-11-14-crash-pareamento.md). **Validado no aparelho em 14/11 às 19:28:** os 2 cadastros antigos foram enviados ao notebook e o 3º ao PC, com recibo e sem crash. Cada Central ficou com o que recebeu: ver **P12**. Decisão do usuário (14/11): por enquanto, **um só computador** como Central; usar mais de um fica para depois (alternativa sugerida: exportar e importar entre Centrais). Os reinícios do PC desktop são de hardware (WHEA 18 / MCE no Ryzen 5 5600X, desde setembro): use o notebook como Central nos testes.
 
+**Fase 4 antecipada (A25, 14/11, noite), em etapas:**
+1. ~~**Base visual**~~ **feito:** ADR-0019, tabelas próprias, ECharts, Archivo, Painel/Propriedades/página da propriedade/Equipes/Sincronização e modal técnico. Central `0.2.0-mvp` (`cc3e49b7…`). **Falta o usuário olhar no Windows.**
+2. **`FiltroEstudo` no Go** + fixture `shared/test-fixtures/estatisticas/` com a lista derivada de cruzamentos (`desktop/docs/telas-e-fluxos.md` §Cruzamentos). Benchmark < 300 ms no volume 3×.
+3. **Painel/Estatísticas:** barra de filtros (equipe, período, GPS/fotos, área, rebanho, itens), gráficos por equipe e por tipo, tabela analítica, drill-down até o cadastro.
+4. **Aliases e duplicatas** (P5 resolvida): migração 0003 + ADR, telas.
+
+Revisão visual sem o Windows: `cd desktop/frontend && npm run demo` (dados fictícios) e capturas pelo navegador.
+
 **Próximo passo: o usuário faz o teste em campo** seguindo o roteiro e traz os resultados. Antes, conferir na bancada (PC + moto g56): instalar, parear, 2–3 cadastros com foto e GPS, enviar, conferir na Central. Pendências de decisão: ADR-0017 e ADR-0018 (Propostos) e P11.
 
 **Atenção (dados descartáveis, A24):** o APK é assinado com a chave de debug **desta máquina**. Gere todas as versões do teste aqui; um APK de outra máquina obriga a desinstalar o app e apaga os cadastros do celular.
@@ -125,6 +133,7 @@ cd ../desktop
 go vet ./internal/... ./app/... ./cmd/...
 go test ./internal/... ./app/...
 (cd frontend && npm ci)                 # numa máquina nova
+(cd frontend && npm test)               # Vitest: tabelas (7)
 wails3 build GOOS=windows               # → bin/sitposse7-central.exe (no Windows: wails3 build)
 
 # Instalador NSIS (pelo WSL, com o makensis do Linux). Antes, coloque o WebView2 offline

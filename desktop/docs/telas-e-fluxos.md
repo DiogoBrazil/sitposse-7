@@ -4,11 +4,11 @@ Layout: barra lateral fixa + área de conteúdo; responsivo de 1366×768 a 4K; t
 
 | Menu | Conteúdo |
 |---|---|
-| **Painel** | Cartões (propriedades, pessoas, veículos, bovinos, equinos, aves, eletrodomésticos, móveis, área total em ha + "N sem área", com/sem GPS, com/sem fotos), gráficos por equipe e por tipo, alertas (conflitos, lotes com erro, último backup) |
-| **Propriedades** | Tabela filtrável → detalhes (dados, itens, fotos, coordenadas em texto, histórico e auditoria, "Localização" online) → editar |
+| **Painel** | Faixa de totais (famílias, pessoas, rebanho, aves, veículos, bens, território com "N sem área"), cobertura (localização, área, fotos), recepção, tabelas **por equipe** e **por família** com total geral, gráficos por família; depois (Etapa 3, A25): filtros do `FiltroEstudo`, gráficos por equipe e por tipo, alertas (conflitos, lotes com erro, último backup) |
+| **Propriedades** | Tabela filtrável → **página da propriedade** (faixa de totais; pessoas, rebanho e veículos em gráfico + tabela; bens e criações por categoria; área e localização em texto; fotos ampliáveis; registro e sincronização); depois: histórico e auditoria, "Localização" online, editar |
 | **Equipes / Operações** | Operação ativa, equipes, aparelhos pareados (revogar), última sincronização |
 | **Fotos** | Galeria filtrável por propriedade e equipe |
-| **Sincronização** | QR de pareamento, IPs e porta, diagnóstico de rede e firewall, recepção ao vivo, histórico de lotes, "Restaurar equipe" |
+| **Sincronização** | Passos e QR de pareamento (botão bloqueado enquanto gera), estado da recepção, histórico de lotes com recusas; IPs, porta, impressão digital e pasta ficam em **Informações técnicas** (modal no rodapé da barra lateral); depois: diagnóstico de rede e firewall, "Restaurar equipe" |
 | **Importar pacote** | Selecionar `.s7pkg` → validação → resultado → recibo (QR e arquivo) |
 | **Conflitos** | Fila; tela de três colunas (Base / Central / Android) |
 | **Estatísticas** | Barra de filtros (chips + "Limpar filtros"), cartões, tabela analítica (linhas e colunas escolhíveis), gráficos, drill-down. **Sempre offline** |
@@ -21,3 +21,54 @@ Layout: barra lateral fixa + área de conteúdo; responsivo de 1366×768 a 4K; t
 ## Estatísticas: `FiltroEstudo`
 Dimensões: operação · equipe(s) · identificação da área · propriedade · categoria e tipo de item (incluindo grupos de "Outros") · presença/ausência de tipo · faixas numéricas por categoria (p. ex. bovinos > 5) · tem GPS · tem foto · tem área · faixa de área (ha).
 O mesmo objeto alimenta cartões, tabelas, gráficos, lista, mapa e exportações (RN-81). Cada número tem drill-down para a lista de propriedades que o compõem.
+
+## Cruzamentos (lista derivada, A25)
+O prompt §18 não está no repositório. Até ele aparecer, esta lista é o critério de aceite da Fase 4 (fixture `shared/test-fixtures/estatisticas/`).
+
+**Totais:** sempre há o **geral**, **por equipe** e **por família** (cada propriedade é uma família).
+
+**Filtros combináveis (`FiltroEstudo`):**
+- operação, equipe(s), identificação da área;
+- período (cadastro no celular ou recebimento na Central);
+- tem GPS, tem foto, tem área, faixa de área (ha);
+- categoria e tipo de item, incluindo os grupos de "Outros" (aliases);
+- presença ou ausência de um tipo (ex.: sem geladeira);
+- faixa numérica por categoria (ex.: bovinos > 5).
+
+**Cruzamentos:**
+- pessoas por faixa etária × equipe;
+- rebanho (bovinos adultos, bezerros, equinos adultos, potros, aves) × equipe;
+- veículos por tipo × equipe;
+- itens (eletrodomésticos, móveis, aves, "Outros") × equipe;
+- área total e média × equipe, e distribuição por faixas de área;
+- cobertura de GPS, foto e área × equipe;
+- propriedades sem o item X; propriedades com N acima de um limite.
+
+Sempre: drill-down até o cadastro e só registros vigentes (RN-80..82).
+
+## Identidade visual (A25, ADR-0019)
+O assunto é um levantamento de campo da PM em linhas vicinais de Rondônia. As referências vêm desse mundo: verde da mata (marca), terra de laterita, azul dos rios e o amarelo do ipê. O ipê é o **único acento**: marca o item ativo do menu.
+
+- **Tokens** em `frontend/src/estilo.css`, com tema claro e escuro (o escuro segue o Windows):
+  - superfícies `--papel`, `--folha`, `--folha-2`; réguas `--regua` e `--regua-forte`;
+  - texto `--tinta`, `--tinta-2`, `--tinta-3`;
+  - marca `--mata`; barra lateral `--lateral`;
+  - estados `--ok`, `--alerta`, `--erro`.
+- **Tipografia:** Archivo variável, empacotada, uma família só.
+  - Títulos de página largos (`font-stretch` 112%), como placa de estrada.
+  - Números de destaque condensados (78%) e tabulares.
+  - Texto a 15 px.
+- **Elemento de destaque:** a **faixa de totais** (`FaixaTotais`), no estilo de caderneta de campo. São grupos separados por réguas verticais, com uma marca curta da cor do assunto. O resto é plano: blocos com borda, sem sombra.
+- **Tabelas** (`TabelaDados`):
+  - divisórias visíveis, cabeçalho fixo, ordenação acessível (`aria-sort`), paginação e linha de totais;
+  - linhas abertas com Enter;
+  - abaixo de 900 px de largura, as colunas secundárias saem; abaixo de 640 px, cada linha vira um bloco "rótulo: valor" (exceto em tabelas `compacta`).
+- **Gráficos** (`Grafico` + `graficos.ts`, ECharts):
+  - a cor segue o assunto em toda a Central: eletrodomésticos `--s1` (mata), pessoas `--s2` (rio), rebanho `--s3` (laterita), veículos `--s4` (açaí), móveis `--s5` (ipê), aves `--s6` (urucum);
+  - barras finas com ponta arredondada, valor na ponta na cor do texto, grade tracejada discreta, tooltip;
+  - um gráfico de uma série não tem legenda;
+  - **todo gráfico tem tabela ao lado** com os mesmos números.
+- **Paleta validada** com `validate_palette.js` (daltonismo e contraste):
+  - claro em `#ffffff`: `#2f7d4a, #2b6fc0, #d9692e, #7a4fa8, #d39200, #c94f86`. Pior par: ΔE 18,2 com daltonismo, 20,1 sem. O ipê fica abaixo de 3:1, então o valor vai sempre escrito na ponta da barra e na tabela.
+  - escuro em `#18201b`: `#3f9a5f, #4a8ad8, #d06a34, #9b7fd6, #b8860b, #d8669a`. Todos acima de 3:1.
+- **Modo de demonstração:** `npm run demo` sobe o frontend no navegador com dados fictícios (`src/demo`, só no modo `demo`) para revisar o visual sem o Windows.

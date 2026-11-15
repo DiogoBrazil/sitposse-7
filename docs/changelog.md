@@ -2,6 +2,22 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-14 (A25, Etapa 1) — novo visual da Central
+- **docs** · A25: Fase 4 antecipada inteira, com lista de cruzamentos derivada (`telas-e-fluxos.md` §Cruzamentos) e P5 resolvida. **ADR-0019:** tabelas próprias no lugar do PrimeVue, porque o PrimeVue 5 deixou de ser MIT e exige licença comercial para a PMRO.
+- **desktop** · Identidade visual nova (`telas-e-fluxos.md` §Identidade visual): tokens claro/escuro, fonte Archivo empacotada, barra lateral verde com a operação ativa, faixa de totais.
+  - Componentes `TabelaDados` (divisórias, ordenação, paginação, totais, layout empilhado), `Grafico`/`graficos.ts` (ECharts sob demanda, paleta validada), `FaixaTotais` e `InfoTecnica`.
+  - **Painel:** faixa de totais, cobertura, recepção, tabelas por equipe e por família com total geral, gráficos por família.
+  - **Propriedades:** tabela nova; o clique abre a **página da propriedade** (gráficos + tabelas de pessoas, rebanho, veículos, bens e criações; área, localização, fotos, registro).
+  - **Sincronização:** passos + QR, lotes em tabela, recusas em modal; dados técnicos movidos para o modal **Informações técnicas**. O botão "Gerar QR" fica bloqueado enquanto gera (14/11 saíram dois QRs em 1,5 s).
+  - **Equipes:** tabela nova.
+- **desktop** · **Dependências novas** (versões exatas, ADR-0019):
+  - `echarts` 6.1.0 (Apache‑2.0), `vue-echarts` 8.3.2 (MIT), `@fontsource-variable/archivo` 5.3.0 (OFL‑1.1);
+  - só para desenvolvimento: `vitest` 5.1.0 (MIT).
+
+  Nenhum recurso externo no build (conferido no `dist`). `npm audit`: 0 vulnerabilidades.
+- **desktop** · Testes: `tabela.test.ts` (7). Modo `npm run demo` com dados fictícios, fora do build de produção (conferido).
+- **desktop** · Central `0.2.0-mvp`, instalador `cc3e49b7…` (o anterior ficou como `…-installer-99706c25.exe`). Sem mudança de esquema, de protocolo nem de backend.
+
 ## 2026-11-14 (MVP) — correção: app fechava ao confirmar o pareamento
 - **mobile** · **Causa:** `ApiCentral.close()`/`ClienteCentral.fechar()` fechavam o socket TLS na thread que chamava (a principal, no fim do `api.use { }` do pareamento). O Android lança `NetworkOnMainThreadException`, e o OkHttp a repassa. Agora o fechamento roda na thread do OkHttp (`Conexoes.kt`, `liberarForaDaThreadAtual`). Detalhes e evidências: [`mobile/docs/incidentes/2026-11-14-crash-pareamento.md`](../mobile/docs/incidentes/2026-11-14-crash-pareamento.md).
 - **mobile** · Defesas: erro inesperado na sincronização vira mensagem na tela com referência (`sinc_erro_inesperado`), e o app não fecha; o lote fica `erro_recuperavel` com a causa. Registro local no logcat (`Sitposse7Sinc`), por tentativa, com as etapas e a duração, sem segredos.

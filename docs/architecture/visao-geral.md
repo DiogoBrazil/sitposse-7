@@ -39,7 +39,7 @@ Android "Campo"                                  Windows "Central"
 | HTTP Android | OkHttp + TrustManager com pinning SPKI; TLS 1.3/1.2 restrito | [0007](decisions/0007-tls-pinning-qr.md), [0014](decisions/0014-tls12-minimo-android8.md) |
 | Desktop | Go (estável atual) + Wails v3.1 + Vue 3 + TypeScript + Vite | [0003](decisions/0003-wails3-nucleo-go.md) |
 | SQLite Go | modernc.org/sqlite (Go puro, sem CGO) | [0004](decisions/0004-modernc-sqlite.md) |
-| UI Desktop | PrimeVue (tabelas), Apache ECharts (gráficos), Leaflet 1.9 (mapa), todos empacotados localmente | — |
+| UI Desktop | Tabelas próprias (ADR-0019), Apache ECharts (gráficos), Leaflet 1.9 (mapa), todos empacotados localmente | ADR-0019 |
 | PDF | Biblioteca Go mantida (escolha na Fase 5) | — |
 | Instalador | NSIS + WebView2 embutido + regra de firewall | — |
 
