@@ -15,6 +15,32 @@
   - `02752bb` feat(mobile): projeto Android, teste cruzado com a Central e spikes da Fase 0
 - Implementar só o que está no recorte da A24; o resto das Fases 1–3 segue no plano (AGENTS.md §2).
 
+### Central 0.8.0-mvp — cartas-imagem inteligentes (A30, ADR-0027, 15/11)
+**Implementado e commitado (E0–E6):**
+- imagens do INPE sem credenciais: CBERS-4A WPM 2 m (até 12 meses), Sentinel-2 L2A com SCL e mosaico trimestral; Copernicus só como reserva;
+- seleção automática por célula;
+- harmonização de cor;
+- mosaico sinalizado;
+- carta geral + setores (PDF multipágina, PNG por folha);
+- número fixo da propriedade no estudo (migração 0003);
+- pinos com tooltip, cartão e grupos.
+
+**Teste regional real (Ariquemes, 15/11):**
+- **Cenas usadas:** CBERS-4A de 13/10/2026 em 94–96% da área; Sentinel-2 nas células com nuvem estimada.
+- **Primeiro preparo:** 13 s e 24 MB (5 propriedades); 38 s e 89 MB (20 propriedades em 2 × 10 km, 4 setores).
+- Detalhes em `desktop/docs/cartografia.md`.
+
+**Build:** instalador `0.8.0-mvp` com SHA-256 `acc4daa8c36057fa29e86cda49ae8add32b42ff7dd8bbe20815742d648e2f62c`, em `Downloads\sitposse7-teste`; o 0.7.2 foi guardado com o sufixo `-481a3311`. Instalar por cima. A migração 0003 numera os cadastros existentes e não apaga nada.
+
+**Pendente (usuário, no Windows):** abrir Cartas-imagem com o estudo real e conferir:
+- o preparo automático;
+- o tooltip e o cartão;
+- a carta com setores (PDF e PNGs);
+- a reabertura sem internet;
+- as cores do CBERS. A calibração de cor (casamento de percentis, tom 0,92/1,08) pode precisar de ajuste fino com o olhar do usuário.
+
+O Campo não mudou.
+
 ### Ajustes de 15/11 testados pelo usuário (Campo 0.2.1-mvp e Central 0.7.x-mvp)
 O usuário testou no Windows e no moto g56 as entregas abaixo e tudo funcionou; foram revisadas e commitadas juntas (`feat(a29): …`).
 

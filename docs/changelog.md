@@ -2,6 +2,9 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-15 (A30, E6) — Central 0.8.0-mvp
+- **build** · Central `0.8.0-mvp`, instalador NSIS (WebView2 offline), SHA-256 `acc4daa8c36057fa29e86cda49ae8add32b42ff7dd8bbe20815742d648e2f62c`, em `Downloads\sitposse7-teste`; o 0.7.2 foi guardado com o sufixo `-481a3311`. Migração 0003 (numeração) aplicada ao abrir. Teste no Windows pendente.
+
 ## 2026-11-15 (A30, E4–E5) — cartas com setores e tela nova
 - **desktop** · `CartaService` refeito:
   - preparo assíncrono (`Preparar`/`Andamento`/`Cancelar`) com fases e contadores reais;
