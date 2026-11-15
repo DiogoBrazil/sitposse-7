@@ -31,7 +31,7 @@ data class GravacaoFoto(
 data class GravacaoPropriedade(
     val uuid: String?,
     val nome: String,
-    val responsavel: String?,
+    val responsavel: String,
     val quantidades: Map<String, Long>,
     val areaMilesimos: Long?,
     val areaUnidade: String?,
@@ -43,7 +43,20 @@ data class GravacaoPropriedade(
     val gpsSatelites: Long?,
     val itens: List<GravacaoItem>,
     val fotos: List<GravacaoFoto>,
+    /** Observações relevantes já normalizadas (null = vazio; RN-15). */
+    val observacoes: String? = null,
 )
+
+/** Resultado de informar um código de equipe (RN-07). */
+sealed interface InicioColeta {
+    val coleta: ColetaEntidade
+
+    /** Coleta nova, em andamento. */
+    data class Nova(override val coleta: ColetaEntidade) : InicioColeta
+
+    /** Já existe coleta com este código (em andamento ou concluída): nenhuma foi criada. */
+    data class Existente(override val coleta: ColetaEntidade) : InicioColeta
+}
 
 data class PropriedadeCompleta(val propriedade: PropriedadeEntidade, val itens: List<ItemEntidade>, val fotos: List<FotoEntidade>)
 
@@ -62,41 +75,99 @@ class RepositorioCampo(
 ) {
     private fun novoUuid() = Uuid.random().toString()
 
-    // ---------- equipe e instalação ----------
+    // ---------- instalação e coletas (RN-03, RN-05, RN-07, RN-08) ----------
 
-    fun observarEquipe(): Flow<EquipeEntidade?> = db.equipeDao().observar()
-
-    suspend fun equipe(): EquipeEntidade? = db.equipeDao().obter()
-
-    /** RN-01..03: cria a equipe e o UUID da instalação (aleatório; sem ID de hardware). */
-    suspend fun configurarEquipe(nome: String, responsavel: String, area: String?): EquipeEntidade = db.withWriteTransaction {
-        if (nome.isBlank() || responsavel.isBlank()) throw ErroGravacao("Nome da equipe e responsável são obrigatórios.")
-        if (db.equipeDao().obter() != null) throw ErroGravacao("A equipe já está configurada neste aparelho.")
-        val t = agora()
-        val e = EquipeEntidade(novoUuid(), nome.trim(), responsavel.trim(), area?.trim()?.ifEmpty { null }, t, t, rev = 1)
-        db.equipeDao().inserir(e)
-        if (db.metaDao().ler(META_INSTALACAO) == null) db.metaDao().gravar(Meta(META_INSTALACAO, novoUuid(), t, t))
-        e
-    }
-
-    /** RN-02: editar não muda o UUID. */
-    suspend fun editarEquipe(nome: String, responsavel: String, area: String?): EquipeEntidade = db.withWriteTransaction {
-        if (nome.isBlank() || responsavel.isBlank()) throw ErroGravacao("Nome da equipe e responsável são obrigatórios.")
-        val atual = db.equipeDao().obter() ?: throw ErroGravacao("Equipe não configurada.")
-        val nova = atual.copy(nome = nome.trim(), responsavel = responsavel.trim(), identificacaoArea = area?.trim()?.ifEmpty { null })
-        if (nova == atual) return@withWriteTransaction atual
-        val gravada = nova.copy(updatedAt = agora(), rev = atual.rev + 1)
-        db.equipeDao().atualizar(gravada)
-        gravada
+    /** UUID aleatório da instalação (criado na primeira vez; sem ID de hardware, RN-03). */
+    suspend fun garantirInstalacao(): String = db.withWriteTransaction {
+        db.metaDao().ler(META_INSTALACAO)?.valor ?: novoUuid().also {
+            val t = agora()
+            db.metaDao().gravar(Meta(META_INSTALACAO, it, t, t))
+        }
     }
 
     suspend fun instalacaoUuid(): String = db.metaDao().ler(META_INSTALACAO)?.valor ?: throw ErroGravacao("Instalação não configurada.")
 
+    fun observarColetas(): Flow<List<ColetaResumo>> = db.coletaDao().observarResumos()
+
+    fun observarColeta(uuid: String): Flow<ColetaEntidade?> = db.coletaDao().observar(uuid)
+
+    suspend fun coleta(uuid: String): ColetaEntidade? = db.coletaDao().obter(uuid)
+
+    suspend fun coletasEmAndamento(): List<ColetaEntidade> = db.coletaDao().emAndamento()
+
+    suspend fun historicoCodigos(coleta: String): List<ColetaCodigoEntidade> = db.coletaDao().historico(coleta)
+
+    /** Coleta escolhida nesta sessão de uso (a tela decide quando perguntar; RN-07). */
+    suspend fun coletaAtual(): String? = db.metaDao().ler(META_COLETA_ATUAL)?.valor?.ifEmpty { null }
+
+    suspend fun definirColetaAtual(uuid: String?) {
+        val t = agora()
+        db.metaDao().gravar(Meta(META_COLETA_ATUAL, uuid ?: "", t, t))
+    }
+
+    private fun conferirCodigo(codigo: String) {
+        if (!REGEX_CODIGO.matches(codigo)) throw ErroGravacao("Código de equipe inválido.")
+    }
+
+    /**
+     * Informar um código (já normalizado e com o dígito conferido pelo domínio): se já existe
+     * coleta com ele, devolve essa coleta (a tela oferece continuar ou reabrir), sem duplicar;
+     * senão cria uma coleta nova, em andamento.
+     */
+    suspend fun iniciarColeta(codigo: String): InicioColeta = db.withWriteTransaction {
+        conferirCodigo(codigo)
+        db.coletaDao().porCodigo(codigo).firstOrNull()?.let { return@withWriteTransaction InicioColeta.Existente(it) }
+        if (db.metaDao().ler(META_INSTALACAO) == null) db.metaDao().gravar(Meta(META_INSTALACAO, novoUuid(), agora(), agora()))
+        val t = agora()
+        val c = ColetaEntidade(novoUuid(), codigo, codigo, StatusColeta.EM_ANDAMENTO, iniciadaEm = t, createdAt = t, updatedAt = t, rev = 1)
+        db.coletaDao().inserir(c)
+        InicioColeta.Nova(c)
+    }
+
+    /** Concluir: a coleta deixa de aceitar cadastros novos (RN-07). Estado local, sem rev. */
+    suspend fun concluirColeta(uuid: String): ColetaEntidade = mudarStatus(uuid, StatusColeta.CONCLUIDA)
+
+    /** Reabrir uma coleta concluída por engano (RN-07). */
+    suspend fun reabrirColeta(uuid: String): ColetaEntidade = mudarStatus(uuid, StatusColeta.EM_ANDAMENTO)
+
+    private suspend fun mudarStatus(uuid: String, status: String): ColetaEntidade = db.withWriteTransaction {
+        val c = db.coletaDao().obter(uuid) ?: throw ErroGravacao("Coleta não encontrada.")
+        if (c.status == status) return@withWriteTransaction c
+        val t = agora()
+        val nova = c.copy(status = status, concluidaEm = if (status == StatusColeta.CONCLUIDA) t else null, updatedAt = t)
+        db.coletaDao().atualizar(nova)
+        nova
+    }
+
+    /**
+     * Corrige o código de uma coleta (RN-08): só sem destino confirmado e sem envio aberto.
+     * Um lote só preparado (nunca saiu do aparelho) é descartado; os demais exigem sincronizar
+     * antes, para reconciliar com a Central. Nenhum dado dos cadastros muda.
+     */
+    suspend fun corrigirCodigo(uuid: String, novoCodigo: String): ColetaEntidade = db.withWriteTransaction {
+        conferirCodigo(novoCodigo)
+        val c = db.coletaDao().obter(uuid) ?: throw ErroGravacao("Coleta não encontrada.")
+        if (c.destinoConfirmadoEm != null) throw ErroGravacao("Esta coleta já foi importada pela Central; o código não pode mais ser alterado.")
+        if (novoCodigo == c.codigoEquipe) return@withWriteTransaction c
+        val t = agora()
+        db.loteDao().abertoDa(uuid)?.let { l ->
+            if (l.status != StatusLote.PREPARADO) {
+                throw ErroGravacao("Há um envio desta coleta em andamento. Sincronize de novo para concluir ou cancelar o envio antes de corrigir o código.")
+            }
+            db.loteDao().mudarStatus(l.uuid, StatusLote.DESCARTADO, "Descartado ao corrigir o código da equipe.", t)
+        }
+        db.coletaDao().registrarCodigo(ColetaCodigoEntidade(novoUuid(), uuid, c.codigoEquipe, novoCodigo, t))
+        val nova = c.copy(codigoEquipe = novoCodigo, updatedAt = t, rev = c.rev + 1)
+        db.coletaDao().atualizar(nova)
+        nova
+    }
+
     // ---------- propriedades ----------
 
-    fun observarPropriedades(): Flow<List<PropriedadeResumo>> = db.propriedadeDao().observarVigentes()
+    /** Propriedades vigentes de uma coleta (null = de todas). */
+    fun observarPropriedades(coleta: String? = null): Flow<List<PropriedadeResumo>> = db.propriedadeDao().observarVigentes(coleta)
 
-    fun observarContagens(): Flow<Contagens> = db.loteDao().observarContagens()
+    fun observarContagens(coleta: String? = null): Flow<Contagens> = db.loteDao().observarContagens(coleta)
 
     fun observarUltimaConfirmacao(): Flow<Long?> = db.loteDao().observarUltimaConfirmacao()
 
@@ -107,23 +178,31 @@ class RepositorioCampo(
 
     /**
      * Grava o cadastro completo numa transação e apaga o rascunho correspondente.
-     * Devolve o UUID da propriedade. Só incrementa `rev` do que mudou.
+     * Cadastro novo exige [coletaUuid] em andamento (RN-07); um cadastro existente continua na
+     * coleta dele, mesmo concluída. Devolve o UUID da propriedade. Só incrementa `rev` do que mudou.
      */
-    suspend fun salvar(g: GravacaoPropriedade, rascunhoUuid: String? = null): String = db.withWriteTransaction {
+    suspend fun salvar(g: GravacaoPropriedade, coletaUuid: String, rascunhoUuid: String? = null): String = db.withWriteTransaction {
         if (g.nome.isBlank()) throw ErroGravacao("Informe o nome da propriedade.")
+        if (g.responsavel.isBlank()) throw ErroGravacao("Informe o nome do responsável pela propriedade.")
+        if (g.observacoes != null && (g.observacoes.isBlank() || g.observacoes.codePointCount(0, g.observacoes.length) > MAX_OBSERVACOES)) {
+            throw ErroGravacao("Observações relevantes com mais de $MAX_OBSERVACOES caracteres.")
+        }
         if ((g.areaMilesimos == null) != (g.areaUnidade == null)) throw ErroGravacao("Área e unidade devem vir juntas.")
         if ((g.lat == null) != (g.lon == null) || (g.lat == null) != (g.gpsOrigem == null)) throw ErroGravacao("Coordenada incompleta.")
         if (g.quantidades.values.any { it < 0 }) throw ErroGravacao("Quantidade negativa.")
-        val equipe = db.equipeDao().obter() ?: throw ErroGravacao("Configure a equipe antes de cadastrar.")
         val t = agora()
         val q = { campo: String -> g.quantidades[campo] ?: 0L }
 
         val existente = g.uuid?.let { db.propriedadeDao().obter(it) }
         if (g.uuid != null && (existente == null || existente.excluidoEm != null)) throw ErroGravacao("Cadastro não encontrado.")
+        if (existente == null) {
+            val coleta = db.coletaDao().obter(coletaUuid) ?: throw ErroGravacao("Informe o código da equipe antes de cadastrar.")
+            if (coleta.status != StatusColeta.EM_ANDAMENTO) throw ErroGravacao("Esta coleta foi concluída e não aceita cadastros novos. Reabra a coleta ou informe outro código.")
+        }
         val uuid = existente?.uuid ?: novoUuid()
-        val base = existente ?: PropriedadeEntidade(uuid = uuid, equipeUuid = equipe.uuid, nomePropriedade = "", responsavelFamilia = null, createdAt = t, updatedAt = t, rev = 0)
+        val base = existente ?: PropriedadeEntidade(uuid = uuid, coletaUuid = coletaUuid, nomePropriedade = "", responsavelFamilia = "", createdAt = t, updatedAt = t, rev = 0)
         val desejada = base.copy(
-            nomePropriedade = g.nome.trim(), responsavelFamilia = g.responsavel?.trim()?.ifEmpty { null },
+            nomePropriedade = g.nome.trim(), responsavelFamilia = g.responsavel.trim(), observacoesRelevantes = g.observacoes,
             pessoasAdultos = q("pessoas_adultos"), pessoasJovens = q("pessoas_jovens"), pessoasCriancas = q("pessoas_criancas"),
             veicCaminhoes = q("veic_caminhoes"), veicAutomoveisUtilitarios = q("veic_automoveis_utilitarios"), veicMotosCiclomotores = q("veic_motos_ciclomotores"),
             bovAdultos = q("bov_adultos"), bovBezerros = q("bov_bezerros"), equAdultos = q("equ_adultos"), equPotros = q("equ_potros"),
@@ -186,10 +265,12 @@ class RepositorioCampo(
 
     // ---------- rascunhos (nunca sincronizados nem contados) ----------
 
-    suspend fun gravarRascunho(uuid: String, propriedadeUuid: String?, json: String) =
-        db.rascunhoDao().gravar(RascunhoEntidade(uuid, propriedadeUuid, json, agora()))
+    suspend fun gravarRascunho(uuid: String, coletaUuid: String, propriedadeUuid: String?, json: String) =
+        db.rascunhoDao().gravar(RascunhoEntidade(uuid, coletaUuid, propriedadeUuid, json, agora()))
 
-    suspend fun rascunhos(): List<RascunhoEntidade> = db.rascunhoDao().todos()
+    /** Rascunhos de uma coleta (null = de todas). */
+    suspend fun rascunhos(coleta: String? = null): List<RascunhoEntidade> =
+        if (coleta == null) db.rascunhoDao().todos() else db.rascunhoDao().daColeta(coleta)
 
     suspend fun rascunho(uuid: String): RascunhoEntidade? = db.rascunhoDao().obter(uuid)
 
@@ -202,5 +283,10 @@ class RepositorioCampo(
 
     companion object {
         const val META_INSTALACAO = "instalacao_uuid"
+        const val META_COLETA_ATUAL = "coleta_atual"
+        const val MAX_OBSERVACOES = 4000
+
+        /** Formato normalizado do código de equipe (o dígito é conferido no domínio, `Codigos`). */
+        val REGEX_CODIGO = Regex("^EQ[0-9A-HJKMNP-TV-Z]{8}$")
     }
 }

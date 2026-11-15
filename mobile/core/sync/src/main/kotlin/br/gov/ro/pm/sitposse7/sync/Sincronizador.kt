@@ -2,7 +2,7 @@ package br.gov.ro.pm.sitposse7.sync
 
 import androidx.room3.withWriteTransaction
 import br.gov.ro.pm.sitposse7.dados.BancoCampo
-import br.gov.ro.pm.sitposse7.dados.EquipeEntidade
+import br.gov.ro.pm.sitposse7.dados.ColetaEntidade
 import br.gov.ro.pm.sitposse7.dados.FotoEntidade
 import br.gov.ro.pm.sitposse7.dados.ItemEntidade
 import br.gov.ro.pm.sitposse7.dados.LoteEnvioEntidade
@@ -14,6 +14,7 @@ import br.gov.ro.pm.sitposse7.dados.StatusLote
 import br.gov.ro.pm.sitposse7.dominio.PayloadQr
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
@@ -21,13 +22,19 @@ import java.io.File
 import java.io.RandomAccessFile
 import java.util.UUID
 import javax.net.SocketFactory
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
-/** Etapas mostradas na tela de sincronização (mobile/docs/telas-e-fluxos.md [6]). */
+/** Etapas mostradas na tela de sincronização (mobile/docs/telas-e-fluxos.md). */
 sealed interface Progresso {
     data object Conectando : Progresso
     data class EnviandoCadastros(val propriedades: Int) : Progresso
     data class EnviandoFotos(val feitas: Int, val total: Int, val bytesEnviados: Long) : Progresso
-    data object AguardandoImportacao : Progresso
+    data object ConferindoFotos : Progresso
+    /** A Central recebeu tudo; o operador precisa confirmar o destino no computador (ADR-0024). */
+    data object AguardandoConfirmacao : Progresso
 }
 
 /** Resultado de um envio confirmado (recibo gravado). */
@@ -37,14 +44,32 @@ data class ResumoEnvio(
     val aplicados: Int,
     val duplicados: Int,
     val conflitos: Int,
-    val rejeitados: List<ResultadoReciboV1>,
+    val rejeitados: List<ResultadoReciboV2>,
+    val destino: DestinoV2,
 )
 
+/** Desfecho do envio de uma coleta. */
+sealed interface ResultadoColeta {
+    val coleta: String
+
+    /** Recibo gravado: cadastros confirmados e destino da coleta registrado. */
+    data class Confirmado(override val coleta: String, val resumo: ResumoEnvio) : ResultadoColeta
+
+    /** O operador cancelou na Central; nada foi importado nem apagado (o envio pode ser refeito). */
+    data class Cancelado(override val coleta: String, val lote: String, val motivo: String?) : ResultadoColeta
+
+    /** A Central recebeu tudo e o operador ainda não decidiu (a tela foi fechada ou o tempo de espera acabou). */
+    data class Aguardando(override val coleta: String, val lote: String) : ResultadoColeta
+}
+
 /**
- * Envio de lotes à Central (protocolo.md §4–6), com as garantias do AGENTS.md §5:
- * - o lote é congelado em transação (JSON + lista de (entidade, uuid, rev)) e reenviado byte a byte;
+ * Envio das coletas à Central (protocolo.md §4–6, ADR-0024), com as garantias do AGENTS.md §5:
+ * - um lote por coleta, congelado em transação (JSON + lista de (entidade, uuid, rev)) e reenviado byte a byte;
  * - fotos em blocos de 1 MiB, retomando do offset que a Central informa;
- * - só é "confirmado" o que consta no recibo **persistido**, gravado numa transação;
+ * - depois das fotos, o lote espera o operador confirmar o destino; o estado é sempre perguntado à
+ *   Central (PUT idempotente e GET), nunca presumido;
+ * - só é "confirmado" o que consta no recibo **persistido**, gravado numa transação com o destino;
+ * - lote cancelado na Central é terminal: os registros continuam pendentes para um lote novo;
  * - edições feitas durante o envio geram rev maior e ficam para o próximo lote.
  */
 class Sincronizador(
@@ -55,24 +80,32 @@ class Sincronizador(
 ) {
     private val repo = RepositorioCampo(db, agora) { true }
 
-    /** Devolve o lote aberto (para retomar) ou congela um novo; null se não há nada pendente. */
-    suspend fun preparar(): LoteEnvioEntidade? = db.withWriteTransaction {
-        db.loteDao().aberto()?.let { return@withWriteTransaction it }
-        val equipe = db.equipeDao().obter() ?: throw FalhaCentral("equipe", "Configure a equipe antes de sincronizar.", fatal = true)
-        val props = db.propriedadeDao().pendentes()
-        val itens = db.itemDao().pendentes()
-        val fotos = db.fotoDao().pendentes()
-        if (props.isEmpty() && itens.isEmpty() && fotos.isEmpty() && equipe.rev <= equipe.revConfirmada) return@withWriteTransaction null
+    /** Coletas com algo a enviar, ou com lote aberto (a reconciliar), na ordem em que começaram. */
+    suspend fun coletasParaEnviar(): List<ColetaEntidade> {
+        val comLote = db.loteDao().abertos().map { it.coletaUuid }.toSet()
+        val pend = db.coletaDao().comPendencias()
+        val extras = comLote.filter { u -> pend.none { it.uuid == u } }.mapNotNull { db.coletaDao().obter(it) }
+        return (pend + extras).sortedWith(compareBy({ it.iniciadaEm }, { it.uuid }))
+    }
+
+    /** Devolve o lote aberto da coleta (para retomar) ou congela um novo; null se não há nada pendente. */
+    suspend fun preparar(coletaUuid: String): LoteEnvioEntidade? = db.withWriteTransaction {
+        db.loteDao().abertoDa(coletaUuid)?.let { return@withWriteTransaction it }
+        val coleta = db.coletaDao().obter(coletaUuid) ?: throw FalhaCentral("coleta", "Coleta não encontrada.", fatal = true)
+        val props = db.propriedadeDao().pendentesDa(coletaUuid)
+        val itens = db.itemDao().pendentesDa(coletaUuid)
+        val fotos = db.fotoDao().pendentesDa(coletaUuid)
+        if (props.isEmpty() && itens.isEmpty() && fotos.isEmpty() && coleta.rev <= coleta.revConfirmada) return@withWriteTransaction null
         val t = agora()
         val uuid = UUID.randomUUID().toString()
-        val lote = LoteV1(
-            loteUuid = uuid, instalacaoUuid = repo.instalacaoUuid(), criadoEm = instante(t),
-            equipe = equipe.v1(), propriedades = props.map { it.v1() }, itens = itens.map { it.v1() }, fotos = fotos.map { it.v1() },
+        val lote = LoteV2(
+            loteUuid = uuid, instalacaoUuid = repo.garantirInstalacao(), criadoEm = instante(t),
+            coleta = coleta.v2(), propriedades = props.map { it.v2() }, itens = itens.map { it.v2() }, fotos = fotos.map { it.v2() },
         )
-        val entidade = LoteEnvioEntidade(uuid, StatusLote.PREPARADO, "wifi", JsonContratos.encodeToString(LoteV1.serializer(), lote), t, t)
+        val entidade = LoteEnvioEntidade(uuid, coletaUuid, StatusLote.PREPARADO, "wifi", JsonContratos.encodeToString(LoteV2.serializer(), lote), t, t)
         db.loteDao().inserir(entidade)
         db.loteDao().inserirItens(
-            listOf(LoteItemEntidade(uuid, "equipe", equipe.uuid, equipe.rev)) +
+            listOf(LoteItemEntidade(uuid, "coleta", coleta.uuid, coleta.rev)) +
                 props.map { LoteItemEntidade(uuid, "propriedade", it.uuid, it.rev) } +
                 itens.map { LoteItemEntidade(uuid, "item", it.uuid, it.rev) } +
                 fotos.map { LoteItemEntidade(uuid, "foto", it.uuid, it.rev) }
@@ -81,36 +114,75 @@ class Sincronizador(
     }
 
     /**
-     * Envia o lote aberto (ou um novo) e grava o recibo. Devolve null se não havia nada a enviar.
+     * Envia a coleta (retomando o lote aberto, se houver) e acompanha a decisão do operador por
+     * até [espera], consultando a Central a cada [intervalo]. Devolve null se não havia nada a enviar.
      * Em falha, o lote fica em erro (recuperável ou fatal) e é retomado na próxima vez; nada se perde.
      */
-    suspend fun sincronizar(api: ApiCentral, progresso: (Progresso) -> Unit = {}): ResumoEnvio? {
-        val lote = preparar() ?: return null
-        db.loteDao().mudarStatus(lote.uuid, StatusLote.ENVIANDO, null, agora())
+    suspend fun sincronizarColeta(
+        api: ApiCentral,
+        coletaUuid: String,
+        progresso: (Progresso) -> Unit = {},
+        espera: Duration = 15.minutes,
+        intervalo: Duration = 2.seconds,
+    ): ResultadoColeta? {
+        val lote = preparar(coletaUuid) ?: return null
+        if (lote.status == StatusLote.PREPARADO || lote.status == StatusLote.ERRO_RECUPERAVEL || lote.status == StatusLote.ERRO_FATAL) {
+            db.loteDao().mudarStatus(lote.uuid, StatusLote.ENVIANDO, null, agora())
+        }
         try {
-            val payload = JsonContratos.decodeFromString(LoteV1.serializer(), lote.payloadJson)
+            val payload = JsonContratos.decodeFromString(LoteV2.serializer(), lote.payloadJson)
             progresso(Progresso.EnviandoCadastros(payload.propriedades.size))
-            var estado = io { api.enviarLote(lote.uuid, lote.payloadJson) }
-            var rodadas = 0
-            while (estado.recibo == null) {
-                if (++rodadas > 4) throw FalhaCentral("fotos", "A Central não conseguiu conferir as fotos. Tente de novo.", fatal = false)
-                enviarFotos(api, estado.fotosFaltantes, payload.fotos.associateBy { it.uuid }, progresso)
-                progresso(Progresso.AguardandoImportacao)
-                estado = when (val r = io { api.importar(lote.uuid) }) {
-                    is ApiCentral.ResultadoImportacao.Importado -> r.estado
-                    is ApiCentral.ResultadoImportacao.FaltamFotos -> r.estado
+            // PUT idempotente: também é a reconciliação (devolve o estado atual na Central).
+            var estado = try {
+                io { api.enviarLote(lote.uuid, lote.payloadJson) }
+            } catch (f: FalhaCentral) {
+                if (f.codigo != "lote_cancelado") throw f
+                io { api.estadoLote(lote.uuid) } ?: throw f
+            }
+            var rodadasFotos = 0
+            val limite = TimeSource.Monotonic.markNow() + espera
+            while (true) {
+                when (estado.status) {
+                    StatusCentralLote.IMPORTADO -> {
+                        val recibo = estado.recibo ?: throw FalhaCentral("recibo", "A Central não enviou o recibo. Tente de novo.", fatal = false)
+                        if (!recibo.confere(lote.uuid)) throw FalhaCentral("recibo", "O recibo da Central veio corrompido. Tente de novo.", fatal = false)
+                        val resumo = gravarRecibo(lote.uuid, coletaUuid, recibo)
+                        io { api.ack(lote.uuid) }
+                        return ResultadoColeta.Confirmado(coletaUuid, resumo)
+                    }
+                    StatusCentralLote.CANCELADO -> {
+                        db.loteDao().mudarStatus(lote.uuid, StatusLote.CANCELADO, mensagemCancelamento(estado.motivo), agora())
+                        return ResultadoColeta.Cancelado(coletaUuid, lote.uuid, estado.motivo)
+                    }
+                    StatusCentralLote.AGUARDANDO -> {
+                        db.loteDao().mudarStatus(lote.uuid, StatusLote.AGUARDANDO, null, agora())
+                        progresso(Progresso.AguardandoConfirmacao)
+                        if (limite.hasPassedNow()) return ResultadoColeta.Aguardando(coletaUuid, lote.uuid)
+                        delay(intervalo)
+                        estado = io { api.estadoLote(lote.uuid) }
+                            ?: throw FalhaCentral("lote", "A Central não encontrou este envio. Sincronize de novo.", fatal = false)
+                    }
+                    else -> { // recebendo: faltam fotos (ou a Central pediu de novo)
+                        if (++rodadasFotos > 4) throw FalhaCentral("fotos", "A Central não conseguiu conferir as fotos. Tente de novo.", fatal = false)
+                        db.loteDao().mudarStatus(lote.uuid, StatusLote.ENVIANDO, null, agora())
+                        enviarFotos(api, estado.fotosFaltantes, payload.fotos.associateBy { it.uuid }, progresso)
+                        progresso(Progresso.ConferindoFotos)
+                        estado = when (val r = io { api.importar(lote.uuid) }) {
+                            is ApiCentral.ResultadoImportacao.Recebido -> r.estado
+                            is ApiCentral.ResultadoImportacao.FaltamFotos -> r.estado
+                        }
+                    }
                 }
             }
-            val recibo = estado.recibo!!
-            if (!recibo.confere(lote.uuid)) throw FalhaCentral("recibo", "O recibo da Central veio corrompido. Tente de novo.", fatal = false)
-            val resumo = gravarRecibo(lote.uuid, recibo)
-            io { api.ack(lote.uuid) }
-            return resumo
         } catch (f: FalhaCentral) {
+            if (f.codigo == "lote_cancelado") {
+                db.loteDao().mudarStatus(lote.uuid, StatusLote.CANCELADO, mensagemCancelamento(null), agora())
+                return ResultadoColeta.Cancelado(coletaUuid, lote.uuid, null)
+            }
             db.loteDao().mudarStatus(lote.uuid, if (f.fatal) StatusLote.ERRO_FATAL else StatusLote.ERRO_RECUPERAVEL, f.message, agora())
             throw f
         } catch (c: CancellationException) {
-            throw c // o lote fica "enviando" e é retomado na próxima vez
+            throw c // o lote fica como está ("enviando" ou "aguardando") e é reconciliado na próxima vez
         } catch (e: Exception) {
             // Falha não prevista: o lote continua aberto para nova tentativa, com a causa registrada.
             runCatching { db.loteDao().mudarStatus(lote.uuid, StatusLote.ERRO_RECUPERAVEL, "Erro inesperado: ${e::class.java.simpleName}", agora()) }
@@ -118,7 +190,12 @@ class Sincronizador(
         }
     }
 
-    private suspend fun enviarFotos(api: ApiCentral, faltantes: List<FotoFaltanteV1>, fotos: Map<String, FotoV1>, progresso: (Progresso) -> Unit) {
+    private fun mensagemCancelamento(motivo: String?) = when (motivo) {
+        "codigo_inexistente" -> "A Central não encontrou o código da equipe. Corrija o código e sincronize de novo."
+        else -> "O envio foi cancelado no computador da Central. Confira o código da equipe e sincronize de novo."
+    }
+
+    private suspend fun enviarFotos(api: ApiCentral, faltantes: List<FotoFaltanteV2>, fotos: Map<String, FotoV2>, progresso: (Progresso) -> Unit) {
         var enviados = 0L
         faltantes.forEachIndexed { i, falt ->
             progresso(Progresso.EnviandoFotos(i, faltantes.size, enviados))
@@ -157,10 +234,12 @@ class Sincronizador(
         return enviados
     }
 
-    /** Grava o recibo e confirma as revs numa única transação (RN-74). */
-    private suspend fun gravarRecibo(lote: String, recibo: ReciboV1): ResumoEnvio = db.withWriteTransaction {
-        val json = JsonContratos.encodeToString(ReciboV1.serializer(), recibo)
-        db.loteDao().confirmar(lote, json, agora())
+    /** Grava o recibo, confirma as revs e registra o destino da coleta numa única transação (RN-74, RN-09). */
+    private suspend fun gravarRecibo(lote: String, coleta: String, recibo: ReciboV2): ResumoEnvio = db.withWriteTransaction {
+        val json = JsonContratos.encodeToString(ReciboV2.serializer(), recibo)
+        val t = agora()
+        db.loteDao().confirmar(lote, json, t)
+        db.coletaDao().gravarDestino(coleta, JsonContratos.encodeToString(DestinoV2.serializer(), recibo.destino), t)
         val itens = db.loteDao().itens(lote).associateBy { it.entidade to it.entidadeUuid }
         var props = 0
         for (r in recibo.resultados) {
@@ -169,14 +248,14 @@ class Sincronizador(
             if (r.resultado == "rejeitado") continue // continua pendente e aparece como erro
             val rev = minOf(r.rev, item.rev)
             when (r.entidade) {
-                "equipe" -> db.equipeDao().confirmar(r.uuid, rev)
+                "coleta" -> db.coletaDao().confirmar(r.uuid, rev)
                 "propriedade" -> { db.propriedadeDao().confirmar(r.uuid, rev); props++ }
                 "item" -> db.itemDao().confirmar(r.uuid, rev)
                 "foto" -> db.fotoDao().confirmar(r.uuid, rev)
             }
         }
         val por = recibo.resultados.groupBy { it.resultado }
-        ResumoEnvio(lote, props, por["aplicado"].orEmpty().size, por["duplicado"].orEmpty().size, por["conflito"].orEmpty().size, por["rejeitado"].orEmpty())
+        ResumoEnvio(lote, props, por["aplicado"].orEmpty().size, por["duplicado"].orEmpty().size, por["conflito"].orEmpty().size, por["rejeitado"].orEmpty(), recibo.destino)
     }
 
     private suspend fun <T> io(bloco: () -> T): T = withContext(Dispatchers.IO) { bloco() }
@@ -197,17 +276,16 @@ class Pareador(private val db: BancoCampo, private val agora: () -> Long) {
     suspend fun parear(qr: PayloadQr, rotulo: String?, socketFactory: SocketFactory? = null): PareamentoEntidade {
         val token = qr.tokenPareamento
             ?: throw FalhaCentral("qr", "Este QR não é de pareamento. Na Central, abra Sincronização → Parear aparelho.", fatal = true)
-        val equipe = repo.equipe() ?: throw FalhaCentral("equipe", "Configure a equipe antes de parear.", fatal = true)
-        val instalacao = repo.instalacaoUuid()
+        val instalacao = repo.garantirInstalacao()
         val (ip, api) = withContext(Dispatchers.IO) { encontrarCentral(qr.spkiSha256, qr.ips, qr.porta, socketFactory) }
         val resp = api.use {
-            withContext(Dispatchers.IO) { it.parear(PedidoPareamentoV1(token = token, instalacaoUuid = instalacao, rotuloAparelho = rotulo, equipe = equipe.v1())) }
+            withContext(Dispatchers.IO) { it.parear(PedidoPareamentoV2(token = token, instalacaoUuid = instalacao, rotuloAparelho = rotulo)) }
         }
         if (resp.centralId != qr.centralId) throw FalhaCentral("central", "A Central respondeu com outra identificação.", fatal = true)
         val p = PareamentoEntidade(
             centralId = resp.centralId, spkiSha256 = qr.spkiSha256,
             ipsJson = JsonContratos.encodeToString(ListSerializer(String.serializer()), listOf(ip) + qr.ips.filter { it != ip }),
-            porta = qr.porta.toLong(), credencial = resp.credencial, operacaoUuid = resp.operacao.uuid, operacaoNome = resp.operacao.nome, pareadoEm = agora(),
+            porta = qr.porta.toLong(), credencial = resp.credencial, pareadoEm = agora(),
         )
         db.withWriteTransaction {
             db.pareamentoDao().limpar()
@@ -246,16 +324,16 @@ internal fun encontrarCentral(pin: String, ips: List<String>, porta: Int, socket
 
 // ---------- entidades → contratos ----------
 
-internal fun EquipeEntidade.v1() = EquipeV1(uuid, nome, responsavel, identificacaoArea, instante(createdAt), instante(updatedAt), rev)
+internal fun ColetaEntidade.v2() = ColetaV2(uuid, codigoEquipe, codigoOriginal, instante(createdAt), instante(updatedAt), rev)
 
-internal fun PropriedadeEntidade.v1() = PropriedadeV1(
-    uuid, equipeUuid, nomePropriedade, responsavelFamilia,
+internal fun PropriedadeEntidade.v2() = PropriedadeV2(
+    uuid, coletaUuid, nomePropriedade, responsavelFamilia, observacoesRelevantes,
     pessoasAdultos, pessoasJovens, pessoasCriancas, veicCaminhoes, veicAutomoveisUtilitarios, veicMotosCiclomotores,
     bovAdultos, bovBezerros, equAdultos, equPotros, areaValorMilesimos, areaUnidade,
     lat, lon, gpsOrigem, gpsPrecisaoM, instanteOuNulo(gpsCapturadoEm), gpsSatelites,
     instante(createdAt), instante(updatedAt), rev, instanteOuNulo(excluidoEm),
 )
 
-internal fun ItemEntidade.v1() = ItemV1(uuid, propriedadeUuid, categoria, codigoCatalogo, nomePersonalizado, quantidade, instante(createdAt), instante(updatedAt), rev, instanteOuNulo(excluidoEm))
+internal fun ItemEntidade.v2() = ItemV2(uuid, propriedadeUuid, categoria, codigoCatalogo, nomePersonalizado, quantidade, instante(createdAt), instante(updatedAt), rev, instanteOuNulo(excluidoEm))
 
-internal fun FotoEntidade.v1() = FotoV1(uuid, propriedadeUuid, mime, tamanhoBytes, sha256, largura, altura, instante(capturadaEm), instante(createdAt), instante(updatedAt), rev, instanteOuNulo(excluidoEm))
+internal fun FotoEntidade.v2() = FotoV2(uuid, propriedadeUuid, mime, tamanhoBytes, sha256, largura, altura, instante(capturadaEm), instante(createdAt), instante(updatedAt), rev, instanteOuNulo(excluidoEm))

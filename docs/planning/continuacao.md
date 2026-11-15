@@ -56,11 +56,11 @@ A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-d
 
 **Estudos, jornadas, equipes e coletas (A28, aprovado em 15/11):** plano completo em ADR-0023/0024/0025 e na fase "Estudos e coletas" do [plano.md](plano.md). Etapas (marque ao concluir):
 - [x] **E0** decisões e documentação (15/11).
-- [x] **E1** (15/11) Central, núcleo: migração 0002 reescrita + guarda, códigos, estudos/jornadas/equipes, pareamento sem equipe, importação com `aguardando_confirmacao`/decisão/destino travado, recibo v2, estatísticas/relatórios/cartas por estudo, `central-teste` com comandos de decisão. Contratos v2 (`shared/schemas/*.v2`, fixtures). **Os testes cruzados do Android (`:core:sync`) ficam vermelhos entre a E1 e a E4**, porque a Central passa a falar só v2.
+- [x] **E1** (15/11) Central, núcleo: migração 0002 reescrita + guarda, códigos, estudos/jornadas/equipes, pareamento sem equipe, importação com `aguardando_confirmacao`/decisão/destino travado, recibo v2, estatísticas/relatórios/cartas por estudo, `central-teste` com comandos de decisão. Contratos v2 (`shared/schemas/*.v2`, fixtures). Os testes cruzados do Android voltaram a passar na E4.
 - [ ] **E2** Central, telas: Estudos, estudo em foco, modal de destino, filtros por jornada/equipe.
-- [ ] **E3** Android, dados: Room v3 + guarda, coletas, códigos, responsável obrigatório, observações.
-- [ ] **E4** Android, sincronização v2 por coleta.
-- [ ] **E5** Android, telas: código da equipe, coletas, formulário em 7 etapas com revisão.
+- [x] **E3** (15/11) Android, dados: Room v3 + guarda, coletas, códigos, responsável obrigatório, observações.
+- [x] **E4** (15/11) Android, sincronização v2 por coleta: `:core:sync` com todos os testes cruzados verdes contra a Central Go.
+- [x] **E5** (15/11; falta testar no aparelho) Android, telas: código da equipe, coletas, formulário em 7 etapas com revisão.
 - [ ] **E6** builds, reinício controlado dos bancos (com confirmação do usuário na hora) e bancada.
 
 Revisão visual sem o Windows: `cd desktop/frontend && npm run demo` (dados fictícios) e capturas pelo navegador.

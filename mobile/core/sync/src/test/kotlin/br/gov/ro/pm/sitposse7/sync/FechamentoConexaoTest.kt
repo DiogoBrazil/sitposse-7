@@ -16,7 +16,9 @@ import javax.net.SocketFactory
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.test.assertTrue
 
 /**
@@ -42,13 +44,13 @@ class FechamentoConexaoTest {
         dir.deleteRecursively()
     }
 
-    private fun qr() = PayloadQr(1, central.centralId, listOf("127.0.0.1"), central.porta, central.pin, central.token, null, null)
+    private fun qr() = PayloadQr(2, central.centralId, listOf("127.0.0.1"), central.porta, central.pin, central.token)
 
     @Test
     fun parearEEnviarFechandoNaThreadPrincipalNaoDerrubaOApp() = runBlocking<Unit> {
         val fabrica = FabricaThreadPrincipal(Thread.currentThread())
-        repo.configurarEquipe("Equipe Linha 25", "Sgt. Teste", "Linha 25")
-        repo.salvar(GravacaoPropriedade(null, "Sítio Boa Esperança", "Responsável", mapOf("bov_adultos" to 3L), null, null, null, null, null, null, null, null, emptyList(), emptyList()))
+        val coleta = repo.iniciarColeta(central.alfa.codigo).coleta.uuid
+        repo.salvar(GravacaoPropriedade(null, "Sítio Boa Esperança", "Responsável", mapOf("bov_adultos" to 3L), null, null, null, null, null, null, null, null, emptyList(), emptyList()), coleta)
 
         // Antes da correção: o close() do api.use { } dentro de parear() fechava o socket aqui e lançava.
         val p = Pareador(db, agora).parear(qr(), "aparelho de teste", fabrica)
@@ -57,8 +59,8 @@ class FechamentoConexaoTest {
 
         // O mesmo vale para o envio (api.use { } no SincronizarViewModel).
         val api = Pareador(db, agora).conectar(fabrica)
-        val r = api.use { Sincronizador(db, agora) { error("sem fotos") }.sincronizar(it) }
-        assertEquals(1, assertNotNull(r).propriedadesConfirmadas)
+        val r = api.use { Sincronizador(db, agora) { error("sem fotos") }.sincronizarColeta(it, coleta, intervalo = 50.milliseconds) }
+        assertEquals(1, assertIs<ResultadoColeta.Confirmado>(r).resumo.propriedadesConfirmadas)
 
         assertTrue(fabrica.fechadosForaDaPrincipal.await(10, TimeUnit.SECONDS), "as conexões são fechadas fora da thread que chamou close()")
         assertEquals(0, fabrica.fechadosNaPrincipal, "nenhum socket fechado na thread principal")

@@ -13,9 +13,12 @@ import br.gov.ro.pm.sitposse7.dominio.LeitorQr
 import br.gov.ro.pm.sitposse7.dominio.LeituraQr
 import br.gov.ro.pm.sitposse7.dominio.PayloadQr
 import br.gov.ro.pm.sitposse7.sync.FalhaCentral
+import br.gov.ro.pm.sitposse7.dados.ColetaEntidade
+import br.gov.ro.pm.sitposse7.dominio.Codigos
 import br.gov.ro.pm.sitposse7.sync.Progresso
-import br.gov.ro.pm.sitposse7.sync.ResumoEnvio
+import br.gov.ro.pm.sitposse7.sync.ResultadoColeta
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -27,8 +30,10 @@ sealed interface EtapaSinc {
     data object ProcurandoRede : EtapaSinc
     /** O pedido foi enviado; a Central espera o operador confirmar. */
     data object AguardandoOperador : EtapaSinc
-    data class Enviando(val progresso: Progresso) : EtapaSinc
-    data class Concluido(val resumo: ResumoEnvio?) : EtapaSinc
+    /** Enviando a coleta [codigo] ([indice] de [total]). */
+    data class Enviando(val codigo: String, val indice: Int, val total: Int, val progresso: Progresso) : EtapaSinc
+    /** Desfecho de cada coleta enviada (vazio = nada pendente). */
+    data class Concluido(val resultados: List<Pair<String, ResultadoColeta>>) : EtapaSinc
     data class Erro(val mensagem: String, val ofereceQr: Boolean) : EtapaSinc
 }
 
@@ -58,12 +63,36 @@ private class Tentativa(val tipo: String) {
     }
 }
 
-/** [6] Sincronizar: pareamento pelo QR e envio com recibo (RF-A11). Tudo iniciado pela pessoa, em primeiro plano. */
+/**
+ * [6] Sincronizar: pareamento pelo QR e envio das coletas com recibo (RF-A11, ADR-0024). Cada
+ * coleta vai num lote e espera o operador confirmar o destino na Central. Tudo iniciado pela
+ * pessoa, em primeiro plano.
+ */
 class SincronizarViewModel(app: Application) : AndroidViewModel(app) {
     private val campo = app as CampoApp
     private val _etapa = MutableStateFlow<EtapaSinc>(EtapaSinc.Ocioso)
     val etapa: StateFlow<EtapaSinc> = _etapa
     val pareamento = campo.banco.pareamentoDao().observar()
+    val coletas = campo.repo.observarColetas()
+    private val _paraEnviar = MutableStateFlow<List<ColetaEntidade>>(emptyList())
+    /** Coletas com algo a enviar ou com envio em aberto (para a pessoa escolher). */
+    val paraEnviar: StateFlow<List<ColetaEntidade>> = _paraEnviar
+    private val _selecionadas = MutableStateFlow<Set<String>?>(null)
+    /** null = todas as coletas a enviar. */
+    val selecionadas: StateFlow<Set<String>?> = _selecionadas
+    private var trabalho: Job? = null
+
+    init { atualizarLista() }
+
+    fun atualizarLista() = viewModelScope.launch { _paraEnviar.value = campo.sincronizador.coletasParaEnviar() }
+
+    fun alternar(coleta: String) {
+        val atual = _selecionadas.value ?: _paraEnviar.value.map { it.uuid }.toSet()
+        _selecionadas.value = if (coleta in atual) atual - coleta else atual + coleta
+    }
+
+    /** Para de esperar o operador: o lote fica "aguardando" e é reconciliado na próxima vez. */
+    fun pararDeEsperar() { trabalho?.cancel() }
 
     private fun texto(id: Int, vararg args: Any) = getApplication<Application>().getString(id, *args)
 
@@ -89,7 +118,7 @@ class SincronizarViewModel(app: Application) : AndroidViewModel(app) {
     private fun tentar(tipo: String, bloco: suspend (RedeWifi, Tentativa) -> Unit) {
         _etapa.value = EtapaSinc.ProcurandoRede
         val t = Tentativa(tipo)
-        viewModelScope.launch {
+        trabalho = viewModelScope.launch {
             try {
                 val rede = RedeWifi.obter(getApplication())
                 if (rede == null) {
@@ -101,6 +130,8 @@ class SincronizarViewModel(app: Application) : AndroidViewModel(app) {
                 rede.use { bloco(it, t) }
             } catch (c: CancellationException) {
                 t.etapa("cancelada")
+                _etapa.value = EtapaSinc.Ocioso
+                atualizarLista()
                 throw c
             } catch (f: FalhaCentral) {
                 t.falha(f)
@@ -123,16 +154,26 @@ class SincronizarViewModel(app: Application) : AndroidViewModel(app) {
     fun sincronizar() = tentar("envio") { rede, t -> enviarCom(rede, t) }
 
     private suspend fun enviarCom(rede: RedeWifi, t: Tentativa) {
-        _etapa.value = EtapaSinc.Enviando(Progresso.Conectando)
+        val todas = campo.sincronizador.coletasParaEnviar()
+        val escolha = _selecionadas.value
+        val coletas = if (escolha == null) todas else todas.filter { it.uuid in escolha }
+        _etapa.value = EtapaSinc.Enviando("", 0, coletas.size, Progresso.Conectando)
+        val resultados = mutableListOf<Pair<String, ResultadoColeta>>()
         campo.pareador.conectar(rede.network.socketFactory).use { api ->
-            t.etapa("conectado à Central")
-            val r = campo.sincronizador.sincronizar(api) { p ->
-                t.etapa("progresso: ${p::class.java.simpleName}")
-                _etapa.value = EtapaSinc.Enviando(p)
+            t.etapa("conectado à Central; ${coletas.size} coleta(s)")
+            coletas.forEachIndexed { i, c ->
+                val codigo = Codigos.exibir(c.codigoEquipe)
+                val r = campo.sincronizador.sincronizarColeta(api, c.uuid, { p ->
+                    t.etapa("coleta ${i + 1}: ${p::class.java.simpleName}")
+                    _etapa.value = EtapaSinc.Enviando(codigo, i + 1, coletas.size, p)
+                })
+                t.etapa("coleta ${i + 1}: ${r?.let { it::class.java.simpleName } ?: "nada pendente"}")
+                if (r != null) resultados += codigo to r
             }
-            t.etapa(if (r == null) "nada pendente" else "recibo gravado: ${r.propriedadesConfirmadas} propriedade(s), ${r.conflitos} conflito(s), ${r.rejeitados.size} rejeitado(s)")
-            _etapa.value = EtapaSinc.Concluido(r)
         }
+        _selecionadas.value = null
+        atualizarLista()
+        _etapa.value = EtapaSinc.Concluido(resultados)
     }
 
     companion object {

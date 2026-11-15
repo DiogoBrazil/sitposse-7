@@ -61,6 +61,8 @@ data class CadastroPropriedade(
     val coordenada: Coordenada? = null,
     val itens: List<ItemCadastro> = emptyList(),
     val fotos: List<FotoCadastro> = emptyList(),
+    /** Observações relevantes (RN-15): texto livre opcional, multilinha. */
+    val observacoes: String = "",
 ) {
     fun quantidade(q: Quantitativo): Long = quantidades[q.campo] ?: 0
 }
@@ -75,8 +77,15 @@ fun textoArea(milesimos: Long): String {
     return if (frac.isEmpty()) inteira.toString() else "$inteira,$frac"
 }
 
+/** Conta caracteres Unicode (code points), como a Central e o JSON Schema (maxLength). */
+fun contarCaracteres(s: String): Int = s.codePointCount(0, s.length)
+
+/** Observação como vai para o banco: quebras de linha uniformes; só espaços → null (RN-15). */
+fun observacaoParaGravar(s: String): String? = s.replace("\r\n", "\n").replace('\r', '\n').takeUnless { it.isBlank() }
+
 object ValidacaoCadastro {
     const val MAX_TEXTO = 200
+    const val MAX_OBSERVACOES = 4000
     const val MAX_QUANTIDADE = 1_000_000L
     const val META_PRECISAO_M = 15.0
 
@@ -85,7 +94,9 @@ object ValidacaoCadastro {
         val erros = mutableListOf<ErroCampo>()
         if (c.nome.isBlank()) erros += ErroCampo("nome", "Informe o nome da propriedade.")
         if (c.nome.length > MAX_TEXTO) erros += ErroCampo("nome", "Use no máximo $MAX_TEXTO caracteres.")
+        if (c.responsavel.isBlank()) erros += ErroCampo("responsavel", "Informe o nome do responsável pela propriedade.") // RN-11 (A28)
         if (c.responsavel.length > MAX_TEXTO) erros += ErroCampo("responsavel", "Use no máximo $MAX_TEXTO caracteres.")
+        if (contarCaracteres(c.observacoes) > MAX_OBSERVACOES) erros += ErroCampo("observacoes", "Use no máximo $MAX_OBSERVACOES caracteres.") // RN-15
         Quantitativo.entries.forEach { q ->
             val v = c.quantidade(q)
             if (v < 0 || v > MAX_QUANTIDADE) erros += ErroCampo(q.campo, "Quantidade inválida.")

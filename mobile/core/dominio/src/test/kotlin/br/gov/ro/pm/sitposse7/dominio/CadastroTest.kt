@@ -25,19 +25,31 @@ class CadastroTest {
         }
     }
 
-    private val valido = CadastroPropriedade(nome = "Sítio Boa Esperança", areaTexto = "12,5", areaUnidade = "alq_paulista",
+    private val valido = CadastroPropriedade(nome = "Sítio Boa Esperança", responsavel = "José da Silva", areaTexto = "12,5", areaUnidade = "alq_paulista",
         itens = listOf(ItemCadastro(codigo = "eletro.geladeira"), ItemCadastro(codigo = "ave.outros", nomePersonalizado = "Codorna", quantidade = 40)))
 
     @Test
-    fun cadastroValidoSoComNome() {
-        assertEquals(emptyList(), ValidacaoCadastro.validar(CadastroPropriedade(nome = "Só o nome")))
+    fun cadastroValidoSoComNomeEResponsavel() { // RN-11 (A28)
+        assertEquals(emptyList(), ValidacaoCadastro.validar(CadastroPropriedade(nome = "Só o nome", responsavel = "E o responsável")))
+        assertEquals(setOf("responsavel"), ValidacaoCadastro.validar(CadastroPropriedade(nome = "Só o nome")).map { it.campo }.toSet())
         assertEquals(emptyList(), ValidacaoCadastro.validar(valido))
+    }
+
+    @Test
+    fun observacoesRelevantes() { // RN-15
+        assertEquals(emptyList(), ValidacaoCadastro.validar(valido.copy(observacoes = "ç".repeat(4000))))
+        assertEquals(setOf("observacoes"), ValidacaoCadastro.validar(valido.copy(observacoes = "a".repeat(4001))).map { it.campo }.toSet())
+        // Emoji conta como 1 caractere (code point), como na Central.
+        assertEquals(emptyList(), ValidacaoCadastro.validar(valido.copy(observacoes = "🐄".repeat(4000))))
+        assertEquals(null, observacaoParaGravar(" \n "))
+        assertEquals("Linha 1\nLinha 2", observacaoParaGravar("Linha 1\r\nLinha 2"))
     }
 
     @Test
     fun regrasDoFormulario() {
         fun campos(c: CadastroPropriedade) = ValidacaoCadastro.validar(c).map { it.campo }.toSet()
         assertEquals(setOf("nome"), campos(valido.copy(nome = "   "))) // RN-11
+        assertEquals(setOf("responsavel"), campos(valido.copy(responsavel = " "))) // RN-11 (A28)
         assertEquals(setOf("area"), campos(valido.copy(areaUnidade = null))) // RN-42
         assertEquals(setOf("bov_adultos"), campos(valido.copy(quantidades = mapOf("bov_adultos" to -1)))) // RN-24
         assertEquals(setOf("item.1"), campos(valido.copy(itens = listOf(ItemCadastro(codigo = "movel.sofa"), ItemCadastro(codigo = "movel.sofa"))))) // RN-32

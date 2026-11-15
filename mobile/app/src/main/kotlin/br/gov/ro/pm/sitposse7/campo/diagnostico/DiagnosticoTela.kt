@@ -144,8 +144,6 @@ private fun Conexao(c: EstadoConexao) {
         is EstadoConexao.Resultado -> when (val r = c.resultado) {
             is ResultadoStatus.Conectado -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(stringResource(R.string.diag_conectado, c.ip, r.versaoTls, c.ms), color = Color(0xFF1B5E20))
-                Text(r.status.operacao?.let { stringResource(R.string.diag_conectado_operacao, it.nome) }
-                    ?: stringResource(R.string.diag_conectado_sem_operacao))
                 Text(stringResource(R.string.diag_conectado_horario, r.status.horario))
                 if (!r.compativel) Text(stringResource(R.string.diag_incompativel), color = MaterialTheme.colorScheme.error)
             }

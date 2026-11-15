@@ -8,34 +8,54 @@ import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
-/** Migrações não destrutivas testadas a partir de cada versão publicada (mobile/AGENTS.md). */
+/**
+ * Esquema v3 (linha de base da A28, ADR-0025) e guarda contra bancos do MVP (v1/v2).
+ * As migrações a partir da v3 entram aqui com MigrationTestHelper (mobile/AGENTS.md).
+ */
 class MigracaoTest {
     private val schemas = File(checkNotNull(System.getProperty("sitposse7.schemas")) { "propriedade sitposse7.schemas ausente" }).toPath()
 
     @Test
-    fun migra1Para2PreservandoDadosEValidandoOEsquema() = runBlocking<Unit> {
-        val dir = Files.createTempDirectory("migracao").toFile()
+    fun bancoNovoCriaOEsquemaV3Validado() = runBlocking<Unit> {
+        val dir = Files.createTempDirectory("esquema").toFile()
         val arquivo = dir.resolve(BancoCampo.NOME_ARQUIVO)
         try {
             val helper = MigrationTestHelper(schemas, arquivo.toPath(), BundledSQLiteDriver(), BancoCampo::class, { BancoCampoConstrutor.initialize() }, emptyList())
-            helper.createDatabase(1).apply {
-                execSQL("INSERT INTO meta (chave, valor, created_at, updated_at) VALUES ('instalacao_uuid', 'a1b2c3d4-0000-4000-8000-000000000001', 1, 1)")
-                close()
-            }
-            // Valida o esquema resultante contra schemas/2.json (falha se a migração divergir do Room).
-            helper.runMigrationsAndValidate(2, MIGRACOES.toList()).close()
-
-            // O banco migrado abre pelo caminho normal do app e mantém os dados.
+            // Cria a v3 a partir do esquema exportado e valida que bate com o que o Room espera.
+            helper.createDatabase(3).close()
+            helper.runMigrationsAndValidate(3, MIGRACOES.toList()).close()
             val db = abrirBancoJvm(arquivo)
             try {
-                assertEquals("a1b2c3d4-0000-4000-8000-000000000001", db.metaDao().ler("instalacao_uuid")?.valor)
-                assertEquals(null, db.equipeDao().obter())
+                assertEquals(emptyList(), db.coletaDao().emAndamento())
             } finally {
                 db.close()
             }
         } finally {
             dir.deleteRecursively()
+        }
+    }
+
+    /** Bancos v1 e v2 (MVP) são recusados sem nenhuma alteração no arquivo. */
+    @Test
+    fun recusaBancoDaGeracaoAnteriorSemAlterar() = runBlocking<Unit> {
+        for (versao in listOf(1, 2)) {
+            val dir = Files.createTempDirectory("antigo").toFile()
+            val arquivo = dir.resolve(BancoCampo.NOME_ARQUIVO)
+            try {
+                val c = BundledSQLiteDriver().open(arquivo.absolutePath)
+                c.execSQL("CREATE TABLE equipe (uuid TEXT PRIMARY KEY, nome TEXT)")
+                c.execSQL("INSERT INTO equipe VALUES ('e1', 'Equipe do MVP')")
+                c.execSQL("PRAGMA user_version = $versao")
+                c.close()
+                val antes = arquivo.readBytes()
+                val erro = assertFailsWith<BancoGeracaoAnterior> { abrirBancoJvm(arquivo) }
+                assertEquals(versao.toLong(), erro.versao)
+                assertEquals(antes.toList(), arquivo.readBytes().toList(), "o arquivo não pode mudar")
+            } finally {
+                dir.deleteRecursively()
+            }
         }
     }
 }

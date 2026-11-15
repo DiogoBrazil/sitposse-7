@@ -19,7 +19,7 @@ import javax.net.ssl.SSLContext
 class FalhaCentral(val codigo: String, mensagem: String, val fatal: Boolean, causa: Throwable? = null) : Exception(mensagem, causa)
 
 /**
- * Cliente da API v1 da Central (protocolo.md §3, ADR-0017), com o mesmo TLS e pinning
+ * Cliente da API da Central, protocolo v2 (protocolo.md §3, ADR-0017/0024), com o mesmo TLS e pinning
  * do [ClienteCentral] (ADR-0007/0014). Chamadas bloqueantes: usar fora da main thread.
  * Sem repetição automática do OkHttp: quem repete é o [Sincronizador], com idempotência.
  */
@@ -83,17 +83,17 @@ class ApiCentral(
     }
 
     private fun falha(codigoHttp: Int, corpo: String): FalhaCentral {
-        val e = runCatching { JsonContratos.decodeFromString(ErroApiV1.serializer(), corpo) }.getOrNull()
+        val e = runCatching { JsonContratos.decodeFromString(ErroApi.serializer(), corpo) }.getOrNull()
         val codigo = e?.codigo?.ifEmpty { null } ?: "http_$codigoHttp"
-        val fatal = codigoHttp in setOf(401, 403, 410, 422) || codigo in setOf("outra_operacao", "lote_divergente", "sem_operacao", "recusado")
+        val fatal = codigoHttp in setOf(401, 403, 410, 422) || codigo in setOf("lote_divergente", "recusado")
         return FalhaCentral(codigo, e?.erro?.ifEmpty { null } ?: "A Central respondeu HTTP $codigoHttp.", fatal)
     }
 
-    fun parear(pedido: PedidoPareamentoV1): RespostaPareamentoV1 {
-        val corpo = JsonContratos.encodeToString(PedidoPareamentoV1.serializer(), pedido)
+    fun parear(pedido: PedidoPareamentoV2): RespostaPareamentoV2 {
+        val corpo = JsonContratos.encodeToString(PedidoPareamentoV2.serializer(), pedido)
         val (st, resp) = executar(httpPareamento, req("v1/pareamento").post(corpo.toRequestBody(tipoJson)).build())
         if (st != 200) throw falha(st, resp)
-        return decodificar(RespostaPareamentoV1.serializer(), resp)
+        return decodificar(RespostaPareamentoV2.serializer(), resp)
     }
 
     fun status(): StatusCentral {
@@ -103,18 +103,18 @@ class ApiCentral(
     }
 
     /** PUT /v1/lotes/{lote} com os bytes congelados do lote (idempotente). */
-    fun enviarLote(lote: String, json: String): EstadoLoteV1 {
+    fun enviarLote(lote: String, json: String): EstadoLoteV2 {
         val (st, resp) = executar(http, req("v1/lotes/$lote").put(json.toByteArray(Charsets.UTF_8).toRequestBody(tipoJson)).build())
         if (st != 200) throw falha(st, resp)
-        return decodificar(EstadoLoteV1.serializer(), resp)
+        return decodificar(EstadoLoteV2.serializer(), resp)
     }
 
     /** GET /v1/lotes/{lote}; null se a Central não conhece o lote. */
-    fun estadoLote(lote: String): EstadoLoteV1? {
+    fun estadoLote(lote: String): EstadoLoteV2? {
         val (st, resp) = executar(http, req("v1/lotes/$lote").get().build())
         if (st == 404) return null
         if (st != 200) throw falha(st, resp)
-        return decodificar(EstadoLoteV1.serializer(), resp)
+        return decodificar(EstadoLoteV2.serializer(), resp)
     }
 
     sealed interface ResultadoBloco {
@@ -127,9 +127,9 @@ class ApiCentral(
         val corpo = bytes.toRequestBody(tipoBinario, 0, tamanho)
         val (st, resp) = executar(http, req("v1/fotos/$foto", mapOf("offset" to offset.toString())).put(corpo).build())
         return when (st) {
-            200 -> ResultadoBloco.Aceito(decodificar(EstadoFotoV1.serializer(), resp).offset)
+            200 -> ResultadoBloco.Aceito(decodificar(EstadoFoto.serializer(), resp).offset)
             409 -> {
-                val e = runCatching { JsonContratos.decodeFromString(ErroApiV1.serializer(), resp) }.getOrNull()
+                val e = runCatching { JsonContratos.decodeFromString(ErroApi.serializer(), resp) }.getOrNull()
                 e?.offset?.let { ResultadoBloco.OffsetDiferente(it) } ?: throw falha(st, resp)
             }
             else -> throw falha(st, resp)
@@ -137,15 +137,16 @@ class ApiCentral(
     }
 
     sealed interface ResultadoImportacao {
-        data class Importado(val estado: EstadoLoteV1) : ResultadoImportacao
-        data class FaltamFotos(val estado: EstadoLoteV1) : ResultadoImportacao
+        /** Fotos conferidas: o lote aguarda o operador (ou já foi decidido). */
+        data class Recebido(val estado: EstadoLoteV2) : ResultadoImportacao
+        data class FaltamFotos(val estado: EstadoLoteV2) : ResultadoImportacao
     }
 
     fun importar(lote: String): ResultadoImportacao {
         val (st, resp) = executar(http, req("v1/lotes/$lote/importar").post(ByteArray(0).toRequestBody(null)).build())
         return when (st) {
-            200 -> ResultadoImportacao.Importado(decodificar(EstadoLoteV1.serializer(), resp))
-            409 -> runCatching { JsonContratos.decodeFromString(EstadoLoteV1.serializer(), resp) }.getOrNull()
+            200 -> ResultadoImportacao.Recebido(decodificar(EstadoLoteV2.serializer(), resp))
+            409 -> runCatching { JsonContratos.decodeFromString(EstadoLoteV2.serializer(), resp) }.getOrNull()
                 ?.let { ResultadoImportacao.FaltamFotos(it) } ?: throw falha(st, resp)
             else -> throw falha(st, resp)
         }

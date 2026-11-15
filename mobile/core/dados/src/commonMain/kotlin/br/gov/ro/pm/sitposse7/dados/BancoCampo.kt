@@ -11,16 +11,16 @@ import androidx.room3.RoomDatabaseConstructor
  */
 @Database(
     entities = [
-        Meta::class, EquipeEntidade::class, PropriedadeEntidade::class, ItemEntidade::class, FotoEntidade::class,
+        Meta::class, ColetaEntidade::class, ColetaCodigoEntidade::class, PropriedadeEntidade::class, ItemEntidade::class, FotoEntidade::class,
         RascunhoEntidade::class, LoteEnvioEntidade::class, LoteItemEntidade::class, PareamentoEntidade::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @ConstructedBy(BancoCampoConstrutor::class)
 abstract class BancoCampo : RoomDatabase() {
     abstract fun metaDao(): MetaDao
-    abstract fun equipeDao(): EquipeDao
+    abstract fun coletaDao(): ColetaDao
     abstract fun propriedadeDao(): PropriedadeDao
     abstract fun itemDao(): ItemDao
     abstract fun fotoDao(): FotoDao
@@ -30,6 +30,9 @@ abstract class BancoCampo : RoomDatabase() {
 
     companion object {
         const val NOME_ARQUIVO = "sitposse7-campo.db"
+
+        /** Versões do MVP (v1 e v2) substituídas pela linha de base v3 (ADR-0025). */
+        val GERACOES_ANTERIORES = 1L..2L
     }
 }
 

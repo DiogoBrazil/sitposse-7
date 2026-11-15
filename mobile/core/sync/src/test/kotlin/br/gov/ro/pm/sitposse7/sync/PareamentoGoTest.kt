@@ -43,11 +43,11 @@ class PareamentoGoTest {
 
     private fun iniciar(vararg args: String) = CentralGo.iniciar(*args).also { central = it }
 
-    private fun qr(c: CentralGo, token: String) = PayloadQr(1, c.centralId, listOf("127.0.0.1"), c.porta, c.pin, token, null, null)
+    private fun qr(c: CentralGo, token: String) = PayloadQr(2, c.centralId, listOf("127.0.0.1"), c.porta, c.pin, token)
 
     private suspend fun comCadastro() {
-        repo.configurarEquipe("Equipe Linha 25", "Sgt. Teste", "Linha 25")
-        repo.salvar(GravacaoPropriedade(null, "Sítio Boa Esperança", "Responsável", mapOf("bov_adultos" to 3L), null, null, null, null, null, null, null, null, emptyList(), emptyList()))
+        val coleta = repo.iniciarColeta("EQ7K3M9QX1").coleta.uuid
+        repo.salvar(GravacaoPropriedade(null, "Sítio Boa Esperança", "Responsável", mapOf("bov_adultos" to 3L), null, null, null, null, null, null, null, null, emptyList(), emptyList()), coleta)
     }
 
     /** Pede o pareamento em segundo plano e espera o pedido aparecer para o operador. */

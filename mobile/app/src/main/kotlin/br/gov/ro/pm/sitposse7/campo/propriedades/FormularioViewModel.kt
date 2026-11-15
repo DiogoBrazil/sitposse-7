@@ -2,6 +2,7 @@ package br.gov.ro.pm.sitposse7.campo.propriedades
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import br.gov.ro.pm.sitposse7.campo.CampoApp
 import br.gov.ro.pm.sitposse7.campo.fotos.ProcessamentoFoto
@@ -18,12 +19,14 @@ import br.gov.ro.pm.sitposse7.dominio.ItemCadastro
 import br.gov.ro.pm.sitposse7.dominio.Normalizacao
 import br.gov.ro.pm.sitposse7.dominio.ResultadoArea
 import br.gov.ro.pm.sitposse7.dominio.ValidacaoCadastro
+import br.gov.ro.pm.sitposse7.dominio.observacaoParaGravar
 import br.gov.ro.pm.sitposse7.dominio.textoArea
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -44,16 +47,63 @@ data class EstadoFormulario(
     val modificado: Boolean = false,
 )
 
+/** Etapas do formulário (A28, RF-A03). A revisão é a última. */
+enum class Etapa(val titulo: Int) {
+    IDENTIFICACAO(br.gov.ro.pm.sitposse7.campo.R.string.etapa_identificacao),
+    VEICULOS(br.gov.ro.pm.sitposse7.campo.R.string.etapa_veiculos),
+    BENS(br.gov.ro.pm.sitposse7.campo.R.string.etapa_bens),
+    ANIMAIS_AREA(br.gov.ro.pm.sitposse7.campo.R.string.etapa_animais_area),
+    LOCAL_FOTOS(br.gov.ro.pm.sitposse7.campo.R.string.etapa_local_fotos),
+    OBSERVACOES(br.gov.ro.pm.sitposse7.campo.R.string.etapa_observacoes),
+    REVISAO(br.gov.ro.pm.sitposse7.campo.R.string.etapa_revisao);
+
+    companion object {
+        /** Etapa onde se corrige o campo de um erro de validação. */
+        fun doCampo(campo: String, c: CadastroPropriedade): Etapa = when {
+            campo == "nome" || campo == "responsavel" || campo.startsWith("pessoas_") -> IDENTIFICACAO
+            campo.startsWith("veic_") -> VEICULOS
+            campo.startsWith("bov_") || campo.startsWith("equ_") || campo == "area" -> ANIMAIS_AREA
+            campo == "coordenada" -> LOCAL_FOTOS
+            campo == "observacoes" -> OBSERVACOES
+            campo.startsWith("item.") -> {
+                val codigo = c.itens.getOrNull(campo.removePrefix("item.").toIntOrNull() ?: -1)?.codigo.orEmpty()
+                if (codigo.startsWith("ave.")) ANIMAIS_AREA else BENS
+            }
+            else -> REVISAO
+        }
+    }
+}
+
 /**
- * Formulário de cadastro (RF-A03..A10). O estado completo também é o rascunho, gravado
- * na tabela `rascunhos` cerca de 1 s após cada mudança (sobrevive à morte do processo).
+ * Formulário de cadastro em etapas (RF-A03..A10, A28). O estado completo também é o rascunho,
+ * gravado na tabela `rascunhos` cerca de 1 s após cada mudança e imediatamente quando o app vai
+ * para o segundo plano (sobrevive à morte do processo). A etapa atual fica no [SavedStateHandle].
+ * O rascunho pertence à [coletaUuid] (RN-05): o cadastro é salvo nela mesmo que a coleta atual mude.
  */
-class FormularioViewModel(app: Application, private val uuidPropriedade: String?, private val rascunhoUuid: String) : AndroidViewModel(app) {
+class FormularioViewModel(
+    app: Application,
+    private val salvo: SavedStateHandle,
+    private val uuidPropriedade: String?,
+    private val rascunhoUuid: String,
+    private val coletaUuid: String,
+) : AndroidViewModel(app) {
     private val campo = app as CampoApp
     private val json = Json { ignoreUnknownKeys = true }
     private val _estado = MutableStateFlow(EstadoFormulario())
     val estado: StateFlow<EstadoFormulario> = _estado
     private var gravacaoRascunho: Job? = null
+    private val _etapa = MutableStateFlow(Etapa.entries.getOrElse(salvo.get<Int>(CHAVE_ETAPA) ?: 0) { Etapa.IDENTIFICACAO })
+    val etapa: StateFlow<Etapa> = _etapa.asStateFlow()
+
+    fun irPara(e: Etapa) {
+        _etapa.value = e
+        salvo[CHAVE_ETAPA] = e.ordinal
+        if (e == Etapa.REVISAO) _estado.update { it.copy(erros = ValidacaoCadastro.validar(it.cadastro)) }
+    }
+
+    fun proxima() = irPara(Etapa.entries[minOf(_etapa.value.ordinal + 1, Etapa.entries.lastIndex)])
+
+    fun anterior() = irPara(Etapa.entries[maxOf(_etapa.value.ordinal - 1, 0)])
 
     init {
         viewModelScope.launch {
@@ -67,7 +117,7 @@ class FormularioViewModel(app: Application, private val uuidPropriedade: String?
         val c = campo.repo.carregar(uuid) ?: return null
         val p = c.propriedade
         return CadastroPropriedade(
-            uuid = p.uuid, nome = p.nomePropriedade, responsavel = p.responsavelFamilia.orEmpty(),
+            uuid = p.uuid, nome = p.nomePropriedade, responsavel = p.responsavelFamilia, observacoes = p.observacoesRelevantes.orEmpty(),
             quantidades = mapOf(
                 "pessoas_adultos" to p.pessoasAdultos, "pessoas_jovens" to p.pessoasJovens, "pessoas_criancas" to p.pessoasCriancas,
                 "veic_caminhoes" to p.veicCaminhoes, "veic_automoveis_utilitarios" to p.veicAutomoveisUtilitarios, "veic_motos_ciclomotores" to p.veicMotosCiclomotores,
@@ -100,7 +150,14 @@ class FormularioViewModel(app: Application, private val uuidPropriedade: String?
     private suspend fun gravarRascunhoAgora() {
         val c = _estado.value.cadastro
         if (_estado.value.salvoComo != null) return
-        runCatching { campo.repo.gravarRascunho(rascunhoUuid, c.uuid, json.encodeToString(CadastroPropriedade.serializer(), c)) }
+        runCatching { campo.repo.gravarRascunho(rascunhoUuid, coletaUuid, c.uuid, json.encodeToString(CadastroPropriedade.serializer(), c)) }
+    }
+
+    /** Grava o rascunho já (app indo para o segundo plano), sem esperar o intervalo de 1 s. */
+    fun gravarAgora() {
+        if (!_estado.value.modificado || _estado.value.salvoComo != null) return
+        gravacaoRascunho?.cancel()
+        campo.escopo.launch { gravarRascunhoAgora() }
     }
 
     fun salvar() {
@@ -108,6 +165,7 @@ class FormularioViewModel(app: Application, private val uuidPropriedade: String?
         val erros = ValidacaoCadastro.validar(c)
         if (erros.isNotEmpty()) {
             _estado.update { it.copy(erros = erros) }
+            irPara(Etapa.REVISAO)
             return
         }
         _estado.update { it.copy(salvando = true, erros = emptyList(), falha = null) }
@@ -124,8 +182,9 @@ class FormularioViewModel(app: Application, private val uuidPropriedade: String?
                     GravacaoItem(i.uuid, cat.categoria.codigo, i.codigo, i.nomePersonalizado?.takeIf { cat.outros }, i.nomePersonalizado?.takeIf { cat.outros }?.let(Normalizacao::normalizarNome), i.quantidade)
                 },
                 fotos = c.fotos.map { GravacaoFoto(it.uuid, it.caminhoRelativo, it.tamanhoBytes, it.sha256, it.largura, it.altura, it.capturadaEm) },
+                observacoes = observacaoParaGravar(c.observacoes),
             )
-            runCatching { campo.repo.salvar(g, rascunhoUuid) }
+            runCatching { campo.repo.salvar(g, coletaUuid, rascunhoUuid) }
                 .onSuccess { uuid -> _estado.update { it.copy(salvando = false, salvoComo = uuid) } }
                 .onFailure { t ->
                     gravarRascunhoAgora() // o formulário nunca se perde
@@ -159,6 +218,10 @@ class FormularioViewModel(app: Application, private val uuidPropriedade: String?
     fun espacoParaFoto(): Boolean = campo.fotos.espacoSuficiente()
 
     fun arquivo(caminho: String): File = campo.fotos.arquivo(caminho)
+
+    companion object {
+        private const val CHAVE_ETAPA = "etapa"
+    }
 
     override fun onCleared() {
         // Garante o rascunho mesmo se a tela fechar antes do intervalo de 1 s.

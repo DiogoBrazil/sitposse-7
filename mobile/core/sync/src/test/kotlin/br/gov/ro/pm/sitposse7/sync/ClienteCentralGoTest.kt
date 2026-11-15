@@ -35,7 +35,6 @@ class ClienteCentralGoTest {
         assertIs<ResultadoStatus.Conectado>(r, "resultado: $r")
         assertEquals("TLSv1.3", r.versaoTls)
         assertEquals(c.centralId, r.status.centralId)
-        assertEquals("Operação de teste", r.status.operacao?.nome)
         assertTrue(r.compativel)
         assertTrue(Regex("""^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$""").matches(r.status.horario))
     }

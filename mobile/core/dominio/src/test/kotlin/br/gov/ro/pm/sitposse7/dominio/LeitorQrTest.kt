@@ -5,7 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertIs
 
 class LeitorQrTest {
-    private val fixture = Fixtures.ler("contratos/qr-pareamento.v1.json")
+    private val fixture = Fixtures.ler("contratos/qr-pareamento.v2.json")
 
     @Test
     fun validosDaFixture() {

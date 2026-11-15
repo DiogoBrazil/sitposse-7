@@ -64,12 +64,17 @@ fun DetalheTela(uuid: String, nav: Navegador) {
     var dados by remember { mutableStateOf<PropriedadeCompleta?>(null) }
     var carregou by remember { mutableStateOf(false) }
     var confirmarExclusao by remember { mutableStateOf(false) }
-    LaunchedEffect(uuid) { dados = app.repo.carregar(uuid); carregou = true }
+    var codigoColeta by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(uuid) {
+        dados = app.repo.carregar(uuid)
+        codigoColeta = dados?.let { app.repo.coleta(it.propriedade.coletaUuid) }?.codigoEquipe?.let(br.gov.ro.pm.sitposse7.dominio.Codigos::exibir)
+        carregou = true
+    }
 
     Scaffold(topBar = {
         BarraSuperior(dados?.propriedade?.nomePropriedade.orEmpty(), aoVoltar = { nav.voltar() }) {
             if (dados != null) {
-                IconButton(onClick = { nav.ir(Tela.Formulario(uuid, UUID.randomUUID().toString())) }) { Icon(painterResource(R.drawable.ic_edit), stringResource(R.string.editar)) }
+                IconButton(onClick = { nav.ir(Tela.Formulario(uuid, UUID.randomUUID().toString(), dados!!.propriedade.coletaUuid)) }) { Icon(painterResource(R.drawable.ic_edit), stringResource(R.string.editar)) }
                 IconButton(onClick = { confirmarExclusao = true }) { Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.excluir)) }
             }
         }
@@ -84,7 +89,8 @@ fun DetalheTela(uuid: String, nav: Navegador) {
             Column(Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Secao(stringResource(R.string.secao_identificacao)) {
                     Linha(stringResource(R.string.campo_nome), p.nomePropriedade)
-                    Linha(stringResource(R.string.campo_responsavel), p.responsavelFamilia ?: "—")
+                    Linha(stringResource(R.string.campo_responsavel_curto), p.responsavelFamilia)
+                    codigoColeta?.let { Linha(stringResource(R.string.codigo_titulo), it) }
                     Linha(stringResource(R.string.detalhe_atualizado), dataHoraLocal(p.updatedAt))
                 }
                 val valores = mapOf(
@@ -117,6 +123,9 @@ fun DetalheTela(uuid: String, nav: Navegador) {
                         Linha(stringResource(R.string.gps_origem), stringResource(if (p.gpsOrigem == "manual") R.string.gps_manual else R.string.gps_gnss))
                         p.gpsPrecisaoM?.let { Linha(stringResource(R.string.gps_precisao), "%.0f m".format(it)) }
                     }
+                }
+                Secao(stringResource(R.string.observacoes_campo), aberta = p.observacoesRelevantes != null) {
+                    Text(p.observacoesRelevantes ?: stringResource(R.string.revisao_sem_observacoes), style = MaterialTheme.typography.bodyLarge)
                 }
                 Secao(stringResource(R.string.secao_fotos), resumo = d.fotos.size.toString()) {
                     if (d.fotos.isEmpty()) Text(stringResource(R.string.sem_fotos))

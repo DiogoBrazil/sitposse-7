@@ -9,8 +9,10 @@
 - Erros (`SQLiteFullException`, I/O): mensagem "Não foi possível salvar: armazenamento cheio. Nada foi perdido do formulário." O estado do formulário permanece.
 - Migrações: escritas à mão ou `AutoMigration`, testadas; **nunca destrutivas**.
 
+- **Banco v3** (A28, ADR-0025): nova linha de base com `coletas` e `coleta_codigos`; bancos v1/v2 (testes do MVP) são recusados antes de o Room abrir (`conferirGeracao`), sem alterar o arquivo, e o app mostra a tela de bloqueio. Migrações a partir da v3 voltam a ser não destrutivas e testadas.
+
 ## Rascunho
-- Estado do formulário no `SavedStateHandle` (rotação e morte de processo) **e** na tabela `rascunhos` (gravação com intervalo de ~1 s), para interrupções longas.
+- Estado do formulário na tabela `rascunhos` (gravação ~1 s após cada mudança e **imediatamente** quando o app vai para o segundo plano, `ON_STOP`); a etapa atual no `SavedStateHandle`. O rascunho guarda a **coleta** em que começou (RN-05) e é salvo nela.
 - Banner: "Rascunho — ainda não salvo como cadastro". Ao abrir o app com rascunho existente: "Retomar rascunho de 'X'?".
 - Rascunho é apagado só depois do commit do cadastro ou de descarte explícito.
 

@@ -15,7 +15,7 @@ import javax.net.SocketFactory
 import javax.net.ssl.SSLContext
 
 /** Versão de protocolo deste cliente (docs/synchronization/protocolo.md). */
-const val PROTOCOLO_VERSAO = 1
+const val PROTOCOLO_VERSAO = 2
 
 sealed interface ResultadoStatus {
     data class Conectado(val status: StatusCentral, val versaoTls: String, val compativel: Boolean) : ResultadoStatus

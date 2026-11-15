@@ -48,13 +48,29 @@ import br.gov.ro.pm.sitposse7.campo.ui.Centralizado
 import br.gov.ro.pm.sitposse7.campo.ui.Navegador
 import br.gov.ro.pm.sitposse7.campo.ui.dataHoraLocal
 import br.gov.ro.pm.sitposse7.sync.Progresso
+import br.gov.ro.pm.sitposse7.sync.ResultadoColeta
+import br.gov.ro.pm.sitposse7.campo.CampoApp
+import br.gov.ro.pm.sitposse7.campo.coletas.DialogoCorrigirCodigo
+import br.gov.ro.pm.sitposse7.campo.coletas.textoDestino
+import br.gov.ro.pm.sitposse7.dominio.Codigos
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun SincronizarTela(nav: Navegador, vm: SincronizarViewModel = viewModel()) {
     val contexto = LocalContext.current
     val etapa by vm.etapa.collectAsState()
     val pareamento by vm.pareamento.collectAsState(initial = null)
+    val paraEnviar by vm.paraEnviar.collectAsState()
+    val selecionadas by vm.selecionadas.collectAsState()
+    val resumos by vm.coletas.collectAsState(initial = emptyList())
     var acaoPendente by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var corrigir by remember { mutableStateOf<String?>(null) }
     var negado by remember { mutableStateOf<Int?>(null) }
     fun tem(p: String) = ContextCompat.checkSelfPermission(contexto, p) == PackageManager.PERMISSION_GRANTED
     val pedir = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { r ->
@@ -78,7 +94,7 @@ fun SincronizarTela(nav: Navegador, vm: SincronizarViewModel = viewModel()) {
                         val p = pareamento
                         if (p == null) Text(stringResource(R.string.sinc_nao_pareado), style = MaterialTheme.typography.bodyLarge)
                         else {
-                            Text(stringResource(R.string.sinc_pareado_com, p.operacaoNome), style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.sinc_pareado_com), style = MaterialTheme.typography.titleMedium)
                             Text(stringResource(R.string.sinc_pareado_em, dataHoraLocal(p.pareadoEm)), style = MaterialTheme.typography.bodyMedium)
                         }
                         Spacer(Modifier.height(8.dp))
@@ -88,6 +104,19 @@ fun SincronizarTela(nav: Navegador, vm: SincronizarViewModel = viewModel()) {
                 }
                 negado?.let { AvisoCartao(stringResource(it)) }
 
+                val ocioso = etapa is EtapaSinc.Ocioso || etapa is EtapaSinc.Concluido || etapa is EtapaSinc.Erro
+                if (ocioso && paraEnviar.isNotEmpty()) {
+                    Text(stringResource(R.string.sinc_coletas_titulo), style = MaterialTheme.typography.titleMedium)
+                    paraEnviar.forEach { c ->
+                        val marcada = selecionadas?.contains(c.uuid) ?: true
+                        val pend = resumos.firstOrNull { it.uuid == c.uuid }?.pendentes ?: 0
+                        Row(Modifier.fillMaxWidth().clickable { vm.alternar(c.uuid) }, verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(marcada, { vm.alternar(c.uuid) })
+                            Text(stringResource(R.string.sinc_coleta_linha, Codigos.exibir(c.codigoEquipe), pend), style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+
                 when (val e = etapa) {
                     EtapaSinc.LendoQr -> {
                         Text(stringResource(R.string.diag_qr_aponte), style = MaterialTheme.typography.bodyLarge)
@@ -96,26 +125,45 @@ fun SincronizarTela(nav: Navegador, vm: SincronizarViewModel = viewModel()) {
                     }
                     EtapaSinc.ProcurandoRede -> Andamento(stringResource(R.string.sinc_procurando))
                     EtapaSinc.AguardandoOperador -> Andamento(stringResource(R.string.sinc_aguardando_operador))
-                    is EtapaSinc.Enviando -> when (val p = e.progresso) {
-                        Progresso.Conectando -> Andamento(stringResource(R.string.sinc_conectando))
-                        is Progresso.EnviandoCadastros -> Andamento(stringResource(R.string.sinc_enviando_cadastros, p.propriedades))
-                        is Progresso.EnviandoFotos -> {
-                            Text(stringResource(R.string.sinc_enviando_fotos, p.feitas, p.total, p.bytesEnviados / (1024 * 1024)), style = MaterialTheme.typography.titleMedium)
-                            LinearProgressIndicator(progress = { if (p.total == 0) 1f else p.feitas.toFloat() / p.total }, modifier = Modifier.fillMaxWidth())
+                    is EtapaSinc.Enviando -> {
+                        if (e.codigo.isNotEmpty()) Text(stringResource(R.string.sinc_enviando_coleta, e.codigo, e.indice, e.total), style = MaterialTheme.typography.titleMedium)
+                        when (val p = e.progresso) {
+                            Progresso.Conectando -> Andamento(stringResource(R.string.sinc_conectando))
+                            is Progresso.EnviandoCadastros -> Andamento(stringResource(R.string.sinc_enviando_cadastros, p.propriedades))
+                            is Progresso.EnviandoFotos -> {
+                                Text(stringResource(R.string.sinc_enviando_fotos, p.feitas, p.total, p.bytesEnviados / (1024 * 1024)), style = MaterialTheme.typography.titleMedium)
+                                LinearProgressIndicator(progress = { if (p.total == 0) 1f else p.feitas.toFloat() / p.total }, modifier = Modifier.fillMaxWidth())
+                            }
+                            Progresso.ConferindoFotos -> Andamento(stringResource(R.string.sinc_conferindo_fotos))
+                            Progresso.AguardandoConfirmacao -> {
+                                Andamento(stringResource(R.string.sinc_aguardando_destino))
+                                Text(stringResource(R.string.sinc_aguardando_destino_ajuda), style = MaterialTheme.typography.bodyMedium)
+                                OutlinedButton(onClick = vm::pararDeEsperar, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.sinc_parar)) }
+                            }
                         }
-                        Progresso.AguardandoImportacao -> Andamento(stringResource(R.string.sinc_aguardando_importacao))
                     }
                     is EtapaSinc.Concluido -> {
-                        val r = e.resumo
-                        if (r == null) Text(stringResource(R.string.sinc_nada), style = MaterialTheme.typography.titleMedium)
-                        else {
-                            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                                Column(Modifier.padding(16.dp)) {
-                                    Icon(painterResource(R.drawable.ic_cloud_done), null)
-                                    Text(stringResource(R.string.sinc_resultado, r.propriedadesConfirmadas, r.conflitos, r.rejeitados.size), style = MaterialTheme.typography.titleMedium)
+                        if (e.resultados.isEmpty()) Text(stringResource(R.string.sinc_nada), style = MaterialTheme.typography.titleMedium)
+                        e.resultados.forEach { (codigo, r) ->
+                            when (r) {
+                                is ResultadoColeta.Confirmado -> {
+                                    val x = r.resumo
+                                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                                        Column(Modifier.padding(16.dp)) {
+                                            Icon(painterResource(R.drawable.ic_cloud_done), null)
+                                            Text(stringResource(R.string.sinc_confirmado_destino, codigo, x.propriedadesConfirmadas, textoDestino(x.destino)), style = MaterialTheme.typography.titleMedium)
+                                            if (x.destino.corrigido) Text(stringResource(R.string.coleta_destino_corrigido, Codigos.exibir(x.destino.codigoInformado)), style = MaterialTheme.typography.bodyMedium)
+                                        }
+                                    }
+                                    if (x.rejeitados.isNotEmpty()) AvisoCartao(stringResource(R.string.sinc_rejeitados, x.rejeitados.joinToString("\n") { "• ${it.entidade}: ${it.motivo.orEmpty()}" }))
                                 }
+                                is ResultadoColeta.Cancelado -> AvisoCartao(stringResource(R.string.sinc_coleta_cancelada, codigo,
+                                    stringResource(if (r.motivo == "codigo_inexistente") R.string.coleta_cancelada_codigo else R.string.coleta_cancelada_operador))) {
+                                    TextButton(onClick = { corrigir = r.coleta }) { Text(stringResource(R.string.sinc_corrigir_codigo)) }
+                                }
+                                is ResultadoColeta.Aguardando -> AvisoCartao(stringResource(R.string.sinc_coleta_aguardando, codigo),
+                                    cor = MaterialTheme.colorScheme.tertiaryContainer, corTexto = MaterialTheme.colorScheme.onTertiaryContainer)
                             }
-                            if (r.rejeitados.isNotEmpty()) AvisoCartao(stringResource(R.string.sinc_rejeitados, r.rejeitados.joinToString("\n") { "• ${it.entidade}: ${it.motivo.orEmpty()}" }))
                         }
                         Botoes(pareamento != null, { comPermissoes(false) { vm.sincronizar() } }, { comPermissoes(true) { vm.lerQr() } })
                     }
@@ -126,6 +174,23 @@ fun SincronizarTela(nav: Navegador, vm: SincronizarViewModel = viewModel()) {
                     EtapaSinc.Ocioso -> Botoes(pareamento != null, { comPermissoes(false) { vm.sincronizar() } }, { comPermissoes(true) { vm.lerQr() } })
                 }
             }
+        }
+    }
+    corrigir?.let { DialogoCorrecao(it, aoFechar = { corrigir = null }, vm) }
+}
+
+@Composable
+private fun DialogoCorrecao(coleta: String, aoFechar: () -> Unit, vm: SincronizarViewModel) {
+    val app = LocalContext.current.applicationContext as CampoApp
+    val escopo = rememberCoroutineScope()
+    var atual by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(coleta) { atual = app.repo.coleta(coleta)?.codigoEquipe }
+    val a = atual ?: return
+    DialogoCorrigirCodigo(a, aoFechar) { novo, erro ->
+        escopo.launch {
+            runCatching { app.repo.corrigirCodigo(coleta, novo) }
+                .onSuccess { aoFechar(); vm.atualizarLista() }
+                .onFailure { erro(it.message ?: "") }
         }
     }
 }

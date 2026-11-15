@@ -34,7 +34,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.LaunchedEffect
 import br.gov.ro.pm.sitposse7.campo.CampoApp
+import br.gov.ro.pm.sitposse7.dados.ColetaEntidade
+import br.gov.ro.pm.sitposse7.dados.StatusColeta
 import br.gov.ro.pm.sitposse7.campo.R
 import br.gov.ro.pm.sitposse7.campo.ui.BarraSuperior
 import br.gov.ro.pm.sitposse7.campo.ui.Navegador
@@ -49,7 +52,10 @@ private enum class Filtro(val rotulo: Int) { PENDENTES(R.string.filtro_pendentes
 @Composable
 fun ListaTela(nav: Navegador) {
     val app = LocalContext.current.applicationContext as CampoApp
-    val todas by app.repo.observarPropriedades().collectAsState(initial = emptyList())
+    var coletaAtual by remember { mutableStateOf<ColetaEntidade?>(null) }
+    LaunchedEffect(Unit) { coletaAtual = app.repo.coletaAtual()?.let { app.repo.coleta(it) } }
+    var soEsta by rememberSaveable { mutableStateOf(true) }
+    val todas by remember(soEsta, coletaAtual?.uuid) { app.repo.observarPropriedades(if (soEsta) coletaAtual?.uuid else null) }.collectAsState(initial = emptyList())
     var busca by rememberSaveable { mutableStateOf("") }
     var filtro by rememberSaveable { mutableStateOf<Filtro?>(null) }
     val termo = Normalizacao.normalizarNome(busca)
@@ -67,7 +73,11 @@ fun ListaTela(nav: Navegador) {
     }
     Scaffold(
         topBar = { BarraSuperior(stringResource(R.string.lista_titulo, todas.size), aoVoltar = { nav.voltar() }) },
-        floatingActionButton = { FloatingActionButton(onClick = { nav.ir(Tela.novoCadastro()) }) { Icon(painterResource(R.drawable.ic_add), stringResource(R.string.nova_propriedade)) } },
+        floatingActionButton = {
+            coletaAtual?.takeIf { it.status == StatusColeta.EM_ANDAMENTO }?.let { c ->
+                FloatingActionButton(onClick = { nav.ir(Tela.novoCadastro(c.uuid)) }) { Icon(painterResource(R.drawable.ic_add), stringResource(R.string.nova_propriedade)) }
+            }
+        },
     ) { pad ->
         Column(Modifier.padding(pad).fillMaxSize()) {
             OutlinedTextField(
@@ -75,6 +85,7 @@ fun ListaTela(nav: Navegador) {
                 placeholder = { Text(stringResource(R.string.lista_buscar)) }, leadingIcon = { Icon(painterResource(R.drawable.ic_search), null) }, singleLine = true,
             )
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(soEsta, { soEsta = !soEsta }, label = { Text(stringResource(R.string.filtro_esta_coleta)) })
                 Filtro.entries.forEach { f -> FilterChip(filtro == f, { filtro = if (filtro == f) null else f }, label = { Text(stringResource(f.rotulo)) }) }
             }
             if (visiveis.isEmpty()) {
@@ -96,7 +107,7 @@ private fun ItemLista(p: PropriedadeResumo, aoClicar: () -> Unit) {
     Card(Modifier.fillMaxWidth().clickable(onClick = aoClicar)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(p.nome_propriedade, style = MaterialTheme.typography.titleMedium)
-            p.responsavel_familia?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            Text(p.responsavel_familia, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 SeloEstado(p)
                 Icon(painterResource(R.drawable.ic_place), stringResource(if (p.tem_gps) R.string.tem_gps else R.string.sem_gps), tint = if (p.tem_gps) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)

@@ -7,8 +7,8 @@ import kotlinx.serialization.json.Json
 import java.util.UUID
 
 /**
- * Conteúdo do QR exibido pela Central (shared/schemas/qr-pareamento.v1.schema.json, ADR-0007).
- * Na Fase 0 o token é omitido (só diagnóstico de conexão).
+ * Conteúdo do QR exibido pela Central (shared/schemas/qr-pareamento.v2.schema.json, ADR-0007/0024).
+ * O token é omitido no QR de diagnóstico. A v2 não tem operação (o pareamento é do aparelho).
  */
 @Serializable
 data class PayloadQr(
@@ -18,8 +18,6 @@ data class PayloadQr(
     val porta: Int,
     @SerialName("spki_sha256") val spkiSha256: String,
     @SerialName("token_pareamento") val tokenPareamento: String? = null,
-    @SerialName("operacao_uuid") val operacaoUuid: String? = null,
-    @SerialName("operacao_nome") val operacaoNome: String? = null,
 )
 
 sealed interface LeituraQr {
@@ -29,6 +27,9 @@ sealed interface LeituraQr {
 }
 
 object LeitorQr {
+    /** Versão do QR que este app entende (a Central desta geração gera a 2). */
+    const val VERSAO = 2
+
     // Campos desconhecidos são recusados, como no esquema (additionalProperties=false).
     private val json = Json { ignoreUnknownKeys = false; explicitNulls = false }
     private val pinValido = Regex("^[A-Za-z0-9_-]{43}$")
@@ -43,14 +44,12 @@ object LeitorQr {
             return LeituraQr.Invalido("json: ${e.message}")
         }
         return when {
-            p.v != 1 -> LeituraQr.Invalido("versao")
+            p.v != VERSAO -> LeituraQr.Invalido("versao")
             !uuidValido(p.centralId) -> LeituraQr.Invalido("central_id")
             p.ips.any { !ipv4.matches(it) } -> LeituraQr.Invalido("ips")
             p.porta !in 1..65535 -> LeituraQr.Invalido("porta")
             !pinValido.matches(p.spkiSha256) -> LeituraQr.Invalido("pin")
             p.tokenPareamento != null && p.tokenPareamento.length < 32 -> LeituraQr.Invalido("token")
-            p.operacaoUuid != null && !uuidValido(p.operacaoUuid) -> LeituraQr.Invalido("operacao_uuid")
-            p.operacaoNome != null && p.operacaoNome.isEmpty() -> LeituraQr.Invalido("operacao_nome")
             else -> LeituraQr.Valido(p)
         }
     }

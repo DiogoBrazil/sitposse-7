@@ -9,11 +9,11 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 /*
- * Contratos v1 (shared/schemas, arquivos v1; ADR-0017), espelho de desktop/internal/contratos.
+ * Contratos v2 (shared/schemas, arquivos v2; ADR-0017 e ADR-0024), espelho de desktop/internal/contratos.
  * Todas as chaves são escritas, inclusive as nulas (o schema exige as chaves presentes).
  */
 
-const val SCHEMA_VERSAO = 1
+const val SCHEMA_VERSAO = 2
 
 /** JSON dos contratos: nulos explícitos na escrita; leitura tolerante a campos novos da Central. */
 val JsonContratos = Json {
@@ -29,23 +29,24 @@ fun instante(ms: Long): String = formatoInstante.format(Instant.ofEpochMilli(ms)
 
 fun instanteOuNulo(ms: Long?): String? = ms?.let(::instante)
 
+/** Coleta do celular (RN-05): o lote leva a coleta no lugar da antiga equipe. */
 @Serializable
-data class EquipeV1(
+data class ColetaV2(
     val uuid: String,
-    val nome: String,
-    val responsavel: String,
-    @SerialName("identificacao_area") val identificacaoArea: String?,
+    @SerialName("codigo_equipe") val codigoEquipe: String,
+    @SerialName("codigo_original") val codigoOriginal: String,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String,
     val rev: Long,
 )
 
 @Serializable
-data class PropriedadeV1(
+data class PropriedadeV2(
     val uuid: String,
-    @SerialName("equipe_uuid") val equipeUuid: String,
+    @SerialName("coleta_uuid") val coletaUuid: String,
     @SerialName("nome_propriedade") val nomePropriedade: String,
-    @SerialName("responsavel_familia") val responsavelFamilia: String?,
+    @SerialName("responsavel_familia") val responsavelFamilia: String,
+    @SerialName("observacoes_relevantes") val observacoesRelevantes: String?,
     @SerialName("pessoas_adultos") val pessoasAdultos: Long,
     @SerialName("pessoas_jovens") val pessoasJovens: Long,
     @SerialName("pessoas_criancas") val pessoasCriancas: Long,
@@ -71,7 +72,7 @@ data class PropriedadeV1(
 )
 
 @Serializable
-data class ItemV1(
+data class ItemV2(
     val uuid: String,
     @SerialName("propriedade_uuid") val propriedadeUuid: String,
     val categoria: String,
@@ -85,7 +86,7 @@ data class ItemV1(
 )
 
 @Serializable
-data class FotoV1(
+data class FotoV2(
     val uuid: String,
     @SerialName("propriedade_uuid") val propriedadeUuid: String,
     val mime: String,
@@ -101,23 +102,23 @@ data class FotoV1(
 )
 
 @Serializable
-data class LoteV1(
+data class LoteV2(
     @SerialName("protocolo_versao") val protocoloVersao: Int = PROTOCOLO_VERSAO,
     @SerialName("schema_versao") val schemaVersao: Int = SCHEMA_VERSAO,
     @SerialName("lote_uuid") val loteUuid: String,
     @SerialName("instalacao_uuid") val instalacaoUuid: String,
     @SerialName("criado_em") val criadoEm: String,
-    val equipe: EquipeV1,
-    val propriedades: List<PropriedadeV1>,
-    val itens: List<ItemV1>,
-    val fotos: List<FotoV1>,
+    val coleta: ColetaV2,
+    val propriedades: List<PropriedadeV2>,
+    val itens: List<ItemV2>,
+    val fotos: List<FotoV2>,
 )
 
 @Serializable
-data class FotoFaltanteV1(val uuid: String, val offset: Long)
+data class FotoFaltanteV2(val uuid: String, val offset: Long)
 
 @Serializable
-data class ResultadoReciboV1(
+data class ResultadoReciboV2(
     val entidade: String,
     val uuid: String,
     val rev: Long,
@@ -126,18 +127,33 @@ data class ResultadoReciboV1(
     @SerialName("conflito_uuid") val conflitoUuid: String? = null,
 )
 
+/** Equipe confirmada pelo operador para a coleta (ADR-0024). */
 @Serializable
-data class ReciboV1(
+data class DestinoV2(
+    @SerialName("estudo_codigo") val estudoCodigo: String,
+    @SerialName("estudo_nome") val estudoNome: String,
+    @SerialName("jornada_numero") val jornadaNumero: Long,
+    @SerialName("jornada_data") val jornadaData: String,
+    @SerialName("equipe_nome") val equipeNome: String,
+    @SerialName("equipe_codigo") val equipeCodigo: String,
+    @SerialName("codigo_informado") val codigoInformado: String,
+    val corrigido: Boolean,
+)
+
+@Serializable
+data class ReciboV2(
     @SerialName("protocolo_versao") val protocoloVersao: Int,
     @SerialName("lote_uuid") val loteUuid: String,
     @SerialName("central_id") val centralId: String,
     @SerialName("importado_em") val importadoEm: String,
-    val resultados: List<ResultadoReciboV1>,
+    val destino: DestinoV2,
+    val resultados: List<ResultadoReciboV2>,
     @SerialName("recibo_sha256") val reciboSha256: String,
 ) {
-    /** Entrada do recibo_sha256 (descrição em recibo.v1.schema.json). */
+    /** Entrada do recibo_sha256 (descrição em recibo.v2.schema.json). */
     fun textoCanonico(): String = buildString {
         append(loteUuid).append('\n').append(centralId).append('\n').append(importadoEm).append('\n')
+        with(destino) { append("destino|$estudoCodigo|$jornadaNumero|$jornadaData|$equipeCodigo|$codigoInformado|$corrigido\n") }
         resultados.forEach { r -> append("${r.entidade}|${r.uuid}|${r.rev}|${r.resultado}|${r.motivo ?: ""}\n") }
     }
 
@@ -147,38 +163,46 @@ data class ReciboV1(
     fun confere(lote: String): Boolean = loteUuid == lote && reciboSha256 == calcularHash()
 }
 
+/** Estados do lote na Central (estado-lote.v2). */
+object StatusCentralLote {
+    const val RECEBENDO = "recebendo"
+    const val AGUARDANDO = "aguardando_confirmacao"
+    const val IMPORTADO = "importado"
+    const val CANCELADO = "cancelado"
+}
+
 @Serializable
-data class EstadoLoteV1(
+data class EstadoLoteV2(
     @SerialName("protocolo_versao") val protocoloVersao: Int,
     @SerialName("lote_uuid") val loteUuid: String,
     val status: String,
-    @SerialName("fotos_faltantes") val fotosFaltantes: List<FotoFaltanteV1>,
-    val recibo: ReciboV1?,
+    @SerialName("fotos_faltantes") val fotosFaltantes: List<FotoFaltanteV2>,
+    val recibo: ReciboV2?,
+    /** Só quando cancelado: "cancelado_operador" | "codigo_inexistente". */
+    val motivo: String? = null,
 )
 
 @Serializable
-data class PedidoPareamentoV1(
+data class PedidoPareamentoV2(
     @SerialName("protocolo_versao") val protocoloVersao: Int = PROTOCOLO_VERSAO,
     @SerialName("schema_versao") val schemaVersao: Int = SCHEMA_VERSAO,
     @SerialName("token_pareamento") val token: String,
     @SerialName("instalacao_uuid") val instalacaoUuid: String,
     @SerialName("rotulo_aparelho") val rotuloAparelho: String?,
-    val equipe: EquipeV1,
 )
 
 @Serializable
-data class RespostaPareamentoV1(
+data class RespostaPareamentoV2(
     @SerialName("protocolo_versao") val protocoloVersao: Int,
     @SerialName("central_id") val centralId: String,
     @SerialName("credencial_dispositivo") val credencial: String,
-    val operacao: OperacaoCentral,
 )
 
 /** Corpo de erro da Central: `codigo` estável, `erro` para a pessoa (protocolo.md §9). */
 @Serializable
-data class ErroApiV1(val codigo: String = "", val erro: String = "", val offset: Long? = null)
+data class ErroApi(val codigo: String = "", val erro: String = "", val offset: Long? = null)
 
 @Serializable
-data class EstadoFotoV1(val uuid: String, val offset: Long, val existe: Boolean = false)
+data class EstadoFoto(val uuid: String, val offset: Long, val existe: Boolean = false)
 
 fun sha256Hex(b: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(b).joinToString("") { "%02x".format(it) }
