@@ -89,7 +89,7 @@ func Carregar(ctx context.Context, db *sql.DB) (*Base, error) {
 
 	rows, err = db.QueryContext(ctx, `SELECT p.uuid, p.nome_propriedade, p.responsavel_familia, p.equipe_uuid, e.nome, e.identificacao_area, e.operacao_uuid,
 		p.pessoas_adultos, p.pessoas_jovens, p.pessoas_criancas, p.veic_caminhoes, p.veic_automoveis_utilitarios, p.veic_motos_ciclomotores,
-		p.bov_adultos, p.bov_bezerros, p.equ_adultos, p.equ_potros, p.area_valor_milesimos, p.area_unidade, p.lat IS NOT NULL,
+		p.bov_adultos, p.bov_bezerros, p.equ_adultos, p.equ_potros, p.area_valor_milesimos, p.area_unidade, p.lat IS NOT NULL, p.lat, p.lon, p.gps_origem, p.gps_precisao_m,
 		(SELECT count(*) FROM v_fotos_vigentes f WHERE f.propriedade_uuid = p.uuid), p.created_at, p.recebido_em
 		FROM v_propriedades_vigentes p JOIN equipes e ON e.uuid = p.equipe_uuid
 		ORDER BY p.nome_propriedade COLLATE NOCASE, p.uuid`)
@@ -103,7 +103,7 @@ func Carregar(ctx context.Context, db *sql.DB) (*Base, error) {
 		var mil sql.NullInt64
 		var un sql.NullString
 		if err := rows.Scan(&p.UUID, &p.Nome, &p.Responsavel, &p.EquipeUUID, &p.Equipe, &p.AreaIdentificada, &p.OperacaoUUID,
-			&ad, &jo, &cr, &ca, &au, &mo, &ba, &bb, &ea, &ep, &mil, &un, &p.ComLocalizacao, &fotos, &p.CriadoEm, &p.RecebidoEm); err != nil {
+			&ad, &jo, &cr, &ca, &au, &mo, &ba, &bb, &ea, &ep, &mil, &un, &p.ComLocalizacao, &p.Lat, &p.Lon, &p.GpsOrigem, &p.GpsPrecisaoM, &fotos, &p.CriadoEm, &p.RecebidoEm); err != nil {
 			return nil, err
 		}
 		v := map[string]int64{

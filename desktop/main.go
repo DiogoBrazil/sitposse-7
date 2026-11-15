@@ -6,6 +6,8 @@ import (
 	"embed"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -22,7 +24,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("pasta de dados: %v", err)
 	}
-	central := &app.Central{PastaDados: pasta}
+	central := &app.Central{PastaDados: pasta, Arquivos: arquivosWails{}}
 	if err := central.Iniciar(context.Background(), syncserver.PortaPadrao); err != nil {
 		log.Fatalf("inicialização: %v", err)
 	}
@@ -35,6 +37,7 @@ func main() {
 			application.NewService(&app.SincronizacaoService{C: central}),
 			application.NewService(&app.OperacaoService{C: central}),
 			application.NewService(&app.ConsultaService{C: central}),
+			application.NewService(&app.RelatorioService{C: central}),
 		},
 		Assets: application.AssetOptions{
 			Handler: rotas(central, application.AssetFileServerFS(assets)),
@@ -62,4 +65,31 @@ func rotas(central *app.Central, frontend http.Handler) http.Handler {
 	mux.Handle("/fotos/", central.HandlerFotos())
 	mux.Handle("/", frontend)
 	return mux
+}
+
+// arquivosWails liga as janelas do sistema (Wails) à camada app.
+type arquivosWails struct{}
+
+func (arquivosWails) EscolherDestino(nome, descricao, extensao string) (string, error) {
+	pasta, _ := os.UserHomeDir()
+	if docs := filepath.Join(pasta, "Documents"); dirExiste(docs) {
+		pasta = docs
+	}
+	return application.Get().Dialog.SaveFile().
+		SetFilename(nome).
+		SetDirectory(pasta).
+		AddFilter(descricao, "*"+extensao).
+		CanCreateDirectories(true).
+		PromptForSingleSelection()
+}
+
+func (arquivosWails) Abrir(caminho string) error { return application.Get().Browser.OpenFile(caminho) }
+
+func (arquivosWails) MostrarNaPasta(caminho string) error {
+	return application.Get().Env.OpenFileManager(caminho, true)
+}
+
+func dirExiste(p string) bool {
+	st, err := os.Stat(p)
+	return err == nil && st.IsDir()
 }

@@ -116,11 +116,14 @@ const tamanhos = [10, 25, 50, 100]
 .tabela-dados { container-type: inline-size; background: var(--folha); border: 1px solid var(--regua); border-radius: var(--raio-grande); overflow: hidden; }
 .rolagem { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
-th, td { padding: .7rem .9rem; border-bottom: 1px solid var(--regua); text-align: left; vertical-align: middle; }
+th, td { padding: .7rem .9rem; border-bottom: 1px solid var(--regua); text-align: center; vertical-align: middle; }
+/* Divisória entre colunas: cada valor fica no seu quadro. */
+th + th, td + td { border-left: 1px solid var(--regua); }
 thead th { position: sticky; top: 0; z-index: 1; background: var(--folha-2); border-bottom: 1px solid var(--regua-forte); font-size: .85rem; font-weight: 650; color: var(--tinta-2); white-space: nowrap; padding-top: .55rem; padding-bottom: .55rem; }
-th.num, td.num { text-align: right; white-space: nowrap; }
-.ordenar { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: .35rem; border-radius: 4px; }
-th.num .ordenar { flex-direction: row-reverse; }
+th.num, td.num { white-space: nowrap; }
+.ordenar { all: unset; cursor: pointer; position: relative; display: inline-block; border-radius: 4px; }
+/* A seta fica fora do fluxo para o rótulo continuar centralizado. */
+.ordenar .seta { position: absolute; left: calc(100% + 5px); top: 50%; margin-top: -4.5px; }
 .ordenar:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
 .ordenar:hover span { color: var(--tinta); }
 .seta { width: 9px; height: 9px; fill: var(--regua-forte); transform: rotate(180deg); transition: transform .15s, opacity .15s; opacity: 0; }
@@ -149,6 +152,7 @@ tfoot td { border-top: 1px solid var(--regua-forte); border-bottom: none; font-w
   .empilha thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .empilha table, .empilha tbody, .empilha tfoot, .empilha tr, .empilha td { display: block; width: 100%; }
   .empilha tbody tr, .empilha tfoot tr { padding: .6rem .9rem; border-bottom: 1px solid var(--regua); }
+  .empilha td + td { border-left: none; }
   .empilha td { border: none; padding: .2rem 0; display: grid; grid-template-columns: minmax(7rem, 40%) 1fr; gap: .75rem; text-align: left !important; }
   .empilha td::before { content: attr(data-rotulo); color: var(--tinta-2); font-size: .85rem; }
   .empilha td .cel { min-width: 0; }

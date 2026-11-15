@@ -61,6 +61,14 @@ export interface Familia {
     "area_ha": string | null;
     "area_unidade": string | null;
     "com_localizacao": boolean;
+    "lat": number | null;
+    "lon": number | null;
+
+    /**
+     * gnss | manual
+     */
+    "gps_origem": string | null;
+    "gps_precisao_m": number | null;
     "criado_em": number;
     "recebido_em": number;
 }

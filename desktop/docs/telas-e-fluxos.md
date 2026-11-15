@@ -13,7 +13,7 @@ Layout: barra lateral fixa + área de conteúdo; responsivo de 1366×768 a 4K; t
 | **Conflitos** | Fila; tela de três colunas (Base / Central / Android) |
 | **Estatísticas** | Barra de filtros (chips + "Limpar filtros"), cartões, tabela analítica (linhas e colunas escolhíveis), gráficos, drill-down. **Sempre offline** |
 | **Mapa** *(online)* | Mapa geral com os mesmos filtros; mensagem RN-91 se offline |
-| **Relatórios** | PDF/CSV com os filtros ativos; carta-imagem individual e geral *(online)* |
+| **Relatórios** | **Feito (A26, ADR-0021):** botão "Exportar" no Painel e em Propriedades: PDF, Word (.docx) ou Excel (.xlsx) com os filtros ativos (panorama, por equipe e área, itens, tamanhos, por família e, opcionalmente, uma ficha por família); "Exportar ficha" na página da propriedade (PDF ou Word). Depois: carta-imagem individual e geral *(online)* |
 | **Backup** | Fazer backup, verificar, restaurar (assistente), histórico |
 | **Configurações** | Nome do operador, pasta de dados, porta, provedor cartográfico e chave |
 | **Auditoria** | Consulta por entidade, período e origem |
@@ -60,7 +60,7 @@ O assunto é um levantamento de campo da PM em linhas vicinais de Rondônia. As 
   - Texto a 15 px.
 - **Elemento de destaque:** a **faixa de totais** (`FaixaTotais`), no estilo de caderneta de campo. São grupos separados por réguas verticais, com uma marca curta da cor do assunto. O resto é plano: blocos com borda, sem sombra.
 - **Tabelas** (`TabelaDados`):
-  - divisórias visíveis, cabeçalho fixo, ordenação acessível (`aria-sort`), paginação e linha de totais;
+  - texto e cabeçalho centralizados (A26), divisórias entre linhas **e entre colunas**, cabeçalho fixo, ordenação acessível (`aria-sort`), paginação e linha de totais;
   - linhas abertas com Enter;
   - abaixo de 1000 px de largura, as colunas secundárias saem; abaixo de 640 px, cada linha vira um bloco "rótulo: valor" (exceto em tabelas `compacta`).
 - **Gráficos** (`Grafico` + `graficos.ts`, ECharts):

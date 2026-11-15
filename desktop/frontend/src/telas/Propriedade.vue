@@ -6,6 +6,7 @@ import type { ItemLinha, PropriedadeDetalhe } from '../../bindings/sitposse7/des
 import FaixaTotais from '../componentes/FaixaTotais.vue'
 import Grafico from '../componentes/Grafico.vue'
 import TabelaDados from '../componentes/TabelaDados.vue'
+import ExportarRelatorio from '../componentes/ExportarRelatorio.vue'
 import { alturaBarras, barrasHorizontais, type Dominio, type GrupoTotal, type Ponto } from '../graficos'
 import { mensagem, num, quando } from '../formato'
 import type { Tela } from '../navegacao'
@@ -16,6 +17,7 @@ const emit = defineEmits<{ voltar: [] }>()
 const p = ref<PropriedadeDetalhe | null>(null)
 const erro = ref('')
 const fotoAberta = ref<number | null>(null)
+const exportando = ref(false)
 
 onMounted(async () => {
   try { p.value = await Consulta.Propriedade(props.uuid); if (!p.value) erro.value = 'Propriedade não encontrada (pode ter sido excluída no celular).' } catch (e) { erro.value = mensagem(e) }
@@ -125,10 +127,13 @@ const unidadeOriginal = computed(() => {
             Equipe {{ p.equipe }}<template v-if="p.equipe_area"> ({{ p.equipe_area }})</template>
           </p>
         </div>
+        <div class="lado">
+          <button @click="exportando = true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>Exportar ficha</button>
         <div class="selos">
           <span class="selo" :class="p.lat != null ? 'ok' : ''">{{ p.lat != null ? 'Com localização' : 'Sem localização' }}</span>
           <span class="selo" :class="fotos.length ? 'ok' : ''">{{ fotos.length === 1 ? '1 foto' : `${fotos.length} fotos` }}</span>
           <span class="selo" :class="p.area_ha ? 'ok' : ''">{{ p.area_ha ? `${p.area_ha} ha` : 'Área não informada' }}</span>
+        </div>
         </div>
       </header>
 
@@ -223,6 +228,7 @@ const unidadeOriginal = computed(() => {
       </details>
     </template>
 
+    <ExportarRelatorio v-if="exportando && p" modo="ficha" :uuid="p.uuid" :nome="p.nome" @fechar="exportando = false" />
     <div v-if="fotoAberta !== null && fotos[fotoAberta]" class="modal-fundo" role="dialog" aria-modal="true" aria-label="Foto ampliada" @click.self="fotoAberta = null">
       <figure class="foto-grande">
         <img :src="fotos[fotoAberta].url" alt="Foto da propriedade" />
@@ -246,7 +252,10 @@ const unidadeOriginal = computed(() => {
 .titulo { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
 .titulo h1 { font-size: 2.3rem; overflow-wrap: anywhere; }
 .sep { display: inline-block; width: 1px; height: .9em; background: var(--regua-forte); margin: 0 .6rem; vertical-align: -.1em; }
-.selos { display: flex; gap: .4rem; flex-wrap: wrap; }
+.selos { display: flex; gap: .4rem; flex-wrap: wrap; justify-content: flex-end; }
+.lado { display: flex; flex-direction: column; align-items: flex-end; gap: .6rem; }
+.ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; margin-right: .35rem; }
+
 .grade { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); align-items: start; }
 .par { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: center; container-type: inline-size; }
 .par.largo { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: start; }

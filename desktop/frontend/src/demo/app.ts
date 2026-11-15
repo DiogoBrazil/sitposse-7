@@ -85,3 +85,9 @@ export const SincronizacaoService = {
   Lotes: () => espera(Array.from({ length: 6 }, (_, i) => ({ uuid: `l${i}`, equipe: equipes[i % 3].nome, aparelho: i % 2 ? 'motorola moto g56 5G' : 'Samsung SM-A155M', status: i === 0 ? 'recebendo' : 'importado', recebido_em: t0 + (8 - i) * H, importado_em: i === 0 ? null : t0 + (8 - i) * H + 4000, aplicados: 4 + i * 3, duplicados: i % 3, rejeitados: i === 2 ? 1 : 0, conflitos: 0 }))),
   Rejeicoes: () => espera([{ entidade: 'item', uuid: '3f2a9c1e-0000-4000-8000-000000000001', motivo: 'quantidade negativa' }]),
 }
+export const RelatorioService = {
+  Exportar: (formato: string) => new Promise<string>((r) => setTimeout(() => r(`C:\\Users\\operador\\Documents\\SITPOSSE-7 - Panorama - Levantamento Linha C-25.${formato}`), 700)),
+  ExportarFicha: (formato: string) => new Promise<string>((r) => setTimeout(() => r(`C:\\Users\\operador\\Documents\\SITPOSSE-7 - Ficha.${formato}`), 500)),
+  Abrir: () => espera(undefined),
+  MostrarNaPasta: () => espera(undefined),
+}

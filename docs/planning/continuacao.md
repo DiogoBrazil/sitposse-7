@@ -44,6 +44,8 @@ A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-d
 1. ~~**Base visual**~~ **feito:** ADR-0019, tabelas próprias, ECharts, Archivo, Painel/Propriedades/página da propriedade/Equipes/Sincronização e modal técnico. Central `0.2.0-mvp` (`cc3e49b7…`). **Falta o usuário olhar no Windows.**
 2. ~~**`FiltroEstudo` no Go**~~ **feito (14/11):** `internal/estatisticas` (ADR-0020), fixture `shared/test-fixtures/estatisticas/` com as 7 perguntas da especificação do usuário (`docs/requirements/estatisticas.md`, §22-A). 900 propriedades em ~14 ms.
 3. ~~**Painel/Estatísticas**~~ **feito (14/11):** barra de filtros, cartões, abas, drill-down; Propriedades com os mesmos filtros. Central `0.3.0-mvp` (`391936a4…`). **Falta o usuário testar no Windows.**
+**Exportação (A26, 14/11, noite):** PDF, Word e Excel com os filtros ativos + listas centralizadas com divisórias entre colunas. Feito; ver ADR-0021. Central `0.4.0-mvp` (`11e36a52…`). **Falta o usuário testar no Windows.**
+
 4. **Aliases e duplicatas** (P5 resolvida): migração 0003 + ADR, telas.
 
 Revisão visual sem o Windows: `cd desktop/frontend && npm run demo` (dados fictícios) e capturas pelo navegador.

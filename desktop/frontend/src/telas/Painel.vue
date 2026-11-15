@@ -12,10 +12,11 @@ import type { Faixa, TipoItem } from '../../bindings/sitposse7/desktop/internal/
 import BarraFiltros from '../componentes/BarraFiltros.vue'
 import CartaoIndicador from '../componentes/CartaoIndicador.vue'
 import Detalhamento from '../componentes/Detalhamento.vue'
+import ExportarRelatorio from '../componentes/ExportarRelatorio.vue'
 import Grafico from '../componentes/Grafico.vue'
 import TabelaDados from '../componentes/TabelaDados.vue'
 import { alturaBarras, barrasHorizontais } from '../graficos'
-import { comExtra, type Filtro, filtroVazio, rotuloCampo } from '../filtro'
+import { chips, comExtra, type Filtro, filtroVazio, rotuloCampo } from '../filtro'
 import { CONJUNTOS, dominioDoCampo, extraDoIndicador, type Familia, type Grupo, type LinhaIndicador, type Resultado, v } from '../painel'
 import { haNumero, mensagem, num, plural, quando } from '../formato'
 import type { Tela } from '../navegacao'
@@ -46,6 +47,10 @@ const t = computed(() => r.value?.totais)
 const campos = computed(() => r.value?.campos ?? [])
 const opcoes = computed(() => ({ equipes: r.value?.equipes ?? [], areas: r.value?.areas ?? [], operacoes: r.value?.operacoes ?? [] }))
 const rotuloDe = (chave: string) => campos.value.find((c) => c.chave === chave)?.rotulo ?? chave
+
+// ---------- exportação ----------
+const exportando = ref(false)
+const criterios = computed(() => chips(filtro.value, { ...opcoes.value, campos: campos.value }).map((c) => c.texto))
 
 // ---------- drill-down ----------
 const detalhe = ref<{ titulo: string; filtro: Filtro; campo: string | null } | null>(null)
@@ -162,7 +167,10 @@ const abas: { id: Aba; rotulo: string }[] = [
           {{ op ? `Operação ${op.nome}` : 'Nenhuma operação ativa' }}<template v-if="resumo?.lotes_importados">. {{ plural(resumo.lotes_importados, 'lote importado', 'lotes importados') }}, o último em {{ quando(resumo.ultima_importacao) }}</template>
         </p>
       </div>
-      <button class="primario" @click="emit('ir', 'sincronizacao')">{{ op ? 'Receber dos celulares' : 'Criar operação' }}</button>
+      <div class="linha">
+        <button :disabled="!r?.familias_base" title="PDF, Word ou Excel, com os filtros ativos" @click="exportando = true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>Exportar</button>
+        <button class="primario" @click="emit('ir', 'sincronizacao')">{{ op ? 'Receber dos celulares' : 'Criar operação' }}</button>
+      </div>
     </header>
 
     <BarraFiltros v-model="filtro" :equipes="opcoes.equipes" :areas="opcoes.areas" :operacoes="opcoes.operacoes" :campos="campos"
@@ -271,6 +279,7 @@ const abas: { id: Aba; rotulo: string }[] = [
       </template>
     </template>
 
+    <ExportarRelatorio v-if="exportando" modo="geral" :filtro="filtro" :criterios="criterios" :familias="t?.familias ?? 0" @fechar="exportando = false" />
     <Detalhamento v-if="detalhe" :titulo="detalhe.titulo" :filtro="detalhe.filtro" :campo="detalhe.campo" :campos="campos"
                   :equipes="opcoes.equipes" :areas="opcoes.areas" :operacoes="opcoes.operacoes"
                   @fechar="detalhe = null" @abrir="(u) => emit('abrir', u)" @aplicar="aplicarDetalhe" />
@@ -278,6 +287,7 @@ const abas: { id: Aba; rotulo: string }[] = [
 </template>
 
 <style scoped>
+.ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; margin-right: .35rem; }
 .cabeca { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
 .titulo { display: flex; flex-direction: column; gap: .35rem; }
 .cartoes { display: grid; gap: .9rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 235px), 1fr)); }

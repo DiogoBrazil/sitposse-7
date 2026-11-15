@@ -2,6 +2,17 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-14 (A26) — exportação em PDF, Word e Excel; listas centralizadas
+- **desktop** · Listas: textos e cabeçalhos centralizados e divisórias entre colunas (`TabelaDados`).
+- **desktop** · `internal/relatorios` (ADR-0021):
+  - um modelo de documento comum para PDF (gopdf, fonte Archivo embutida) e DOCX (só biblioteca padrão), com brasão e "Polícia Militar de Rondônia / 7º Batalhão de Polícia Militar" no cabeçalho de todas as páginas, tabelas com cabeçalho repetido e divisórias, e "Página X de Y";
+  - XLSX (excelize) com 7 abas, tabelas filtráveis, totais `SUBTOTAL`, gráficos e links.
+
+  Os relatórios usam os filtros ativos. `RelatorioService` no app: "Salvar como" do Windows, gravação atômica, "Abrir arquivo" e "Mostrar na pasta". `estatisticas.Familia` ganhou coordenadas e origem do GPS (para as fichas).
+- **desktop** · **Dependências novas** (versões exatas): `github.com/xuri/excelize/v2` v2.11.1 (BSD-3) e `github.com/signintech/gopdf` v0.38.4 (MIT), com as transitivas listadas no ADR-0021. Fontes Archivo estáticas (OFL-1.1) e o brasão embutidos no executável.
+- **desktop** · Frontend: botão "Exportar" no Painel e em Propriedades e "Exportar ficha" na página da propriedade (`ExportarRelatorio`). Central `0.4.0-mvp`, instalador `11e36a52…` (o anterior ficou como `…-installer-391936a4.exe`).
+- **desktop** · Testes: `relatorios_test.go` (PDF, DOCX, XLSX, formatação), `app/relatorios_test.go` (gravação atômica). Validado no Word e no Excel do Windows. Sem mudança de esquema nem de protocolo.
+
 ## 2026-11-14 (A25, Etapas 2 e 3) — estatísticas com filtros e drill-down (§22-A)
 - **docs** · Especificação do usuário registrada em `docs/requirements/estatisticas.md` (§22-A). Ela substitui a lista derivada provisória como critério de aceite da Fase 4. **ADR-0020:** FiltroEstudo calculado em memória sobre as visões vigentes.
 - **desktop** · Pacote `internal/estatisticas`:

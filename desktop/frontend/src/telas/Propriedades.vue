@@ -8,7 +8,8 @@ import { computed, onActivated, onMounted, ref, watch } from 'vue'
 import { ConsultaService as Consulta } from '../../bindings/sitposse7/desktop/app'
 import BarraFiltros from '../componentes/BarraFiltros.vue'
 import TabelaDados from '../componentes/TabelaDados.vue'
-import { type Filtro, filtroVazio } from '../filtro'
+import ExportarRelatorio from '../componentes/ExportarRelatorio.vue'
+import { chips, type Filtro, filtroVazio } from '../filtro'
 import { type Familia, type Resultado, v } from '../painel'
 import { haNumero, mensagem, num, plural, quando } from '../formato'
 import type { Coluna } from '../tabela'
@@ -28,6 +29,8 @@ onMounted(carregar)
 onActivated(carregar)
 
 const familias = computed(() => r.value?.familias ?? [])
+const exportando = ref(false)
+const criterios = computed(() => chips(filtro.value, { equipes: r.value?.equipes ?? [], areas: r.value?.areas ?? [], operacoes: r.value?.operacoes ?? [], campos: r.value?.campos ?? [] }).map((c) => c.texto))
 const colunas: Coluna<Familia>[] = [
   { chave: 'nome', rotulo: 'Propriedade / família', largura: '24%' },
   { chave: 'equipe', rotulo: 'Equipe' },
@@ -49,9 +52,13 @@ const totais = computed(() => {
 <template>
   <div class="pilha">
     <header class="cabeca">
-      <h1>Propriedades</h1>
-      <p class="suave">Cada propriedade corresponde a uma família. Clique numa linha para ver o cadastro completo.</p>
+      <div class="titulo">
+        <h1>Propriedades</h1>
+        <p class="suave">Cada propriedade corresponde a uma família. Clique numa linha para ver o cadastro completo.</p>
+      </div>
+      <button :disabled="!r?.familias_base" title="PDF, Word ou Excel, com os filtros ativos" @click="exportando = true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" /></svg>Exportar</button>
     </header>
+    <ExportarRelatorio v-if="exportando" modo="geral" :filtro="filtro" :criterios="criterios" :familias="r?.totais.familias ?? 0" @fechar="exportando = false" />
     <BarraFiltros v-model="filtro" :equipes="r?.equipes ?? []" :areas="r?.areas ?? []" :operacoes="r?.operacoes ?? []" :campos="r?.campos ?? []"
                   :mostrando="r?.totais.familias ?? null" :base="r?.familias_base ?? null" />
     <TabelaDados :colunas="colunas" :linhas="familias" :chave="(l) => l.uuid" rotulo="Propriedades recebidas" clicavel :totais="totais"
@@ -72,7 +79,10 @@ const totais = computed(() => {
 </template>
 
 <style scoped>
-.cabeca { display: flex; flex-direction: column; gap: .35rem; }
+.cabeca { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+.titulo { display: flex; flex-direction: column; gap: .35rem; }
+.ic { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; margin-right: .35rem; }
+
 .nome { display: block; }
 .resp { font-size: .88rem; }
 </style>

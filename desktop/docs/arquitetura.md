@@ -42,4 +42,4 @@ NSIS (build do Wails) com:
 Validado em Windows 10 22H2 e 11 limpos, sem internet (Fase 0).
 
 ## Stack
-Go (estável atual, fixar na Fase 0) · Wails v3.1.x · Vue 3 + TypeScript + Vite · tabelas próprias (ADR-0019) · Apache ECharts (vue-echarts) · Leaflet 1.9 + markercluster · biblioteca PDF (Fase 5).
+Go (estável atual, fixar na Fase 0) · Wails v3.1.x · Vue 3 + TypeScript + Vite · tabelas próprias (ADR-0019) · Apache ECharts (vue-echarts) · Leaflet 1.9 + markercluster · gopdf + excelize + DOCX próprio (ADR-0021).

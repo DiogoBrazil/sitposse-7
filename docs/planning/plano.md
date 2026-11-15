@@ -11,7 +11,7 @@ Aprovado em **13/11/2026**. As estimativas são para **um desenvolvedor em tempo
 | **2. Central: base e recepção mínima** | Banco, migrações, operações e equipes, pareamento, recepção de lote com fotos, CRUD e auditoria | Primeira carga de 2 celulares com contagens, UUIDs e hashes conferidos | 2–3 sem | — |
 | **3. Sincronização robusta** | Incremental, tombstones, retomada de fotos, recibos, ACK perdido, conflitos com tela de resolução, pacote USB com recibo, restauração de equipe | Cenários 1–14 de `testing/estrategia.md` §4 passando | 3–4 sem | — |
 | **4. Estatísticas e filtros** | `FiltroEstudo`, painel, tabelas, gráficos, drill-down, aliases, sugestão de duplicatas (P5) | Fixture de estatísticas com todos os cruzamentos do prompt §18 (lista derivada, A25) | 2–3 sem | **Antecipada (A25, 14/11/2026)**: em andamento, junto com a melhoria visual da Central |
-| **5. Backups e relatórios** | Backup e restauração nos dois lados; liberar espaço (P3/P4); relatórios PDF/CSV | Restauração real testada | 1,5–2 sem | — |
+| **5. Backups e relatórios** | Backup e restauração nos dois lados; liberar espaço (P3/P4); relatórios PDF/CSV | Restauração real testada | 1,5–2 sem | Relatórios **antecipados** (A26, 14/11/2026): PDF, DOCX e XLSX feitos; backups pendentes |
 | **6. Cartografia online** | Provedor (P1), mapas individual e geral, cartas-imagem, indisponibilidade amigável | Testes de `testing/estrategia.md` §6 | 1,5–2 sem | — |
 | **7. Campo, empacotamento e docs** | Teste com equipes reais, ajustes de UX, APK assinado, instalador, manuais | Checklist de aceite (§7 da estratégia) | 1,5–2 sem | — |
 

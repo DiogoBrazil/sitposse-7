@@ -27,5 +27,6 @@ Um ADR aprovado **não é editado** para mudar a decisão: cria-se um novo ADR q
 | [0018](0018-esquema-v2-celular-mvp.md) | Esquema v2 do banco do celular e sincronização no `:core:sync` (MVP) | Proposto |
 | [0019](0019-frontend-central-tabelas-proprias-echarts.md) | Frontend da Central: tabelas próprias, ECharts e fonte empacotada (substitui o PrimeVue) | Aprovado |
 | [0020](0020-filtroestudo-em-memoria.md) | FiltroEstudo calculado em memória sobre as visões vigentes | Aprovado |
+| [0021](0021-relatorios-pdf-docx-xlsx.md) | Relatórios em PDF, DOCX e XLSX gerados na Central | Aprovado |
 
 Modelo para novos ADRs: copie [`template.md`](template.md).

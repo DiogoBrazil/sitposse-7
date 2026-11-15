@@ -74,6 +74,10 @@ type Familia struct {
 	AreaHa           *string          `json:"area_ha"`
 	AreaUnidade      *string          `json:"area_unidade"`
 	ComLocalizacao   bool             `json:"com_localizacao"`
+	Lat              *float64         `json:"lat"`
+	Lon              *float64         `json:"lon"`
+	GpsOrigem        *string          `json:"gps_origem"` // gnss | manual
+	GpsPrecisaoM     *float64         `json:"gps_precisao_m"`
 	CriadoEm         int64            `json:"criado_em"`
 	RecebidoEm       int64            `json:"recebido_em"`
 }

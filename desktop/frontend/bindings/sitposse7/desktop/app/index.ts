@@ -3,10 +3,12 @@
 
 import * as ConsultaService from "./consultaservice.js";
 import * as OperacaoService from "./operacaoservice.js";
+import * as RelatorioService from "./relatorioservice.js";
 import * as SincronizacaoService from "./sincronizacaoservice.js";
 export {
     ConsultaService,
     OperacaoService,
+    RelatorioService,
     SincronizacaoService
 };
 

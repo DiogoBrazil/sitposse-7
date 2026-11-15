@@ -20,11 +20,13 @@ import (
 )
 
 // Versao do aplicativo Central.
-const Versao = "0.3.0-mvp"
+const Versao = "0.4.0-mvp"
 
 // Central inicializa o núcleo e mantém o servidor de sincronização.
 type Central struct {
 	PastaDados string
+	// Arquivos: janelas de salvar/abrir do sistema (main.go). Pode ser nil nos testes.
+	Arquivos   Arquivos
 	n          *nucleo.Nucleo
 	c          *consultas.Consultas
 	erroServ   string
