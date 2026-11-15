@@ -42,8 +42,8 @@ A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-d
 
 **Fase 4 antecipada (A25, 14/11, noite), em etapas:**
 1. ~~**Base visual**~~ **feito:** ADR-0019, tabelas próprias, ECharts, Archivo, Painel/Propriedades/página da propriedade/Equipes/Sincronização e modal técnico. Central `0.2.0-mvp` (`cc3e49b7…`). **Falta o usuário olhar no Windows.**
-2. **`FiltroEstudo` no Go** + fixture `shared/test-fixtures/estatisticas/` com a lista derivada de cruzamentos (`desktop/docs/telas-e-fluxos.md` §Cruzamentos). Benchmark < 300 ms no volume 3×.
-3. **Painel/Estatísticas:** barra de filtros (equipe, período, GPS/fotos, área, rebanho, itens), gráficos por equipe e por tipo, tabela analítica, drill-down até o cadastro.
+2. ~~**`FiltroEstudo` no Go**~~ **feito (14/11):** `internal/estatisticas` (ADR-0020), fixture `shared/test-fixtures/estatisticas/` com as 7 perguntas da especificação do usuário (`docs/requirements/estatisticas.md`, §22-A). 900 propriedades em ~14 ms.
+3. ~~**Painel/Estatísticas**~~ **feito (14/11):** barra de filtros, cartões, abas, drill-down; Propriedades com os mesmos filtros. Central `0.3.0-mvp` (`391936a4…`). **Falta o usuário testar no Windows.**
 4. **Aliases e duplicatas** (P5 resolvida): migração 0003 + ADR, telas.
 
 Revisão visual sem o Windows: `cd desktop/frontend && npm run demo` (dados fictícios) e capturas pelo navegador.
@@ -133,7 +133,7 @@ cd ../desktop
 go vet ./internal/... ./app/... ./cmd/...
 go test ./internal/... ./app/...
 (cd frontend && npm ci)                 # numa máquina nova
-(cd frontend && npm test)               # Vitest: tabelas (7)
+(cd frontend && npm test)               # Vitest: tabelas e filtros (11)
 wails3 build GOOS=windows               # → bin/sitposse7-central.exe (no Windows: wails3 build)
 
 # Instalador NSIS (pelo WSL, com o makensis do Linux). Antes, coloque o WebView2 offline

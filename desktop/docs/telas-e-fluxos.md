@@ -4,8 +4,8 @@ Layout: barra lateral fixa + área de conteúdo; responsivo de 1366×768 a 4K; t
 
 | Menu | Conteúdo |
 |---|---|
-| **Painel** | Faixa de totais (famílias, pessoas, rebanho, aves, veículos, bens, território com "N sem área"), cobertura (localização, área, fotos), recepção, tabelas **por equipe** e **por família** com total geral, gráficos por família; depois (Etapa 3, A25): filtros do `FiltroEstudo`, gráficos por equipe e por tipo, alertas (conflitos, lotes com erro, último backup) |
-| **Propriedades** | Tabela filtrável → **página da propriedade** (faixa de totais; pessoas, rebanho e veículos em gráfico + tabela; bens e criações por categoria; área e localização em texto; fotos ampliáveis; registro e sincronização); depois: histórico e auditoria, "Localização" online, editar |
+| **Painel** (estatísticas, §22-A) | Barra de filtros (busca, equipe, área identificada; "Mais filtros": período de cadastro ou recebimento, localização, fotos, área informada, faixas e hectares, condições sobre qualquer quantidade ou tipo de item) com chips e "Limpar filtros", e "N de M famílias". Cartões com detalhamento (famílias, pessoas, veículos, rebanho, aves, eletrodomésticos, móveis, área). Abas: por equipe ou área identificada (colunas escolhíveis + gráfico), por família, itens por tipo (predefinidos e "Outros" agrupados), tamanho das propriedades. Todo número, barra ou linha abre a relação das famílias (drill-down) e daí o cadastro; "Filtrar o Painel por estes critérios". Depois: alertas (conflitos, lotes com erro, último backup) |
+| **Propriedades** | Mesma barra de filtros do Painel + tabela com totais → **página da propriedade** (faixa de totais; pessoas, rebanho e veículos em gráfico + tabela; bens e criações por categoria; área e localização em texto; fotos ampliáveis; registro e sincronização); depois: histórico e auditoria, "Localização" online, editar |
 | **Equipes / Operações** | Operação ativa, equipes, aparelhos pareados (revogar), última sincronização |
 | **Fotos** | Galeria filtrável por propriedade e equipe |
 | **Sincronização** | Passos e QR de pareamento (botão bloqueado enquanto gera), estado da recepção, histórico de lotes com recusas; IPs, porta, impressão digital e pasta ficam em **Informações técnicas** (modal no rodapé da barra lateral); depois: diagnóstico de rede e firewall, "Restaurar equipe" |
@@ -23,7 +23,7 @@ Dimensões: operação · equipe(s) · identificação da área · propriedade �
 O mesmo objeto alimenta cartões, tabelas, gráficos, lista, mapa e exportações (RN-81). Cada número tem drill-down para a lista de propriedades que o compõem.
 
 ## Cruzamentos (lista derivada, A25)
-O prompt §18 não está no repositório. Até ele aparecer, esta lista é o critério de aceite da Fase 4 (fixture `shared/test-fixtures/estatisticas/`).
+**Substituída em 14/11 pela especificação do usuário: [`docs/requirements/estatisticas.md`](../../docs/requirements/estatisticas.md) (§22-A), que é o critério de aceite da Fase 4.** A lista abaixo continua coberta por ela.
 
 **Totais:** sempre há o **geral**, **por equipe** e **por família** (cada propriedade é uma família).
 
@@ -62,7 +62,7 @@ O assunto é um levantamento de campo da PM em linhas vicinais de Rondônia. As 
 - **Tabelas** (`TabelaDados`):
   - divisórias visíveis, cabeçalho fixo, ordenação acessível (`aria-sort`), paginação e linha de totais;
   - linhas abertas com Enter;
-  - abaixo de 900 px de largura, as colunas secundárias saem; abaixo de 640 px, cada linha vira um bloco "rótulo: valor" (exceto em tabelas `compacta`).
+  - abaixo de 1000 px de largura, as colunas secundárias saem; abaixo de 640 px, cada linha vira um bloco "rótulo: valor" (exceto em tabelas `compacta`).
 - **Gráficos** (`Grafico` + `graficos.ts`, ECharts):
   - a cor segue o assunto em toda a Central: eletrodomésticos `--s1` (mata), pessoas `--s2` (rio), rebanho `--s3` (laterita), veículos `--s4` (açaí), móveis `--s5` (ipê), aves `--s6` (urucum);
   - barras finas com ponta arredondada, valor na ponta na cor do texto, grade tracejada discreta, tooltip;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { OperacaoService as Op, SincronizacaoService as Sinc } from '../bindings/sitposse7/desktop/app'
 import type { Operacao, PedidoResumo } from '../bindings/sitposse7/desktop/internal/pareamento/models'
 import Painel from './telas/Painel.vue'
@@ -24,8 +24,10 @@ const versao = ref('')
 const operacao = ref<Operacao | null>(null)
 const infoAberta = ref(false)
 
-function ir(t: Tela) { tela.value = t; aberta.value = null }
-function abrirPropriedade(uuid: string) { aberta.value = { uuid, de: tela.value } }
+function ir(t: Tela) { tela.value = t; aberta.value = null; window.scrollTo(0, 0) }
+let rolagem = 0
+function abrirPropriedade(uuid: string) { rolagem = window.scrollY; aberta.value = { uuid, de: tela.value }; window.scrollTo(0, 0) }
+function voltar() { aberta.value = null; nextTick(() => window.scrollTo(0, rolagem)) }
 
 // Pedidos de pareamento: aparecem em qualquer tela (o aparelho espera até 90 s).
 const pedidos = ref<PedidoResumo[]>([])
@@ -78,13 +80,17 @@ onUnmounted(() => window.clearInterval(timer))
     </nav>
 
     <main>
-      <Propriedade v-if="aberta" :key="aberta.uuid" :uuid="aberta.uuid" :de="aberta.de" @voltar="aberta = null" />
-      <KeepAlive v-else>
-        <Painel v-if="tela === 'painel'" @ir="ir" @abrir="abrirPropriedade" />
-        <Propriedades v-else-if="tela === 'propriedades'" @abrir="abrirPropriedade" />
-        <Equipes v-else-if="tela === 'equipes'" />
-        <Sincronizacao v-else @info="infoAberta = true" />
-      </KeepAlive>
+      <Propriedade v-if="aberta" :key="aberta.uuid" :uuid="aberta.uuid" :de="aberta.de" @voltar="voltar" />
+      <!-- As telas ficam montadas (só escondidas) enquanto a propriedade está aberta: ao voltar,
+           filtros, aba e detalhamento continuam como estavam. -->
+      <div v-show="!aberta">
+        <KeepAlive>
+          <Painel v-if="tela === 'painel'" @ir="ir" @abrir="abrirPropriedade" />
+          <Propriedades v-else-if="tela === 'propriedades'" @abrir="abrirPropriedade" />
+          <Equipes v-else-if="tela === 'equipes'" />
+          <Sincronizacao v-else @info="infoAberta = true" />
+        </KeepAlive>
+      </div>
     </main>
 
     <InfoTecnica v-if="infoAberta" @fechar="infoAberta = false" />

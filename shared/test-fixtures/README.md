@@ -11,6 +11,7 @@ Executadas pelos testes **Kotlin e Go**. Se um lado divergir, o teste falha.
 | `contratos/{lote,estado-lote,recibo}.v1.json` | protocolo §3–6, ADR-0017 | `validos` e `invalidos`; `recibo` traz também o `texto_canonico` e o `recibo_sha256` esperados |
 | `contratos/pareamento.v1.json` | protocolo §2 | `pedidos_validos`, `respostas_validas`, `invalidos` |
 | `catalogo/itens.v1.json` | RN-30 | catálogo inicial (códigos estáveis); o seed da Central e o do Android devem ser iguais |
+| `estatisticas/base.v1.json` + `casos.v1.json` | §22-A, RN-80..82, ADR-0020 | base de 6 famílias vigentes (3 equipes, itens predefinidos e "Outros") e registros **excluídos** que não podem aparecer; 20 casos `filtro` → `esperado` (famílias, uuids, valores, área, itens, faixas, por equipe), calculados à mão. Só Go |
 | `tls/pin.json` + `tls/central-fixture.crt.pem` | ADR-0007 | certificado → pin SPKI esperado (calculado com OpenSSL; Go e Kotlin conferem) |
 
 **Fórmulas de referência:**

@@ -29,7 +29,7 @@ As regras detalhadas (campos, validações, conversões) estão em [regras-de-ne
 | RF-C03 | Importar pacote de contingência e gerar recibo (arquivo e QR). | Não |
 | RF-C04 | Consultar, criar e editar (correção da Central) propriedades, itens e fotos, com auditoria. | Não |
 | RF-C05 | Fila de conflitos com resolução manual campo a campo. | Não |
-| RF-C06 | Painel com estatísticas, filtros combináveis, tabelas analíticas, gráficos e drill-down. | Não |
+| RF-C06 | Painel com estatísticas, filtros combináveis, tabelas analíticas, gráficos e drill-down ([estatisticas.md](estatisticas.md), §22-A). | Não |
 | RF-C07 | Relatórios não cartográficos (PDF/CSV) respeitando os filtros. | Não |
 | RF-C08 | Backup verificado e restauração. | Não |
 | RF-C09 | Histórico de sincronizações, erros e auditoria. | Não |

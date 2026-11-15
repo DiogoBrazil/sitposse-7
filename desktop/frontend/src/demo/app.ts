@@ -1,3 +1,4 @@
+import { calcular, montarBase } from './estatisticas'
 // Dados fictícios para revisar o visual no navegador (`npm run demo`). Só entram com
 // `vite --mode demo` (alias em vite.config.ts); o build de produção usa os bindings reais.
 /* eslint-disable */
@@ -50,8 +51,10 @@ const sem = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase
 const somaCat = (c: string) => propriedades.reduce((s, p) => s + p.itens.filter((i) => i.categoria === c).reduce((t, i) => t + i.quantidade, 0), 0)
 const somaHa = propriedades.reduce((s, p) => s + (p.area_ha ? Number(p.area_ha.replace(',', '.')) : 0), 0)
 let pedidos: any[] = []
+const baseEst = montarBase(propriedades)
 
 export const ConsultaService = {
+  Estatisticas: (f: any) => espera(calcular(baseEst, f)),
   Resumo: () => espera({
     equipes: 3, aparelhos: 4, propriedades: propriedades.length,
     pessoas: propriedades.reduce((s, p) => s + p.pessoas_adultos + p.pessoas_jovens + p.pessoas_criancas, 0),

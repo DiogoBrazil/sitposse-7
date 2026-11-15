@@ -13,13 +13,14 @@ import (
 	"strings"
 
 	"sitposse7/desktop/internal/consultas"
+	"sitposse7/desktop/internal/estatisticas"
 	"sitposse7/desktop/internal/nucleo"
 	"sitposse7/desktop/internal/pareamento"
 	"sitposse7/desktop/internal/syncserver"
 )
 
 // Versao do aplicativo Central.
-const Versao = "0.2.0-mvp"
+const Versao = "0.3.0-mvp"
 
 // Central inicializa o núcleo e mantém o servidor de sincronização.
 type Central struct {
@@ -215,6 +216,16 @@ func (s *ConsultaService) Propriedades(busca, equipe string) ([]consultas.Propri
 // Propriedade devolve o detalhe (nil se não existir).
 func (s *ConsultaService) Propriedade(uuid string) (*consultas.PropriedadeDetalhe, error) {
 	return s.C.c.Propriedade(contexto(), uuid)
+}
+
+// Estatisticas aplica o FiltroEstudo às propriedades vigentes e devolve todos os números
+// do painel a partir do mesmo conjunto (RN-81; docs/requirements/estatisticas.md §22-A).
+func (s *ConsultaService) Estatisticas(filtro estatisticas.Filtro) (*estatisticas.Resultado, error) {
+	base, err := estatisticas.Carregar(contexto(), s.C.c.DB)
+	if err != nil {
+		return nil, err
+	}
+	return estatisticas.Calcular(base, filtro)
 }
 
 // Equipes lista as equipes.

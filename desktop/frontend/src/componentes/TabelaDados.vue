@@ -142,7 +142,7 @@ tfoot td { border-top: 1px solid var(--regua-forte); border-bottom: none; font-w
 
 /* Largura estreita: cada linha vira um bloco com rótulo: valor, mantendo as divisórias. */
 /* Largura média: as colunas secundárias saem primeiro. */
-@container (max-width: 900px) {
+@container (max-width: 1000px) {
   th.secundaria, td.secundaria { display: none; }
 }
 @container (max-width: 640px) {

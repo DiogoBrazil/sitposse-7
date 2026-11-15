@@ -13,12 +13,23 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as consultas$0 from "../internal/consultas/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as estatisticas$0 from "../internal/estatisticas/models.js";
 
 /**
  * Equipes lista as equipes.
  */
 export function Equipes(): $CancellablePromise<consultas$0.EquipeLinha[] | null> {
     return $Call.ByID(3537656745);
+}
+
+/**
+ * Estatisticas aplica o FiltroEstudo às propriedades vigentes e devolve todos os números
+ * do painel a partir do mesmo conjunto (RN-81; docs/requirements/estatisticas.md §22-A).
+ */
+export function Estatisticas(filtro: estatisticas$0.Filtro): $CancellablePromise<estatisticas$0.Resultado | null> {
+    return $Call.ByID(902180836, filtro);
 }
 
 /**

@@ -9,6 +9,8 @@ import type { EChartsOption } from 'echarts'
 import { lerTema, type Tema } from '../graficos'
 
 const props = defineProps<{ montar: (t: Tema) => EChartsOption; altura: number; rotulo: string }>()
+/** Clique numa barra: índice do ponto (para o drill-down). */
+const emit = defineEmits<{ clicar: [indice: number] }>()
 
 const tema = ref<Tema | null>(null)
 const opcao = computed(() => (tema.value ? props.montar(tema.value) : undefined))
@@ -20,7 +22,7 @@ onUnmounted(() => midia.removeEventListener('change', atualizar))
 
 <template>
   <div class="grafico" role="img" :aria-label="rotulo" :style="{ height: `${altura}px` }">
-    <VChart v-if="opcao" :option="opcao" autoresize />
+    <VChart v-if="opcao" :option="opcao" autoresize @click="(p: any) => emit('clicar', p.dataIndex)" />
   </div>
 </template>
 

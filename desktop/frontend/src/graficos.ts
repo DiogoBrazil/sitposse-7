@@ -59,6 +59,7 @@ export function barrasHorizontais(t: Tema, dominio: Dominio, pontos: Ponto[], un
       type: 'bar', data: pontos.map((p) => p.valor), barMaxWidth: 16, barMinHeight: 0,
       itemStyle: { color: cor, borderRadius: [0, 4, 4, 0] },
       emphasis: { itemStyle: { color: cor, opacity: 0.85 } },
+      cursor: 'pointer',
       label: { show: true, position: 'right', color: t.tinta, fontSize: 13, fontWeight: 600, formatter: (p: any) => fmt.format(p.value) },
     }],
   }

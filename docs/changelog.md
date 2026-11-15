@@ -2,6 +2,23 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-14 (A25, Etapas 2 e 3) — estatísticas com filtros e drill-down (§22-A)
+- **docs** · Especificação do usuário registrada em `docs/requirements/estatisticas.md` (§22-A). Ela substitui a lista derivada provisória como critério de aceite da Fase 4. **ADR-0020:** FiltroEstudo calculado em memória sobre as visões vigentes.
+- **desktop** · Pacote `internal/estatisticas`:
+  - `Filtro` com equipe, área identificada, busca sem acento, período (cadastro ou recebimento), localização, foto, área informada, faixas e hectares;
+  - **condições** sobre qualquer quantidade ou tipo de item: possui, não possui, mais de, pelo menos, menos de, exatamente;
+  - `Carregar` (consultas fixas nas visões vigentes) e `Calcular`: totais, por equipe, por área, itens por tipo ("Outros" agrupados pelo nome normalizado), faixas de área e famílias, todos do mesmo conjunto;
+  - `ConsultaService.Estatisticas` exposto ao frontend.
+- **shared** · Fixture `test-fixtures/estatisticas/`: base com excluídos e 20 casos, incluindo as 7 perguntas da §22-A.3.
+- **desktop** · Painel novo:
+  - barra de filtros com chips e "Limpar filtros";
+  - cartões redesenhados, sem as linhas coloridas: número principal + detalhamento com barra de proporção;
+  - abas por equipe ou área (colunas escolhíveis), por família, itens por tipo e tamanho das propriedades;
+  - drill-down em todo número, barra e linha, até o cadastro;
+  - ao voltar do cadastro, filtros, aba e rolagem são mantidos.
+
+  Propriedades usa a mesma barra de filtros. Testes: `estatisticas_test.go`; Vitest 11 (`filtro.test.ts`). Central `0.3.0-mvp`, instalador `391936a4…` (o anterior ficou como `…-installer-cc3e49b7.exe`). Sem mudança de esquema, de protocolo nem de dependência.
+
 ## 2026-11-14 (A25, Etapa 1) — novo visual da Central
 - **docs** · A25: Fase 4 antecipada inteira, com lista de cruzamentos derivada (`telas-e-fluxos.md` §Cruzamentos) e P5 resolvida. **ADR-0019:** tabelas próprias no lugar do PrimeVue, porque o PrimeVue 5 deixou de ser MIT e exige licença comercial para a PMRO.
 - **desktop** · Identidade visual nova (`telas-e-fluxos.md` §Identidade visual): tokens claro/escuro, fonte Archivo empacotada, barra lateral verde com a operação ativa, faixa de totais.
