@@ -155,3 +155,6 @@ dl.dados dd { margin: 0; min-width: 0; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* Ações de linha: alvos preservados e espaçamento uniforme, sem empilhar os ícones. */
+.acoes-tabela { display: inline-flex; align-items: center; justify-content: center; flex-wrap: nowrap; gap: 8px; white-space: nowrap; }

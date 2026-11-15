@@ -2,6 +2,26 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-15 — Central 0.7.2-mvp: ordem das ações em Estudos
+- **desktop** · Ação movida para a última coluna da lista de Estudos de situação, com largura reservada de 120 px. Ícones e espaçamento mantidos.
+- **build** · Novo instalador 0.7.2-mvp.
+
+## 2026-11-15 — Central 0.7.1-mvp: disposição das ações
+- **desktop** · Coluna Ação de Propriedades movida para o fim, largura reservada e nome da propriedade com 18% em vez de 24%. Ações em grupo horizontal sem quebra, com 8 px entre ícones, também nas tabelas de estudos/jornadas/equipes. Mantém alvos de clique, layout empilhado em janela estreita, filtros e paginação.
+- **build** · Novo instalador 0.7.1-mvp. Alteração visual, sem mudança de banco ou sincronização.
+
+## 2026-11-15 — Central 0.7.0-mvp (A29)
+- **desktop** · Tabelas com 5 registros/página, totais externos e exportações preservadas. Estudos com tabelas de jornadas e equipes selecionáveis, ações por ícone, modais de renomeação e exclusão lógica em cascata.
+- **desktop** · Editor de propriedade por seções, edição de itens, remoção adiada e download individual de fotos; token de concorrência otimista e auditoria transacional. Cascatas preservam arquivos/recibos e cancelam lotes pendentes do estudo. Proteção de cadastro completo na importação; recusa temporária escolhida pelo usuário (ADR-0026).
+- **testes** · Go test/vet; casos de correção, concorrência, rollback, fotos preservadas, criação de item e cascata; integração Kotlin × Central Go; 12 testes frontend e verificação Chromium com dados fictícios em 1440/560 px. Sem dependência nova, migração ou mudança de protocolo. Testado pelo usuário no Windows e no aparelho em 15/11.
+- **build** · Central 0.7.0-mvp, instalador NSIS com WebView2 offline, SHA-256 `f0eca232683a4373ac882a3ad971e7affca08775ebb6e09c13cc60d69e3f1dce`.
+
+## 2026-11-15 — Campo 0.2.1-mvp: código e edição de localização
+- **mobile** · Campo de equipe com `TextFieldState`, prefixo EQ fixo e hífen apenas visual (`OutputTransformation`), sem reescrever a máscara no estado a cada tecla. Mesma correção no início e ao corrigir código; validação existente preservada.
+- **mobile** · Ações explícitas para obter pelo aparelho e digitar/editar localização. Edição preenchida com o ponto atual; confirmar sem mudar preserva captura, editar torna manual sem metadados GNSS (RN-52). Entrada manual não solicita permissão de localização.
+- **testes** · 65 testes Android passando (17 domínio, 13 dados, 24 sync e 11 app), incluindo buffers Compose e cliente Kotlin × Central Go real com edição GNSS → manual. Sem dependências novas, mudança de esquema/protocolo ou alteração da Central.
+- **build** · Campo `0.2.1-mvp` (versionCode 5), APK `6610c222…`, mesma chave de debug.
+
 ## 2026-11-15 (A28, E6) — builds e roteiro de teste
 - **build** · Central `0.6.0-mvp`, instalador `2c43a150…`; Campo `0.2.0-mvp` (versionCode 4), APK `8e545c35…` (anteriores guardados com sufixo). Roteiro do teste em campo reescrito para estudos, códigos, 7 etapas e confirmação do destino, com o **procedimento único de reinício dos dados de teste** (ADR-0025): mover, não apagar, os arquivos do banco e as fotos da Central; desinstalar e reinstalar o app.
 

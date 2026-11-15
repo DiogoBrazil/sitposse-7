@@ -17,3 +17,10 @@ Estratégia geral: [`docs/testing/estrategia.md`](../../docs/testing/estrategia.
 | Instalador | Manual (VM limpa) | Windows 10 22H2 e 11 sem internet; firewall; WebView2 |
 | Cruzado com o Android | `cmd/central-teste` (Central completa, sem tela) chamado pelos testes JVM do `:core:sync` | Cria um estudo com as equipes Alfa e Bravo e informa os códigos. Opções `-confirmar=false`, `-espera=1s` e `-destino=auto|manual`; comandos na entrada padrão: `token`, `estado`, `pendentes`, `aceitar`, `recusar`, `aguardando`, `confirmar LOTE [CODIGO]`, `cancelar LOTE` (o teste faz o papel do operador). Ver [incidente de 14/11](../../mobile/docs/incidentes/2026-11-14-crash-pareamento.md) |
 | Relatórios | `internal/relatorios` (`go test`) + Office real | PDF (páginas, fonte embutida, fichas), DOCX (XML bem formado, partes, brasão antes dos textos, cabeçalho repetido, divisórias), XLSX (abas, textos institucionais, tabelas, `SUBTOTAL`, números como número). Amostras: `SITPOSSE7_AMOSTRAS=<pasta> go test ./internal/relatorios -run Amostras`; validação no Word/Excel do Windows via PowerShell (COM) |
+
+## Central 0.7.0-mvp (A29)
+Implementação e critérios em [ADR-0026](../../docs/architecture/decisions/0026-correcoes-e-exclusoes-central.md). Tabelas com 5 registros/página e totais externos. Editor por seções e exclusão lógica em cascata; fotos/recibos/cartas preservados. Novas versões de cadastros corrigidos são recusadas temporariamente, inclusive itens/fotos isolados. Nenhum dado é alterado no celular. Testes de fluxo em `internal/nucleo/correcoes_test.go`; validar ações/modais, download e relatórios no Windows.
+
+Verificação 0.7.1-mvp: Chromium conferiu Ação como última coluna, ícones na mesma linha com intervalo de 8 px e totalmente visíveis nas larguras 1440/1024/900/560 px; ações de estudos/jornadas/equipes também espaçadas. Compilação TypeScript e 12 testes Vitest passaram.
+
+Verificação 0.7.2-mvp: Chromium confirmou Ação como última coluna de Estudos de situação e manteve os testes de ícones e responsividade das demais listagens. 12 testes Vitest passaram.

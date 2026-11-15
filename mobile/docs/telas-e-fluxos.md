@@ -17,7 +17,7 @@ Banco da versão de teste anterior ──► tela de bloqueio (reinstalar; nada 
 ```
 
 ## [1] Código da equipe (RN-05, RN-07)
-Campo único grande, monoespaçado, que formata `EQ-XXXX-XXXX` enquanto se digita (maiúsculas, sem autocorreção). O dígito verificador é conferido **no aparelho**, sem rede: "Confira os caracteres do código". Botão **Começar coleta**. Abaixo, as coletas em andamento com **Continuar**. Com várias coletas em andamento ao abrir o app, a tela começa pela lista "Escolha a coleta para continuar".
+Campo único grande, monoespaçado, com prefixo `EQ-` fixo e oito caracteres editáveis (maiúsculas, sem autocorreção). O hífen após o quarto caractere é só visual; cursor e seleção são preservados ao apagar, substituir ou editar no meio. Aceita colar o corpo ou o código completo. O dígito verificador é conferido **no aparelho**, sem rede: "Confira os caracteres do código". Botão **Começar coleta**. Abaixo, as coletas em andamento com **Continuar**. Com várias coletas em andamento ao abrir o app, a tela começa pela lista "Escolha a coleta para continuar".
 - Código de uma coleta em andamento → abre ela (não duplica).
 - Código de uma coleta concluída → "Reabrir para continuar nela?".
 - Código novo com outra coleta em andamento → "Concluir a coleta anterior?" [Concluir] [Manter em andamento].
@@ -54,3 +54,6 @@ Barra inferior: **Voltar** · **Próximo** (na etapa 6, **Revisar**; na 7, **Sal
 
 ## [7] Pacote USB
 "Exportar pendentes" ou "Exportar backup completo" → seletor de local → "Pacote gravado e verificado". Depois: "Ler recibo da Central (QR)" ou "Abrir arquivo de recibo".
+
+### Ajuste 0.2.1-mvp — localização
+Na etapa Localização e fotografias, **Obter pelo aparelho** mantém a captura GNSS; **Digitar localização** abre a entrada manual sem pedir permissão de localização. Com coordenada existente, **Editar localização** abre latitude e longitude preenchidas (também para GNSS). Cancelar preserva o ponto; confirmar sem alterar preserva metadados; alterar números torna a origem manual, sem precisão, satélites ou instante GNSS (RN-52). Aceita ponto/vírgula decimal e só permite coordenadas finitas nas faixas RN-51.

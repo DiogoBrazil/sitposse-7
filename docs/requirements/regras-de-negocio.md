@@ -70,6 +70,10 @@
 - **RN-73** A unidade de conflito é o **cadastro**: a propriedade com seus itens e os metadados das fotos. *(Recomendado R3, aprovado com o plano.)*
 - **RN-74** Enviado ≠ importado. O Android só marca como confirmado o que consta em **recibo persistido** pela Central. Um envio **cancelado** pelo operador não confirma nada, não apaga nada e pode ser refeito.
 
+### Correções e exclusões na Central (A29, ADR-0026)
+- **RN-75** A Central pode corrigir os dados de um cadastro, sem mudar seus vínculos de origem. Até a fila de conflitos, novas versões do cadastro ou de seus filhos são recusadas com motivo e permanecem pendentes no aparelho; versões já processadas continuam idempotentes. Toda correção e exclusão é auditada na mesma transação.
+- **RN-76** Excluir estudo gera tombstones nas jornadas, equipes e cadastros vinculados, incluindo itens/fotos; excluir propriedade alcança seus itens/fotos. Coletas e histórico de sincronização são preservados; lotes pendentes associados ao estudo são cancelados e destinos excluídos não recebem nova aplicação. Arquivos e cartas emitidas não são apagados. A exclusão isolada de equipe continua restrita à ausência de coleta.
+
 ## Estatísticas
 - **RN-80** Consideram apenas registros **vigentes** (sem tombstone), na última versão aplicada.
 - **RN-81** Os filtros são combináveis e aplicados de forma **idêntica** a cartões, tabelas, gráficos, listas, mapa e exportações.

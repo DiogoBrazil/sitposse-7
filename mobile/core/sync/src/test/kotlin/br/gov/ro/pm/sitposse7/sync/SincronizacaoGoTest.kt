@@ -126,6 +126,29 @@ class SincronizacaoGoTest {
         api.close()
     }
 
+    /** Entrada manual usa o mesmo contrato v2 e continua incremental após edição. */
+    @Test
+    fun coordenadaManualSincronizaAposEdicaoDeGnss() = runBlocking<Unit> {
+        parear()
+        val coleta = repo.iniciarColeta(central.alfa.codigo).coleta.uuid
+        val uuid = repo.salvar(prop("Ponto editável"), coleta)
+        val api = pareador.conectar()
+        try {
+            assertEquals(emptyList(), assertIs<ResultadoColeta.Confirmado>(enviar(api, coleta)).resumo.rejeitados)
+            repo.salvar(prop("Ponto editável", uuid = uuid).copy(
+                lat = -10.75, lon = -63.25, gpsOrigem = "manual",
+                gpsPrecisaoM = null, gpsCapturadoEm = null, gpsSatelites = null,
+            ), coleta)
+            val r = assertIs<ResultadoColeta.Confirmado>(enviar(api, coleta)).resumo
+            assertEquals(emptyList(), r.rejeitados)
+            assertEquals(1, r.propriedadesConfirmadas)
+            assertEquals(1, r.aplicados)
+            assertEquals(0, repo.observarContagens(coleta).first().pendentes)
+            assertEquals(1, central.estado()["propriedades"])
+            assertNull(enviar(api, coleta))
+        } finally { api.close() }
+    }
+
     /** Cenários 6 (foto retomada) e 5 (ACK perdido: a Central importou e o aparelho não gravou o recibo). */
     @Test
     fun fotoRetomadaEAckPerdido() = runBlocking<Unit> {

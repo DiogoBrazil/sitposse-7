@@ -7,6 +7,9 @@
 import { computed, onActivated, onMounted, ref } from 'vue'
 import { EstudoService as Est } from '../../bindings/sitposse7/desktop/app'
 import type { EstudoDetalhe, Jornada } from '../../bindings/sitposse7/desktop/internal/estudos/models'
+import AcaoIcone from '../componentes/AcaoIcone.vue'
+import ModalFormulario from '../componentes/ModalFormulario.vue'
+import ConfirmarExclusao from '../componentes/ConfirmarExclusao.vue'
 import TabelaDados from '../componentes/TabelaDados.vue'
 import { carregarEstudos, dataBR, definirFoco, estudoFoco, estudos } from '../estudo'
 import { mensagem, num, quando } from '../formato'
@@ -17,6 +20,17 @@ const erro = ref('')
 const busca = ref('')
 const aberto = ref<EstudoDetalhe | null>(null)
 const copiado = ref('')
+const jornadaId=ref('')
+const jornadaAtual=computed(()=>aberto.value?.lista_jornadas?.find(j=>j.uuid===jornadaId.value)??aberto.value?.lista_jornadas?.[0])
+const colJornadas:Coluna<Jornada>[]=[{chave:'numero',rotulo:'Jornada',tipo:'numero'},{chave:'data',rotulo:'Data',formatar:j=>dataBR(j.data)},{chave:'equipes',rotulo:'Equipes',valor:j=>j.equipes?.length??0},{chave:'familias',rotulo:'Famílias',tipo:'numero'},{chave:'acao',rotulo:'Ação',ordenavel:false}]
+const colEquipes=[{chave:'nome',rotulo:'Equipe'},{chave:'codigo_exibicao',rotulo:'Código'},{chave:'familias',rotulo:'Famílias',tipo:'numero' as const},{chave:'acao',rotulo:'Ação',ordenavel:false}]
+const edicao=ref<{id:string;nome:string;tipo:'estudo'|'equipe'}|null>(null)
+const exclusao=ref<{id:string;nome:string;resumo:string;tipo:'estudo'|'equipe'}|null>(null)
+async function salvarNome(){if(!edicao.value)return;salvando.value=true;try{const e=edicao.value;if(e.tipo==='estudo')await Est.Renomear(e.id,e.nome);else await Est.RenomearEquipe(e.id,e.nome);edicao.value=null;await recarregar()}catch(e){erro.value=mensagem(e)}finally{salvando.value=false}}
+async function pedirExcluirEstudo(e:Estudo){try{const d=await Est.Detalhe(e.uuid);exclusao.value={id:e.uuid,nome:e.nome,tipo:'estudo',resumo:`Serão excluídos ${d?.jornadas??0} jornadas, ${d?.equipes??0} equipes e ${d?.familias??0} propriedades, incluindo seus itens e fotos. Envios pendentes vinculados serão cancelados.`}}catch(e){erro.value=mensagem(e)}}
+async function confirmarExclusao(){if(!exclusao.value)return;const e=exclusao.value;if(e.tipo==='estudo')await Est.Excluir(e.id);else await Est.ExcluirEquipe(e.id)}
+async function excluiu(){if(exclusao.value?.tipo==='estudo'&&aberto.value?.uuid===exclusao.value.id)aberto.value=null;exclusao.value=null;await recarregar();window.dispatchEvent(new Event('cadastros-atualizados'))}
+
 
 async function recarregar() {
   try {
@@ -40,6 +54,7 @@ const colEstudos: Coluna<Estudo>[] = [
   { chave: 'equipes', rotulo: 'Equipes', tipo: 'numero' },
   { chave: 'familias', rotulo: 'Famílias', tipo: 'numero' },
   { chave: 'ultima_importacao', rotulo: 'Última importação', valor: (l) => l.ultima_importacao ?? 0, formatar: (l) => (l.ultima_importacao ? quando(l.ultima_importacao) : '—'), secundaria: true },
+  { chave: 'acao', rotulo: 'Ação', ordenavel: false, largura: '120px' },
 ]
 
 async function abrir(e: Estudo) {
@@ -97,15 +112,8 @@ async function adicionarEquipe() {
   if (!novaEquipe.value) return
   try { await Est.AdicionarEquipes(novaEquipe.value.jornada, [novaEquipe.value.nome]); novaEquipe.value = null; await recarregar() } catch (x) { erro.value = mensagem(x) }
 }
-async function renomearEstudo() {
-  const nome = window.prompt('Novo nome do estudo', aberto.value?.nome)
-  if (!nome || !aberto.value) return
-  try { await Est.Renomear(aberto.value.uuid, nome); await recarregar() } catch (x) { erro.value = mensagem(x) }
-}
-async function excluirEquipe(uuid: string, nome: string) {
-  if (!window.confirm(`Excluir a equipe ${nome}? Só é possível enquanto nenhum cadastro dela foi recebido.`)) return
-  try { await Est.ExcluirEquipe(uuid); await recarregar() } catch (x) { erro.value = mensagem(x) }
-}
+function renomearEstudo(){if(aberto.value)edicao.value={id:aberto.value.uuid,nome:aberto.value.nome,tipo:'estudo'}}
+function excluirEquipe(uuid:string,nome:string){exclusao.value={id:uuid,nome,tipo:'equipe',resumo:'Somente equipes sem coleta vinculada podem ser excluídas.'}}
 async function emFoco() { if (aberto.value) await definirFoco(aberto.value.uuid) }
 </script>
 
@@ -131,31 +139,16 @@ async function emFoco() { if (aberto.value) await definirFoco(aberto.value.uuid)
       </header>
       <p v-if="erro" class="aviso-erro">{{ erro }}</p>
 
-      <section v-for="j in aberto.lista_jornadas" :key="j.uuid" class="bloco">
-        <div class="bloco-cabeca">
-          <h2>Jornada {{ j.numero }} · {{ dataBR(j.data) }}</h2>
-          <span class="total">{{ num(j.familias) }} família(s)</span>
-        </div>
-        <div class="bloco-corpo pilha">
-          <p v-if="!(j.equipes ?? []).length" class="fraco">Nenhuma equipe nesta jornada.</p>
-          <div class="equipes">
-            <div v-for="q in j.equipes" :key="q.uuid" class="equipe">
-              <div>
-                <strong>{{ q.nome }}</strong>
-                <span class="fraco">{{ num(q.familias) }} família(s){{ q.ultima_importacao ? ` · última importação ${quando(q.ultima_importacao)}` : '' }}</span>
-              </div>
-              <div class="codigo-linha">
-                <span class="codigo">{{ q.codigo_exibicao }}</span>
-                <button class="discreto" :aria-label="`Copiar o código da ${q.nome}`" @click="copiar(q.codigo_exibicao, q.uuid)">{{ copiado === q.uuid ? 'Copiado' : 'Copiar' }}</button>
-                <button v-if="!q.coletas" class="discreto perigo-texto" :aria-label="`Excluir a ${q.nome}`" @click="excluirEquipe(q.uuid, q.nome)">Excluir</button>
-              </div>
-            </div>
-          </div>
-          <div class="linha">
-            <button class="discreto" @click="novaEquipe = { jornada: j.uuid, nome: '' }">+ Equipe</button>
-            <button v-if="(j.equipes ?? []).length" class="discreto" @click="copiar(textoCodigos(j), j.uuid)">{{ copiado === j.uuid ? 'Códigos copiados' : 'Copiar todos os códigos' }}</button>
-          </div>
-        </div>
+      <section class="bloco"><div class="bloco-cabeca"><h2>Jornadas</h2></div>
+        <TabelaDados :colunas="colJornadas" :linhas="aberto.lista_jornadas??[]" :chave="j=>j.uuid" rotulo="Jornadas do estudo" clicavel :selecionada="jornadaAtual?.uuid" @abrir="jornadaId=$event.uuid">
+          <template #acao="{linha}"><div class="acoes-tabela"><AcaoIcone acao="Adicionar equipe" icone="adicionar" @click="novaEquipe={jornada:linha.uuid,nome:''}"/><AcaoIcone acao="Copiar todos os códigos" icone="copiar" :disabled="!linha.equipes?.length" @click="copiar(textoCodigos(linha),linha.uuid)"/></div></template>
+        </TabelaDados>
+      </section>
+      <section v-if="jornadaAtual" class="bloco"><div class="bloco-cabeca"><h2>Equipes · Jornada {{jornadaAtual.numero}} · {{dataBR(jornadaAtual.data)}}</h2><span role="status">{{copiado?'Códigos copiados':''}}</span></div>
+        <TabelaDados :colunas="colEquipes" :linhas="jornadaAtual.equipes??[]" :chave="q=>q.uuid" rotulo="Equipes da jornada">
+          <template #codigo_exibicao="{linha}"><span class="mono">{{linha.codigo_exibicao}}</span></template>
+          <template #acao="{linha}"><div class="acoes-tabela"><AcaoIcone acao="Copiar código" icone="copiar" @click="copiar(linha.codigo_exibicao,linha.uuid)"/><AcaoIcone acao="Editar nome da equipe" icone="editar" @click="edicao={id:linha.uuid,nome:linha.nome,tipo:'equipe'}"/><AcaoIcone :acao="linha.coletas?'Equipe com coleta vinculada: exclusão bloqueada':'Excluir equipe'" icone="excluir" :disabled="!!linha.coletas" @click="excluirEquipe(linha.uuid,linha.nome)"/></div></template>
+        </TabelaDados>
       </section>
     </template>
 
@@ -172,12 +165,18 @@ async function emFoco() { if (aberto.value) await definirFoco(aberto.value.uuid)
       <input v-model="busca" type="search" placeholder="Buscar por nome ou código" class="busca" />
       <TabelaDados :colunas="colEstudos" :linhas="lista" :chave="(l) => l.uuid" rotulo="Estudos de situação" texto-vazio="Nenhum estudo ainda. Crie o primeiro para gerar os códigos das equipes."
                    clicavel @abrir="abrir">
+        <template #acao="{linha}"><div class="acoes-tabela"><AcaoIcone acao="Editar nome do estudo" icone="editar" @click="edicao={id:linha.uuid,nome:linha.nome,tipo:'estudo'}"/><AcaoIcone acao="Excluir estudo e dados vinculados" icone="excluir" @click="pedirExcluirEstudo(linha)"/></div></template>
         <template #nome="{ linha }"><strong>{{ linha.nome }}</strong> <span v-if="linha.uuid === estudoFoco" class="selo ok">Em foco</span></template>
         <template #codigo_exibicao="{ linha }"><span class="mono">{{ linha.codigo_exibicao }}</span></template>
       </TabelaDados>
     </template>
 
     <!-- Modais -->
+    <ConfirmarExclusao v-if="exclusao" :nome="exclusao.nome" :resumo="exclusao.resumo" :executar="confirmarExclusao" @fechar="exclusao=null" @concluido="excluiu" />
+    <ModalFormulario v-if="edicao" :titulo="edicao.tipo==='estudo'?'Editar nome do estudo':'Editar nome da equipe'" :ocupado="salvando" @fechar="edicao=null">
+      <form id="renomear-registro" class="pilha" @submit.prevent="salvarNome"><p v-if="erro" class="aviso-erro">{{erro}}</p><label class="campo">Nome *<input v-model="edicao.nome" required maxlength="200" autofocus></label><p class="suave">O código e os vínculos permanecem os mesmos.</p></form>
+      <template #acoes><button :disabled="salvando" @click="edicao=null">Cancelar</button><button class="primario" type="submit" form="renomear-registro" :disabled="salvando">Salvar nome</button></template>
+    </ModalFormulario>
     <div v-if="novoEstudo" class="modal-fundo" @click.self="novoEstudo = null">
       <form class="modal pilha" role="dialog" aria-modal="true" aria-labelledby="ne-titulo" @submit.prevent="criarEstudo">
         <h2 id="ne-titulo">Novo estudo de situação</h2>

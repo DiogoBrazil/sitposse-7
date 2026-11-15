@@ -46,3 +46,12 @@ describe('paginar', () => {
     expect(paginar(n, 1, 0).itens.length).toBe(53)
   })
 })
+
+it('paginação de cinco mantém o conjunto completo para totais e exportação',()=>{
+ const base=Array.from({length:11},(_,i)=>({nome:`Família ${i}`,quantidade:i}));
+ const ordenadas=ordenar(base,l=>l.quantidade,'desc');
+ expect(paginar(ordenadas,1,5).itens.map(l=>l.quantidade)).toEqual([10,9,8,7,6]);
+ expect(paginar(ordenadas,3,5).itens.map(l=>l.quantidade)).toEqual([0]);
+ expect(base.length).toBe(11);expect(base.reduce((n,l)=>n+l.quantidade,0)).toBe(55);
+ expect(paginar(ordenadas.filter(l=>l.quantidade>8),3,5)).toMatchObject({pagina:1,total:2});
+});

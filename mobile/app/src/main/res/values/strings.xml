@@ -199,10 +199,10 @@
     <string name="foto_sem_espaco">Pouco espaço livre no aparelho (menos de 200 MB). Libere espaço antes de fotografar.</string>
 
     <!-- GPS -->
-    <string name="gps_titulo">Obter localização</string>
+    <string name="gps_titulo">Localização</string>
     <string name="gps_aba_gnss">GPS</string>
     <string name="gps_aba_manual">Digitar</string>
-    <string name="gps_obter">Obter localização</string>
+    <string name="gps_obter">Obter pelo aparelho</string>
     <string name="gps_usar">Usar</string>
     <string name="gps_continuar">Tentar de novo</string>
     <string name="gps_permissao">É preciso permitir a localização para usar o GPS. Funciona sem internet.</string>
@@ -256,4 +256,7 @@
     <string name="sinc_rejeitados">Registros recusados pela Central (continuam pendentes):\n%1$s</string>
     <string name="sinc_erro_inesperado">Erro inesperado na sincronização (%1$s, ref. %2$s). Os cadastros continuam guardados no aparelho. Tente de novo.</string>
     <string name="sinc_permissoes_negadas">Sem as permissões pedidas não é possível ler o QR ou conectar à Central.</string>
+    <string name="gps_digitar">Digitar localização</string>
+    <string name="gps_editar">Editar localização</string>
+    <string name="codigo_corpo_exemplo">7K3M-9QX1</string>
 </resources>

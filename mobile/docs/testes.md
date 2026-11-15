@@ -15,3 +15,9 @@ A estratégia geral está em [`docs/testing/estrategia.md`](../../docs/testing/e
 | Sync | Cliente JVM × servidor Go real (`desktop/cmd/central-teste`) | Pin (fixture `tls/pin.json`), TLS 1.3 e 1.2, pin divergente; cenários de `estrategia.md` §4 e da A28 (`SincronizacaoGoTest`): código válido, código inexistente cancelado e corrigido no celular, correção na Central, destino travado, operador que demora (reconciliação depois), duas coletas, Central fora do ar |
 | Sync: pareamento | `PareamentoGoTest` (Central sem confirmação automática: `-confirmar=false`, `-espera`) | Recusado, repetido, tempo esgotado, Central derrubada durante a espera ou fora do ar: sempre `FalhaCentral`, nada pareado, cadastros pendentes |
 | Sync: fechamento | `FechamentoConexaoTest` (fábrica de sockets que imita o StrictMode) | `close()`/`fechar()` na thread principal não fecham sockets nela ([incidente de 14/11](incidentes/2026-11-14-crash-pareamento.md)) |
+
+## Regressões 0.2.1-mvp
+- `EntradaCodigoTest`: digitar/apagar no separador, cursor após edição no meio, seleção/substituição, colagem completa/com corpo, corpo começando em EQ e validação existente. Testa buffers reais do Compose na JVM; teclado/IME no moto g56 ainda precisa de teste manual.
+- `CoordenadaManualTest`: ponto/vírgula, limites, não finitos, valores incompletos, preservar captura sem mudança e limpar metadados ao editar.
+- `SincronizacaoGoTest.coordenadaManualSincronizaAposEdicaoDeGnss`: GNSS seguido de edição manual, recibo sem rejeições, incremento aplicado uma vez e reenvio sem pendências contra a Central Go real.
+- Bancada: código nas telas de início e correção (apagar junto ao hífen e substituir seleção); digitar localização sem permissão, editar ponto GNSS/manual, cancelar e confirmar sem alterar; salvar/reabrir e conferir os pontos na Central.

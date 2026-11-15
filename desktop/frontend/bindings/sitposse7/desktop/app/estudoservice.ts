@@ -67,6 +67,13 @@ export function EmFoco(): $CancellablePromise<string> {
 }
 
 /**
+ * Excluir aplica tombstones em cascata e cancela lotes pendentes do estudo.
+ */
+export function Excluir(id: string): $CancellablePromise<void> {
+    return $Call.ByID(3854990932, id);
+}
+
+/**
  * ExcluirEquipe exclui a equipe (só sem cadastros recebidos).
  */
 export function ExcluirEquipe(equipe: string): $CancellablePromise<void> {

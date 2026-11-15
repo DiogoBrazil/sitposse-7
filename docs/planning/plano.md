@@ -20,6 +20,9 @@ Aprovado em **13/11/2026**. As estimativas são para **um desenvolvedor em tempo
 
 **Por que a ordem difere da sugerida no prompt:** a infraestrutura de rede (hotspot Windows/Android, Android 17) é o maior desconhecido técnico, então foi antecipada para spikes da Fase 0, antes de investir na UI.
 
+## Antecipação A29 — Central (15/11/2026)
+Autorizadas as correções/exclusões e a melhoria das listagens, conforme ADR-0026. Fila de conflitos continua adiada por escolha explícita do usuário (recusa temporária de novas versões); sem ampliação para USB ou backups. Sem mudança de protocolo ou esquema. Instalador 0.7.0-mvp; validação Windows pendente.
+
 ## Detalhes por produto
 - Android: [mobile/docs](../../mobile/docs/arquitetura.md)
 - Central: [desktop/docs](../../desktop/docs/arquitetura.md)

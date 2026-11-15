@@ -21,6 +21,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -58,7 +59,7 @@ fun CodigoTela(aoEscolher: () -> Unit, aoVoltar: (() -> Unit)?, nav: Navegador) 
     val escopo = rememberCoroutineScope()
     val coletas by app.repo.observarColetas().collectAsState(initial = emptyList())
     val emAndamento = coletas.filter { it.status == StatusColeta.EM_ANDAMENTO }
-    var texto by rememberSaveable { mutableStateOf("") }
+    val texto = rememberTextFieldState()
     var erro by rememberSaveable { mutableStateOf<String?>(null) }
     var reabrir by rememberSaveable { mutableStateOf<String?>(null) } // uuid da coleta concluída com o mesmo código
     var concluirAnteriores by rememberSaveable { mutableStateOf<String?>(null) } // uuid da coleta nova
@@ -70,7 +71,7 @@ fun CodigoTela(aoEscolher: () -> Unit, aoVoltar: (() -> Unit)?, nav: Navegador) 
     }
 
     fun comecar() {
-        val (codigo, msg) = validarCodigo(texto)
+        val (codigo, msg) = validarCodigo(texto.text.toString())
         erro = msg
         if (codigo == null) return
         escopo.launch {
@@ -102,8 +103,8 @@ fun CodigoTela(aoEscolher: () -> Unit, aoVoltar: (() -> Unit)?, nav: Navegador) 
                     Text(stringResource(R.string.codigo_outro), style = MaterialTheme.typography.titleMedium)
                 }
                 Text(stringResource(R.string.codigo_explicacao), style = MaterialTheme.typography.bodyLarge)
-                CampoCodigo(texto, { texto = it; erro = null }, erro, ::comecar, Modifier.fillMaxWidth())
-                Button(onClick = ::comecar, enabled = texto.isNotBlank(), modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                CampoCodigo(texto, { erro = null }, erro, ::comecar, Modifier.fillMaxWidth())
+                Button(onClick = ::comecar, enabled = texto.text.isNotBlank(), modifier = Modifier.fillMaxWidth().height(56.dp)) {
                     Text(stringResource(R.string.codigo_comecar))
                 }
                 if (emAndamento.isNotEmpty() && !(emAndamento.size > 1 && aoVoltar == null)) {

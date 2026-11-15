@@ -172,6 +172,15 @@ func (im *Importador) registrarColeta(ctx context.Context, tx *sql.Tx, d Disposi
 	case inst != d.InstalacaoUUID:
 		return fmt.Errorf("%w: a coleta é de outro aparelho", ErrProibido)
 	}
+	if equipe.Valid {
+		var vigente int
+		if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM equipes e JOIN jornadas j ON j.uuid=e.jornada_uuid JOIN estudos s ON s.uuid=j.estudo_uuid WHERE e.uuid=? AND e.excluido_em IS NULL AND j.excluido_em IS NULL AND s.excluido_em IS NULL`, equipe.String).Scan(&vigente); err != nil {
+			return err
+		}
+		if vigente == 0 {
+			return fmt.Errorf("%w: o estudo de destino desta coleta foi excluído na Central", ErrProibido)
+		}
+	}
 	_, err = tx.ExecContext(ctx, `UPDATE coletas SET codigo_informado = ?, recebido_em = ? WHERE uuid = ?`, c.CodigoEquipe, agora, c.UUID)
 	return err
 }

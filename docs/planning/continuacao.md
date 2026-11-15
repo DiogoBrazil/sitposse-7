@@ -15,6 +15,21 @@
   - `02752bb` feat(mobile): projeto Android, teste cruzado com a Central e spikes da Fase 0
 - Implementar só o que está no recorte da A24; o resto das Fases 1–3 segue no plano (AGENTS.md §2).
 
+### Ajustes de 15/11 testados pelo usuário (Campo 0.2.1-mvp e Central 0.7.x-mvp)
+O usuário testou no Windows e no moto g56 as entregas abaixo e tudo funcionou; foram revisadas e commitadas juntas (`feat(a29): …`).
+
+### Ajuste posterior — Campo 0.2.1-mvp (15/11)
+A pedido do usuário: corrigida a digitação do código (EQ fixo, hífen visual, estado/seleção preservados) e expostas entrada e edição manual da localização, inclusive de ponto GNSS. Mesmos banco e protocolo v2, sem mudança da Central. 65 testes Android passando (17 domínio, 13 dados, 24 sync, 11 app). APK `0.2.1-mvp` (versionCode 5, SHA-256 `6610c222b441f776026f2cc0edf7ef4f73f3838540260dfdad1abe83481635f1`), gerado com a mesma chave de debug; versão 0.2.0 preservada antes de copiar para `Downloads\sitposse7-teste`. Testado pelo usuário no aparelho. O reinício excepcional da A28 não deve ser repetido para esta atualização.
+
+### Central 0.7.2-mvp — ações de Estudos na última coluna (15/11)
+Lista principal de Estudos de situação com Ação na última coluna, largura de 120 px; ícones lado a lado e intervalo de 8 px preservados. Verificação Chromium confirmou a ordem e o alinhamento, incluindo as tabelas de Propriedades/Jornadas/Equipes; 12 testes frontend passaram. Novo instalador SHA-256 `481a33117fe36f6b74c19a45055c962fc72ad8a59e503e8ae0e08fd715635bdd` em `Downloads\sitposse7-teste`; 0.7.1 preservado com sufixo `-bc040406`.
+
+### Central 0.7.1-mvp — ajuste das ações (15/11)
+Ação movida para a última coluna em Propriedades; nome da propriedade com 18% e células mais compactas. Ícones em linha sem quebra, com 8 px de intervalo, também nas tabelas de estudos/jornadas/equipes. Verificado no Chromium em 1440/1024/900/560 px (ícones inteiramente visíveis, sem overflow da página); 12 testes frontend e build TypeScript passando. Novo instalador SHA-256 `bc040406368a7f092087e8230df99cfe19d8eb47746aec301655406d656179f6` em `Downloads\sitposse7-teste`; anterior 0.7.0 preservado com sufixo `-f0eca232`.
+
+### Central 0.7.0-mvp — A29 (15/11)
+Implementação autorizada do ADR-0026: paginação de 5, totais externos, jornadas/equipes tabulares, renomeação e exclusão de estudos, editor de propriedades e exclusões em cascata. Fotos e cartas históricas preservadas. Novos envios de cadastros corrigidos são **recusados** (também itens/fotos); resolução de conflitos continua adiada por decisão do usuário. Sem alteração do protocolo ou banco, sem reinício de dados. Testes Go/TypeScript/Kotlin cruzados e Chromium executados; instalador e ações testados pelo usuário no Windows. Instalador SHA-256 `f0eca232683a4373ac882a3ad971e7affca08775ebb6e09c13cc60d69e3f1dce`, copiado para `Downloads\sitposse7-teste` (anterior 0.6.0 preservado com sufixo `-2c43a150`).
+
 ### Já feito e verificado
 | Item | Situação | Evidência |
 |---|---|---|
@@ -57,11 +72,11 @@ A Fase 0 foi **concluída** (A23). Recorte do MVP: [matriz-decisoes.md](matriz-d
 **Estudos, jornadas, equipes e coletas (A28, aprovado em 15/11):** plano completo em ADR-0023/0024/0025 e na fase "Estudos e coletas" do [plano.md](plano.md). Etapas (marque ao concluir):
 - [x] **E0** decisões e documentação (15/11).
 - [x] **E1** (15/11) Central, núcleo: migração 0002 reescrita + guarda, códigos, estudos/jornadas/equipes, pareamento sem equipe, importação com `aguardando_confirmacao`/decisão/destino travado, recibo v2, estatísticas/relatórios/cartas por estudo, `central-teste` com comandos de decisão. Contratos v2 (`shared/schemas/*.v2`, fixtures). Os testes cruzados do Android voltaram a passar na E4.
-- [x] **E2** (15/11; falta o usuário olhar no Windows) Central, telas: Estudos, estudo em foco, modal de destino, filtros por jornada/equipe.
+- [x] **E2** (15/11; conferido pelo usuário no Windows) Central, telas: Estudos, estudo em foco, modal de destino, filtros por jornada/equipe.
 - [x] **E3** (15/11) Android, dados: Room v3 + guarda, coletas, códigos, responsável obrigatório, observações.
 - [x] **E4** (15/11) Android, sincronização v2 por coleta: `:core:sync` com todos os testes cruzados verdes contra a Central Go.
-- [x] **E5** (15/11; falta testar no aparelho) Android, telas: código da equipe, coletas, formulário em 7 etapas com revisão.
-- [~] **E6** (15/11) builds feitos: Central `0.6.0-mvp` (`2c43a150…`) e Campo `0.2.0-mvp` (`8e545c35…`) em `Downloads\sitposse7-teste` (anteriores com sufixo `-61e7c91b` e `-f4a7fd54`); roteiro e procedimento de reinício em [teste-de-campo-mvp.md](../operacao/teste-de-campo-mvp.md). **Central reiniciada em 15/11 às 16:06 no PC desktop** (decisão do usuário: a Central fica neste PC): `sitposse7.db`, a cópia `.antes-coordenadas-teste-…`, `fotos` (3 arquivos) e `staging` movidos para `%LOCALAPPDATA%\SITPOSSE-7\mvp-antigo-20261115-160655`; `tls` e `cartografia` mantidos. **Falta:** instalar a `0.6.0-mvp` no PC, desinstalar/reinstalar o app no moto g56 e a bancada.
+- [x] **E5** (15/11; testado pelo usuário no moto g56) Android, telas: código da equipe, coletas, formulário em 7 etapas com revisão.
+- [x] **E6** (15/11) builds feitos: Central `0.6.0-mvp` (`2c43a150…`) e Campo `0.2.0-mvp` (`8e545c35…`) em `Downloads\sitposse7-teste` (anteriores com sufixo `-61e7c91b` e `-f4a7fd54`); roteiro e procedimento de reinício em [teste-de-campo-mvp.md](../operacao/teste-de-campo-mvp.md). **Central reiniciada em 15/11 às 16:06 no PC desktop** (decisão do usuário: a Central fica neste PC): `sitposse7.db`, a cópia `.antes-coordenadas-teste-…`, `fotos` (3 arquivos) e `staging` movidos para `%LOCALAPPDATA%\SITPOSSE-7\mvp-antigo-20261115-160655`; `tls` e `cartografia` mantidos. Bancada feita pelo usuário (instalação, reinstalação no moto g56 e testes); em seguida vieram os ajustes 0.2.1/0.7.x acima.
 
 Revisão visual sem o Windows: `cd desktop/frontend && npm run demo` (dados fictícios) e capturas pelo navegador.
 

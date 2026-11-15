@@ -230,7 +230,7 @@ const abas: { id: Aba; rotulo: string }[] = [
               <Grafico :montar="(tm) => barrasHorizontais(tm, corIndicador, grupos.map((g) => ({ nome: g.nome, valor: valorIndicador(g, indicador) })), indicador === 'area' ? 'ha' : '')"
                        :altura="alturaBarras(grupos.length)" :rotulo="`Gráfico de ${rotuloIndicador} por grupo; os valores estão na tabela`" @clicar="(i) => detalharGrupo(grupos[i])" />
             </div>
-            <TabelaDados :colunas="colGrupos" :linhas="grupos" :chave="(l) => l.chave || '—'" :rotulo="`Totais por ${agrupar}`" :por-pagina="0"
+            <TabelaDados :colunas="colGrupos" :linhas="grupos" :chave="(l) => l.chave || '—'" :rotulo="`Totais por ${agrupar}`"
                          :totais="totaisLinha" clicavel :ordem="{ chave: 'familias', dir: 'desc' }" texto-vazio="Nenhuma família com esses filtros." @abrir="detalharGrupo" />
             <p class="fraco dica">Clique numa linha ou barra para ver as famílias que compõem os números.</p>
           </template>
@@ -261,7 +261,7 @@ const abas: { id: Aba; rotulo: string }[] = [
                        :altura="alturaBarras(Math.min(itensAba.length, MAX_BARRAS))" rotulo="Gráfico da quantidade por tipo de item; os valores estão na tabela"
                        @clicar="(i) => detalharItem(itensAba[i])" />
             </div>
-            <TabelaDados :colunas="colItens" :linhas="itensAba" :chave="(l) => l.campo.chave" rotulo="Itens por tipo" :por-pagina="0" clicavel :totais="totalItens"
+            <TabelaDados :colunas="colItens" :linhas="itensAba" :chave="(l) => l.campo.chave" rotulo="Itens por tipo" clicavel :totais="totalItens"
                          :ordem="{ chave: 'total', dir: 'desc' }" texto-vazio="Nenhum item nesta categoria." @abrir="detalharItem" />
             <p class="fraco dica">Itens digitados em “Outros” são agrupados pelo nome, sem diferenciar acentos e maiúsculas. O texto original não é alterado.</p>
           </template>
@@ -272,7 +272,7 @@ const abas: { id: Aba; rotulo: string }[] = [
               <Grafico :montar="(tm) => barrasHorizontais(tm, 'eletro', faixas.map((f) => ({ nome: f.rotulo, valor: f.familias })), 'família(s)')"
                        :altura="alturaBarras(faixas.length)" rotulo="Gráfico de famílias por faixa de tamanho; os valores estão na tabela" @clicar="(i) => detalharFaixa(faixas[i])" />
             </div>
-            <TabelaDados :colunas="colFaixas" :linhas="faixas" :chave="(l) => l.chave" rotulo="Tamanho das propriedades" :por-pagina="0" compacta clicavel
+            <TabelaDados :colunas="colFaixas" :linhas="faixas" :chave="(l) => l.chave" rotulo="Tamanho das propriedades" compacta clicavel
                          :totais="{ rotulo: 'Total', familias: num(t.familias), area_ha: t.area_ha }" @abrir="detalharFaixa" />
             <p class="fraco dica">Área convertida para hectares (1 alqueire paulista = 2,42 ha). Propriedades sem área informada não valem zero: aparecem à parte.</p>
           </template>

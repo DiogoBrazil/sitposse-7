@@ -25,6 +25,13 @@ func (im *Importador) aplicar(ctx context.Context, instalacao string, l *contrat
 		return nil, err
 	}
 	defer tx.Rollback()
+	var vigente int
+	if err := tx.QueryRowContext(ctx, `SELECT count(*) FROM equipes e JOIN jornadas j ON j.uuid=e.jornada_uuid JOIN estudos s ON s.uuid=j.estudo_uuid WHERE e.uuid=? AND e.excluido_em IS NULL AND j.excluido_em IS NULL AND s.excluido_em IS NULL`, dest.EquipeUUID).Scan(&vigente); err != nil {
+		return nil, err
+	}
+	if vigente == 0 {
+		return nil, fmt.Errorf("destino excluído; nada foi importado")
+	}
 	coleta := l.Coleta.UUID
 	a := &aplicador{ctx: ctx, tx: tx, instalacao: instalacao, agora: agora, origem: "coleta:" + coleta, lote: l.LoteUUID, equipe: dest.EquipeUUID}
 
@@ -333,6 +340,13 @@ func (a *aplicador) item(it *contratos.Item, coleta string) (string, error) {
 	if existe && it.Rev <= rev {
 		return contratos.ResultadoDuplicado, nil
 	}
+	var protegido int
+	if err := a.tx.QueryRowContext(a.ctx, `SELECT corrigido_desde_rev_origem FROM propriedades WHERE uuid=?`, it.PropriedadeUUID).Scan(&protegido); err != nil {
+		return "", err
+	}
+	if protegido != 0 {
+		return "", rejeitar("cadastro corrigido ou excluído na Central; resolução de conflitos ainda não disponível")
+	}
 	if existe && corrigido {
 		return "", rejeitar("item corrigido na Central; resolução de conflitos ainda não disponível")
 	}
@@ -373,6 +387,13 @@ func (a *aplicador) foto(f *contratos.Foto, coleta string) (string, error) {
 	}
 	if existe && f.Rev <= rev {
 		return contratos.ResultadoDuplicado, nil
+	}
+	var protegido int
+	if err := a.tx.QueryRowContext(a.ctx, `SELECT corrigido_desde_rev_origem FROM propriedades WHERE uuid=?`, f.PropriedadeUUID).Scan(&protegido); err != nil {
+		return "", err
+	}
+	if protegido != 0 {
+		return "", rejeitar("cadastro corrigido ou excluído na Central; resolução de conflitos ainda não disponível")
 	}
 	if existe && corrigido {
 		return "", rejeitar("foto corrigida na Central; resolução de conflitos ainda não disponível")

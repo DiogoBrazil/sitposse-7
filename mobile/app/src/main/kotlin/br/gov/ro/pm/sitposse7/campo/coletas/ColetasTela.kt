@@ -20,6 +20,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -158,10 +159,10 @@ private fun CartaoColeta(c: ColetaResumo, aoContinuar: () -> Unit, aoConcluir: (
 /** Correção do código de uma coleta (RN-08): mesmo campo e validação do início. */
 @Composable
 fun DialogoCorrigirCodigo(atual: String, aoFechar: () -> Unit, aoConfirmar: (String, (String) -> Unit) -> Unit) {
-    var texto by rememberSaveable { mutableStateOf(Codigos.exibir(atual)) }
+    val texto = rememberTextFieldState(atual.removePrefix(Codigos.PREFIXO_EQUIPE))
     var erro by rememberSaveable { mutableStateOf<String?>(null) }
     val confirmar = {
-        val (codigo, msg) = validarCodigo(texto)
+        val (codigo, msg) = validarCodigo(texto.text.toString())
         erro = msg
         if (codigo != null) aoConfirmar(codigo) { erro = it }
     }
@@ -172,7 +173,7 @@ fun DialogoCorrigirCodigo(atual: String, aoFechar: () -> Unit, aoConfirmar: (Str
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.coleta_codigo_atual, Codigos.exibir(atual)))
                 Text(stringResource(R.string.coleta_corrigir_texto), style = MaterialTheme.typography.bodyMedium)
-                CampoCodigo(texto, { texto = it; erro = null }, erro, confirmar, Modifier.fillMaxWidth())
+                CampoCodigo(texto, { erro = null }, erro, confirmar, Modifier.fillMaxWidth())
             }
         },
         confirmButton = { TextButton(onClick = confirmar) { Text(stringResource(R.string.ok)) } },

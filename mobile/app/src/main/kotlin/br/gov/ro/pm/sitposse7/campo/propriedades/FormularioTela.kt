@@ -105,6 +105,7 @@ fun FormularioTela(tela: Tela.Formulario, nav: Navegador) {
     val etapa by vm.etapa.collectAsState()
     var camera by rememberSaveable { mutableStateOf(false) }
     var gps by rememberSaveable { mutableStateOf(false) }
+    var gpsManual by rememberSaveable { mutableStateOf(false) }
     var confirmarSaida by rememberSaveable { mutableStateOf(false) }
     var removerFoto by rememberSaveable { mutableStateOf<String?>(null) }
     var semEspaco by rememberSaveable { mutableStateOf(false) }
@@ -175,7 +176,7 @@ fun FormularioTela(tela: Tela.Formulario, nav: Navegador) {
                             SecaoItens(Categoria.MOVEL, c, vm, e.erros.associate { it.campo to it.mensagem }, aberta = true)
                         }
                         Etapa.ANIMAIS_AREA -> EtapaAnimaisArea(c, vm, ::erro)
-                        Etapa.LOCAL_FOTOS -> EtapaLocalFotos(c, vm, ::erro, e.processandoFoto, abrirGps = { gps = true }, abrirCamera = abrirCamera, remover = { removerFoto = it })
+                        Etapa.LOCAL_FOTOS -> EtapaLocalFotos(c, vm, ::erro, e.processandoFoto, abrirGps = { gpsManual = false; gps = true }, abrirManual = { gpsManual = true; gps = true }, abrirCamera = abrirCamera, remover = { removerFoto = it })
                         Etapa.OBSERVACOES -> EtapaObservacoes(c, vm, ::erro)
                         Etapa.REVISAO -> Revisao(c, e.erros, vm)
                     }
@@ -202,7 +203,7 @@ fun FormularioTela(tela: Tela.Formulario, nav: Navegador) {
         },
         confirmButton = { TextButton(onClick = { menuEtapas = false }) { Text(stringResource(R.string.cancelar)) } },
     )
-    if (gps) GpsDialogo(aoUsar = { coord -> vm.alterar { it.copy(coordenada = coord) }; gps = false }, aoFechar = { gps = false })
+    if (gps) GpsDialogo(inicial = e.cadastro.coordenada, manual = gpsManual, aoUsar = { coord -> vm.alterar { it.copy(coordenada = coord) }; gps = false }, aoFechar = { gps = false })
     removerFoto?.let { id ->
         AlertDialog(
             onDismissRequest = { removerFoto = null },
@@ -289,7 +290,7 @@ private fun EtapaAnimaisArea(c: CadastroPropriedade, vm: FormularioViewModel, er
 @Composable
 private fun EtapaLocalFotos(
     c: CadastroPropriedade, vm: FormularioViewModel, erro: (String) -> String?, processandoFoto: Boolean,
-    abrirGps: () -> Unit, abrirCamera: () -> Unit, remover: (String) -> Unit,
+    abrirGps: () -> Unit, abrirManual: () -> Unit, abrirCamera: () -> Unit, remover: (String) -> Unit,
 ) {
     Subtitulo(stringResource(R.string.secao_localizacao))
     c.coordenada?.let { g ->
@@ -301,6 +302,11 @@ private fun EtapaLocalFotos(
     } ?: Text(stringResource(R.string.gps_nao_informado))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(onClick = abrirGps, modifier = Modifier.height(48.dp)) { Icon(painterResource(R.drawable.ic_place), null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.gps_obter)) }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(onClick = abrirManual, modifier = Modifier.height(48.dp)) {
+            Text(stringResource(if (c.coordenada == null) R.string.gps_digitar else R.string.gps_editar))
+        }
         if (c.coordenada != null) TextButton(onClick = { vm.alterar { it.copy(coordenada = null) } }) { Text(stringResource(R.string.remover)) }
     }
     erro("coordenada")?.let { Text(it, color = MaterialTheme.colorScheme.error) }

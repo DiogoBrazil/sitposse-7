@@ -2,6 +2,11 @@ package br.gov.ro.pm.sitposse7.campo.coletas
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.drop
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -47,21 +52,24 @@ fun textoDestino(d: DestinoV2): String = stringResource(R.string.coleta_destino,
  * mostra o erro do dígito verificador (RN-02), sem consultar a Central (RN-05).
  */
 @Composable
-fun CampoCodigo(valor: String, aoMudar: (String) -> Unit, erro: String?, aoConfirmar: () -> Unit, modifier: Modifier = Modifier) {
+fun CampoCodigo(estado: TextFieldState, aoEditar: () -> Unit, erro: String?, aoConfirmar: () -> Unit, modifier: Modifier = Modifier) {
+    LaunchedEffect(estado) { snapshotFlow { estado.text.toString() }.drop(1).collect { aoEditar() } }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         OutlinedTextField(
-            value = valor,
-            onValueChange = { aoMudar(Codigos.formatarDigitacao(it)) },
+            state = estado,
+            inputTransformation = EntradaCodigo,
+            outputTransformation = MascaraCodigo,
+            leadingIcon = { Text(Codigos.PREFIXO_EQUIPE + "-", fontFamily = FontFamily.Monospace) },
             modifier = modifier,
             label = { Text(stringResource(R.string.codigo_campo)) },
-            placeholder = { Text(stringResource(R.string.codigo_exemplo)) },
-            singleLine = true,
+            placeholder = { Text(stringResource(R.string.codigo_corpo_exemplo)) },
+            lineLimits = TextFieldLineLimits.SingleLine,
             isError = erro != null,
             supportingText = erro?.let { { Text(it) } },
             textStyle = MaterialTheme.typography.headlineSmall.copy(fontFamily = FontFamily.Monospace, letterSpacing = 2.sp),
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, autoCorrectEnabled = false,
                 keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done),
-            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { aoConfirmar() }),
+            onKeyboardAction = { aoConfirmar() },
         )
     }
 }

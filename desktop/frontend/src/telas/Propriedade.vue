@@ -153,7 +153,7 @@ const unidadeOriginal = computed(() => {
           <div class="bloco-cabeca"><h2>Pessoas por faixa etária</h2><span class="total">{{ num(soma(pessoas)) }}</span></div>
           <div class="bloco-corpo par">
             <Grafico :montar="(t) => barrasHorizontais(t, 'pessoas', pessoas, 'pessoa(s)')" :altura="alturaBarras(3)" rotulo="Gráfico de pessoas por faixa etária; os valores estão na tabela ao lado" />
-            <TabelaDados :colunas="colPonto" :linhas="pessoas" :chave="(l) => l.nome" rotulo="Pessoas por faixa etária" :por-pagina="0" compacta :totais="totalTabela(pessoas)" />
+            <TabelaDados :colunas="colPonto" :linhas="pessoas" :chave="(l) => l.nome" rotulo="Pessoas por faixa etária" compacta :totais="totalTabela(pessoas)" />
           </div>
         </section>
 
@@ -161,7 +161,7 @@ const unidadeOriginal = computed(() => {
           <div class="bloco-cabeca"><h2>Rebanho</h2><span class="total">{{ num(soma(rebanho)) }}</span></div>
           <div class="bloco-corpo par">
             <Grafico :montar="(t) => barrasHorizontais(t, 'rebanho', rebanho, 'cabeça(s)')" :altura="alturaBarras(4)" rotulo="Gráfico do rebanho; os valores estão na tabela ao lado" />
-            <TabelaDados :colunas="colPonto" :linhas="rebanho" :chave="(l) => l.nome" rotulo="Rebanho" :por-pagina="0" compacta :totais="totalTabela(rebanho)" />
+            <TabelaDados :colunas="colPonto" :linhas="rebanho" :chave="(l) => l.nome" rotulo="Rebanho" compacta :totais="totalTabela(rebanho)" />
           </div>
         </section>
 
@@ -169,7 +169,7 @@ const unidadeOriginal = computed(() => {
           <div class="bloco-cabeca"><h2>Veículos</h2><span class="total">{{ num(soma(veiculos)) }}</span></div>
           <div class="bloco-corpo par">
             <Grafico :montar="(t) => barrasHorizontais(t, 'veiculos', veiculos, 'veículo(s)')" :altura="alturaBarras(3)" rotulo="Gráfico de veículos por tipo; os valores estão na tabela ao lado" />
-            <TabelaDados :colunas="colPonto" :linhas="veiculos" :chave="(l) => l.nome" rotulo="Veículos" :por-pagina="0" compacta :totais="totalTabela(veiculos)" />
+            <TabelaDados :colunas="colPonto" :linhas="veiculos" :chave="(l) => l.nome" rotulo="Veículos" compacta :totais="totalTabela(veiculos)" />
           </div>
         </section>
 
@@ -207,7 +207,7 @@ const unidadeOriginal = computed(() => {
           <p v-if="!itensAba.length" class="suave vazio">Nenhum item de {{ catAtual.titulo.toLowerCase() }} registrado nesta propriedade.</p>
           <div v-else class="par largo">
             <Grafico :key="aba" :montar="(t) => barrasHorizontais(t, catAtual.dominio, itensAba.map((i) => ({ nome: i.nome, valor: i.quantidade })))" :altura="alturaBarras(itensAba.length)" :rotulo="`Gráfico de ${catAtual.titulo}; os valores estão na tabela ao lado`" />
-            <TabelaDados :colunas="colItens" :linhas="itensAba" :chave="(l) => l.uuid" :rotulo="catAtual.titulo" :por-pagina="0" compacta :ordem="{ chave: 'quantidade', dir: 'desc' }" :totais="{ nome: 'Total', quantidade: num(totalCat(aba)) }" />
+            <TabelaDados :colunas="colItens" :linhas="itensAba" :chave="(l) => l.uuid" :rotulo="catAtual.titulo" compacta :ordem="{ chave: 'quantidade', dir: 'desc' }" :totais="{ nome: 'Total', quantidade: num(totalCat(aba)) }" />
           </div>
         </div>
       </section>

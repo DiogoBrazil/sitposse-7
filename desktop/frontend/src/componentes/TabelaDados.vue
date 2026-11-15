@@ -24,14 +24,14 @@ const props = withDefaults(defineProps<{
   totais?: Record<string, string> | null
   /** Tabela pequena (duas ou três colunas): não empilha as linhas em largura estreita. */
   compacta?: boolean
-}>(), { porPagina: 25, carregando: false, erro: '', textoVazio: 'Nada para mostrar.', clicavel: false, selecionada: null, totais: null })
+}>(), { porPagina: 5, carregando: false, erro: '', textoVazio: 'Nada para mostrar.', clicavel: false, selecionada: null, totais: null })
 
 const emit = defineEmits<{ abrir: [linha: T] }>()
 
 const chaveOrdem = ref(props.ordem?.chave ?? '')
 const dir = ref<Direcao>(props.ordem?.dir ?? 'asc')
 const pagina = ref(1)
-const tamanho = ref(props.porPagina)
+const tamanho = ref(5)
 
 const valorDe = (c: Coluna<T>, l: T) => (c.valor ? c.valor(l) : (l as Record<string, unknown>)[c.chave])
 function texto(c: Coluna<T>, l: T): string {
@@ -46,6 +46,7 @@ const ordenadas = computed(() => {
 })
 const pag = computed(() => paginar(ordenadas.value, pagina.value, tamanho.value))
 watch(() => props.linhas, () => { pagina.value = pag.value.pagina })
+watch(() => props.linhas.map(props.chave).join('|'), () => { pagina.value = 1 })
 
 function ordenarPor(c: Coluna<T>) {
   if (c.ordenavel === false) return
@@ -59,7 +60,7 @@ function ariaSort(c: Coluna<T>) {
 function teclaLinha(e: KeyboardEvent, l: T) {
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); emit('abrir', l) }
 }
-const tamanhos = [10, 25, 50, 100]
+
 </script>
 
 <template>
@@ -86,23 +87,17 @@ const tamanhos = [10, 25, 50, 100]
             </td>
           </tr>
         </tbody>
-        <tfoot v-if="totais && !erro && pag.itens.length">
-          <tr>
-            <td v-for="(c, i) in colunas" :key="c.chave" :data-rotulo="c.rotulo" :class="{ num: c.tipo === 'numero', secundaria: c.secundaria, vazia: i > 0 && !totais[c.chave] }">
-              {{ i === 0 ? (totais[c.chave] ?? 'Total') : (totais[c.chave] ?? '') }}
-            </td>
-          </tr>
-        </tfoot>
+
       </table>
       <div v-if="carregando && !linhas.length" class="estado" role="status">Carregando…</div>
       <div v-else-if="erro" class="estado erro" role="alert">{{ erro }}</div>
       <div v-else-if="!linhas.length" class="estado"><slot name="vazio">{{ textoVazio }}</slot></div>
     </div>
-    <div v-if="!erro && tamanho > 0 && pag.total > Math.min(tamanho, tamanhos[0]) && (pag.paginas > 1 || tamanho !== porPagina)" class="rodape">
-      <span class="suave">{{ pag.inicio }}–{{ pag.fim }} de {{ pag.total }}</span>
-      <label class="por-pagina suave">Por página
-        <select v-model.number="tamanho" @change="pagina = 1"><option v-for="t in tamanhos" :key="t" :value="t">{{ t }}</option></select>
-      </label>
+    <section v-if="totais && !erro && linhas.length" class="resumo-totais" aria-label="Totais de todos os resultados filtrados">
+      <div v-for="(valor, chave) in totais" :key="chave"><span>{{ colunas.find(c => c.chave === chave)?.rotulo || 'Total' }}</span><strong>{{ valor }}</strong></div>
+    </section>
+    <div v-if="!erro && pag.total" class="rodape">
+      <span class="suave">{{ pag.inicio }}–{{ pag.fim }} de {{ pag.total }} · 5 por página</span>
       <div class="paginas">
         <button type="button" class="discreto" :disabled="pag.pagina <= 1" aria-label="Página anterior" @click="pagina = pag.pagina - 1">‹ Anterior</button>
         <span>{{ pag.pagina }} / {{ pag.paginas }}</span>
@@ -114,6 +109,9 @@ const tamanhos = [10, 25, 50, 100]
 
 <style scoped>
 .tabela-dados { container-type: inline-size; background: var(--folha); border: 1px solid var(--regua); border-radius: var(--raio-grande); overflow: hidden; }
+.resumo-totais { display:flex; flex-wrap:wrap; gap:1rem 2rem; padding:1rem; border-top:1px solid var(--regua); background:var(--folha-2); }
+.resumo-totais div { display:flex; flex-direction:column; gap:.25rem; }
+.resumo-totais span { color:var(--tinta-2); font-size:.85rem; }
 .rolagem { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: .7rem .9rem; border-bottom: 1px solid var(--regua); text-align: center; vertical-align: middle; }

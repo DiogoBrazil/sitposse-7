@@ -63,7 +63,7 @@ const totais = computed(() => {
         <li v-for="c in criterios" :key="c">{{ c }}</li>
       </ul>
       <TabelaDados :colunas="colunas" :linhas="r?.familias ?? []" :chave="(l) => l.uuid" :rotulo="titulo" clicavel :carregando="carregando" :erro="erro"
-                   :totais="totais" :ordem="campo ? { chave: 'campo', dir: 'desc' } : { chave: 'nome', dir: 'asc' }" :por-pagina="10"
+                   :totais="totais" :ordem="campo ? { chave: 'campo', dir: 'desc' } : { chave: 'nome', dir: 'asc' }"
                    texto-vazio="Nenhuma família com esses critérios." @abrir="(l) => emit('abrir', l.uuid)">
         <template #nome="{ linha }">
           <strong>{{ linha.nome }}</strong>

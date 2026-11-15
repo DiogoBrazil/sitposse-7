@@ -32,5 +32,6 @@ Um ADR aprovado **não é editado** para mudar a decisão: cria-se um novo ADR q
 | [0023](0023-estudo-jornada-equipe-e-codigos.md) | Estudo de situação, jornadas, equipes por jornada e códigos públicos (substitui o ADR-0012) | Proposto |
 | [0024](0024-coletas-e-confirmacao-de-destino.md) | Coletas no celular, protocolo v2 e confirmação do destino na Central | Proposto |
 | [0025](0025-reinicio-dos-bancos-de-teste.md) | Reinício único dos bancos de teste (geração 2 do esquema) | Proposto |
+| [0026](0026-correcoes-e-exclusoes-central.md) | Correções e exclusões na Central, recusa temporária e paginação | Aprovado |
 
 Modelo para novos ADRs: copie [`template.md`](template.md).

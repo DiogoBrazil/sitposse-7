@@ -17,12 +17,24 @@ import * as consultas$0 from "../internal/consultas/models.js";
 // @ts-ignore: Unused imports
 import * as estatisticas$0 from "../internal/estatisticas/models.js";
 
+export function BaixarFoto(id: string): $CancellablePromise<string> {
+    return $Call.ByID(344136634, id);
+}
+
+export function DocumentoEdicao(id: string): $CancellablePromise<string> {
+    return $Call.ByID(336696934, id);
+}
+
 /**
  * Estatisticas aplica o FiltroEstudo às propriedades vigentes e devolve todos os números
  * do painel a partir do mesmo conjunto (RN-81; docs/requirements/estatisticas.md §22-A).
  */
 export function Estatisticas(filtro: estatisticas$0.Filtro): $CancellablePromise<estatisticas$0.Resultado | null> {
     return $Call.ByID(902180836, filtro);
+}
+
+export function ExcluirPropriedade(id: string, token: string): $CancellablePromise<void> {
+    return $Call.ByID(1803417478, id, token);
 }
 
 /**
@@ -44,4 +56,8 @@ export function Propriedades(busca: string, estudo: string, equipe: string): $Ca
  */
 export function Resumo(estudo: string): $CancellablePromise<consultas$0.Resumo | null> {
     return $Call.ByID(3130039750, estudo);
+}
+
+export function SalvarEdicao(id: string, documento: string): $CancellablePromise<void> {
+    return $Call.ByID(3589764067, id, documento);
 }

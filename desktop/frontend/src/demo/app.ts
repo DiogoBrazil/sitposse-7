@@ -61,6 +61,8 @@ let pedidos: any[] = []
 const baseEst = montarBase(propriedades)
 
 export const ConsultaService = {
+  DocumentoEdicao:(id:string)=>{const p:any=propriedades.find(p=>p.uuid===id);return espera(JSON.stringify({token:'demo',propriedade:{...p,nome_propriedade:p.nome,responsavel_familia:p.responsavel,area_valor_milesimos:p.area_milesimos,observacoes_relevantes:p.observacoes},itens:p.itens.map((i:any)=>({...i,codigo_catalogo:i.codigo,nome_personalizado:i.outros?i.nome:null})),fotos:p.fotos,catalogo:p.itens.map((i:any)=>({codigo:i.codigo,categoria:i.categoria,nome_exibicao:i.nome}))}))},
+  SalvarEdicao:()=>espera(undefined),ExcluirPropriedade:()=>espera(undefined),BaixarFoto:()=>espera('foto.jpg'),
   Estatisticas: (f: any) => espera(calcular(baseEst, f)),
   Resumo: () => espera({
     equipes: 4, aparelhos: 4, propriedades: propriedades.length,
@@ -93,6 +95,7 @@ const detalheEstudo = (uuid: string) => {
 }
 let foco = 's1'
 export const EstudoService = {
+ Excluir:()=>espera(undefined),
   Listar: () => espera(ESTUDOS.map((e) => { const { lista_jornadas, ...r } = detalheEstudo(e.uuid); return r })),
   Detalhe: (u: string) => espera(detalheEstudo(u)),
   EmFoco: () => espera(foco),

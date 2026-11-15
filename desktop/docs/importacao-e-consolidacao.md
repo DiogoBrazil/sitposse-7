@@ -24,3 +24,6 @@ O núcleo único `internal/importacao` atende `PUT/POST /v1/lotes` (Wi‑Fi) e `
 
 ## Restauração de cadastros
 Ver [protocolo.md §7](../../docs/synchronization/protocolo.md).
+
+## Central 0.7.0-mvp (A29)
+Implementação e critérios em [ADR-0026](../../docs/architecture/decisions/0026-correcoes-e-exclusoes-central.md). Tabelas com 5 registros/página e totais externos. Editor por seções e exclusão lógica em cascata; fotos/recibos/cartas preservados. Novas versões de cadastros corrigidos são recusadas temporariamente, inclusive itens/fotos isolados. Nenhum dado é alterado no celular. Testes de fluxo em `internal/nucleo/correcoes_test.go`; validar ações/modais, download e relatórios no Windows.

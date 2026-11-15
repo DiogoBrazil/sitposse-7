@@ -46,9 +46,9 @@ private const val LIMITE_S = 90
 
 /** Obter localização (RF-A07, RN-50..55): GNSS sem internet, com progresso; ou digitação manual. */
 @Composable
-fun GpsDialogo(aoUsar: (Coordenada) -> Unit, aoFechar: () -> Unit) {
+fun GpsDialogo(inicial: Coordenada?, manual: Boolean, aoUsar: (Coordenada) -> Unit, aoFechar: () -> Unit) {
     val contexto = LocalContext.current
-    var aba by rememberSaveable { mutableIntStateOf(0) }
+    var aba by rememberSaveable { mutableIntStateOf(if (manual) 1 else 0) }
     var permitido by remember { mutableStateOf(ContextCompat.checkSelfPermission(contexto, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) }
     var negado by remember { mutableStateOf(false) }
     val pedir = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { r ->
@@ -61,10 +61,10 @@ fun GpsDialogo(aoUsar: (Coordenada) -> Unit, aoFechar: () -> Unit) {
     var melhor by remember { mutableStateOf<LeituraGnss?>(null) }
     var segundos by remember { mutableLongStateOf(0) }
     var tentativa by remember { mutableIntStateOf(0) }
-    var lat by rememberSaveable { mutableStateOf("") }
-    var lon by rememberSaveable { mutableStateOf("") }
+    var lat by rememberSaveable { mutableStateOf(inicial?.lat?.toString().orEmpty()) }
+    var lon by rememberSaveable { mutableStateOf(inicial?.lon?.toString().orEmpty()) }
 
-    LaunchedEffect(Unit) { if (!permitido) pedir.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }
+    LaunchedEffect(aba) { if (aba == 0 && !permitido) pedir.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) }
     LaunchedEffect(permitido, aba, tentativa) {
         while (aba == 0 && !ligado) { delay(1000); ligado = Gnss.disponivel(contexto) }
     }
@@ -108,8 +108,8 @@ fun GpsDialogo(aoUsar: (Coordenada) -> Unit, aoFechar: () -> Unit) {
                 } else {
                     Text(stringResource(R.string.gps_manual_ajuda), style = MaterialTheme.typography.bodySmall)
                     val dec = KeyboardOptions(keyboardType = KeyboardType.Text)
-                    OutlinedTextField(lat, { lat = it.take(14) }, label = { Text(stringResource(R.string.gps_latitude)) }, singleLine = true, keyboardOptions = dec)
-                    OutlinedTextField(lon, { lon = it.take(15) }, label = { Text(stringResource(R.string.gps_longitude)) }, singleLine = true, keyboardOptions = dec)
+                    OutlinedTextField(lat, { lat = it }, label = { Text(stringResource(R.string.gps_latitude)) }, singleLine = true, keyboardOptions = dec)
+                    OutlinedTextField(lon, { lon = it }, label = { Text(stringResource(R.string.gps_longitude)) }, singleLine = true, keyboardOptions = dec)
                 }
             }
         },
@@ -121,10 +121,9 @@ fun GpsDialogo(aoUsar: (Coordenada) -> Unit, aoFechar: () -> Unit) {
                         m?.let { aoUsar(Coordenada(it.lat!!, it.lon!!, "gnss", it.precisaoM, it.instante, it.satelitesEmUso.toLong())) }
                     }) { Text(stringResource(R.string.gps_usar)) }
                 } else {
-                    val la = lat.replace(',', '.').trim().toDoubleOrNull()
-                    val lo = lon.replace(',', '.').trim().toDoubleOrNull()
-                    TextButton(enabled = la != null && lo != null && la in -90.0..90.0 && lo in -180.0..180.0, onClick = {
-                        aoUsar(Coordenada(la!!, lo!!, "manual")) // RN-52: manual não tem precisão
+                    val coordenada = coordenadaManual(lat, lon, inicial)
+                    TextButton(enabled = coordenada != null, onClick = {
+                        coordenada?.let(aoUsar)
                     }) { Text(stringResource(R.string.gps_usar)) }
                 }
             }

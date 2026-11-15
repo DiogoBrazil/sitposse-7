@@ -73,3 +73,10 @@ O assunto é um levantamento de campo da PM em linhas vicinais de Rondônia. As 
   - claro em `#ffffff`: `#2f7d4a, #2b6fc0, #d9692e, #7a4fa8, #d39200, #c94f86`. Pior par: ΔE 18,2 com daltonismo, 20,1 sem. O ipê fica abaixo de 3:1, então o valor vai sempre escrito na ponta da barra e na tabela.
   - escuro em `#18201b`: `#3f9a5f, #4a8ad8, #d06a34, #9b7fd6, #b8860b, #d8669a`. Todos acima de 3:1.
 - **Modo de demonstração:** `npm run demo` sobe o frontend no navegador com dados fictícios (`src/demo`, só no modo `demo`) para revisar o visual sem o Windows.
+
+## Central 0.7.0-mvp (A29)
+Implementação e critérios em [ADR-0026](../../docs/architecture/decisions/0026-correcoes-e-exclusoes-central.md). Tabelas com 5 registros/página e totais externos. Editor por seções e exclusão lógica em cascata; fotos/recibos/cartas preservados. Novas versões de cadastros corrigidos são recusadas temporariamente, inclusive itens/fotos isolados. Nenhum dado é alterado no celular. Testes de fluxo em `internal/nucleo/correcoes_test.go`; validar ações/modais, download e relatórios no Windows.
+
+Ajuste 0.7.1-mvp: Ação é a última coluna em Propriedades; ícones permanecem lado a lado, com 8 px de intervalo (também nos estudos, jornadas e equipes). Nome da propriedade ocupa 18%; ações têm largura reservada.
+
+Ajuste 0.7.2-mvp: Ação também é a última coluna da lista principal de Estudos de situação, seguindo Propriedades, Jornadas e Equipes.

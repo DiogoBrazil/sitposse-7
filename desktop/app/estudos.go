@@ -93,3 +93,8 @@ func (s *EstudoService) DefinirEmFoco(estudo string) error {
 		ON CONFLICT (chave) DO UPDATE SET valor = excluded.valor, updated_at = excluded.updated_at`, estudo, agora, agora)
 	return err
 }
+
+// Excluir aplica tombstones em cascata e cancela lotes pendentes do estudo.
+func (s *EstudoService) Excluir(id string) error {
+	return s.C.n.Importador.ExcluirEstudo(contexto(), id)
+}
