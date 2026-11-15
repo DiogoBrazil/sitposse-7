@@ -2,6 +2,12 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-15 (A30, E2) — leitura de imagens do INPE
+- **desktop** · `geo/utm.go`: UTM pelas séries de Krüger (6ª ordem), com ida e volta. `geo/setores.go`: carta geral + setores de escala fixa, determinística, com grupos distantes em setores próprios e coordenadas suspeitas.
+- **desktop** · `cog/`: leitor de COG em Go puro (TIFF/BigTIFF, deflate, preditor 2, overviews, GeoKeys UTM/4326) por HTTP Range, com cache em disco por URL + ETag, leitura offline do que já foi baixado, novas tentativas e recusa de servidor sem Range. `stac/`: busca STAC com paginação POST/GET.
+- **desktop** · `inpe/`: candidatas CBERS-4A WPM (até 12 meses), Sentinel-2 L2A (TCI + SCL, uma versão por tile e data, até 60% de nuvem na cena) e mosaico trimestral. Sem dependências novas.
+- **testes** · UTM contra referências (< 1 cm) e 2.000 idas e voltas; setores com 5, 20 (2 × 10 km), 100 (10 × 30 km) pontos e grupos distantes; COGs sintéticos (clássico, BigTIFF, preditor, PixelIsPoint, corrompido, JPEG recusado); cache e offline via `httptest`; STAC paginado e instável. Teste real opcional (`SITPOSSE7_REDE=1`): em 15/11 achou 2 CBERS, 12 Sentinel-2 e 2 mosaicos sobre Ariquemes.
+
 ## 2026-11-15 (A30, E1) — número fixo da propriedade no estudo
 - **esquema** · Migração não destrutiva `0003_numeracao_propriedades.sql` (ADR-0027, RN-96): tabela `numeracao_propriedades` somente acréscimo, numeração dos cadastros existentes e `v_propriedades_vigentes.numero_no_estudo`. A importação atribui o próximo número na mesma transação da primeira inserção. `Familia.Numero`, `PropriedadeLinha.Numero` e `PropriedadeDetalhe.Numero`.
 - **testes** · Numeração na importação: estável entre versões, não reaproveitada após exclusão, imutável. Migração 0003 sobre banco da geração 2 com dados.
