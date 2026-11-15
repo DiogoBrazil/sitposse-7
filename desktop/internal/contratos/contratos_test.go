@@ -66,12 +66,12 @@ func decodificarEstrito(dado []byte, v any) error {
 }
 
 func TestLoteFixtures_SchemaEGo(t *testing.T) {
-	s := compilar(t, "lote.v1.schema.json")
+	s := compilar(t, "lote.v2.schema.json")
 	var fx struct {
 		Validos   []json.RawMessage `json:"validos"`
 		Invalidos []casoInvalido    `json:"invalidos"`
 	}
-	testutil.LerFixture(t, "contratos/lote.v1.json", &fx)
+	testutil.LerFixture(t, "contratos/lote.v2.json", &fx)
 	if len(fx.Validos) == 0 || len(fx.Invalidos) == 0 {
 		t.Fatal("fixture sem casos")
 	}
@@ -103,7 +103,7 @@ func TestLoteFixtures_SchemaEGo(t *testing.T) {
 }
 
 func TestReciboFixtures(t *testing.T) {
-	s := compilar(t, "recibo.v1.schema.json")
+	s := compilar(t, "recibo.v2.schema.json")
 	var fx struct {
 		Validos   []json.RawMessage `json:"validos"`
 		Invalidos []casoInvalido    `json:"invalidos"`
@@ -112,7 +112,7 @@ func TestReciboFixtures(t *testing.T) {
 			ReciboSHA256  string `json:"recibo_sha256"`
 		} `json:"hash"`
 	}
-	testutil.LerFixture(t, "contratos/recibo.v1.json", &fx)
+	testutil.LerFixture(t, "contratos/recibo.v2.json", &fx)
 	for i, v := range fx.Validos {
 		if err := validar(t, s, v); err != nil {
 			t.Errorf("válido %d rejeitado: %v", i, err)
@@ -136,15 +136,15 @@ func TestReciboFixtures(t *testing.T) {
 }
 
 func TestPareamentoFixtures(t *testing.T) {
-	sPed := compilar(t, "pareamento.v1.schema.json#/$defs/pedido")
-	sResp := compilar(t, "pareamento.v1.schema.json#/$defs/resposta")
-	sTodo := compilar(t, "pareamento.v1.schema.json")
+	sPed := compilar(t, "pareamento.v2.schema.json#/$defs/pedido")
+	sResp := compilar(t, "pareamento.v2.schema.json#/$defs/resposta")
+	sTodo := compilar(t, "pareamento.v2.schema.json")
 	var fx struct {
 		Pedidos   []json.RawMessage `json:"pedidos_validos"`
 		Respostas []json.RawMessage `json:"respostas_validas"`
 		Invalidos []casoInvalido    `json:"invalidos"`
 	}
-	testutil.LerFixture(t, "contratos/pareamento.v1.json", &fx)
+	testutil.LerFixture(t, "contratos/pareamento.v2.json", &fx)
 	for i, v := range fx.Pedidos {
 		if err := validar(t, sPed, v); err != nil {
 			t.Errorf("pedido %d rejeitado: %v", i, err)
@@ -170,12 +170,12 @@ func TestPareamentoFixtures(t *testing.T) {
 }
 
 func TestEstadoLoteFixtures(t *testing.T) {
-	s := compilar(t, "estado-lote.v1.schema.json")
+	s := compilar(t, "estado-lote.v2.schema.json")
 	var fx struct {
 		Validos   []json.RawMessage `json:"validos"`
 		Invalidos []casoInvalido    `json:"invalidos"`
 	}
-	testutil.LerFixture(t, "contratos/estado-lote.v1.json", &fx)
+	testutil.LerFixture(t, "contratos/estado-lote.v2.json", &fx)
 	for i, v := range fx.Validos {
 		if err := validar(t, s, v); err != nil {
 			t.Errorf("válido %d rejeitado: %v", i, err)

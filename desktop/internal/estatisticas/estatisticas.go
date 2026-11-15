@@ -35,20 +35,20 @@ type Condicao struct {
 // Filtro é o FiltroEstudo: todos os critérios são combinados com "e"; listas vazias
 // e ponteiros nulos não filtram.
 type Filtro struct {
-	Operacoes          []string   `json:"operacoes"`
-	Equipes            []string   `json:"equipes"`
-	AreasIdentificadas []string   `json:"areas_identificadas"` // "" = sem identificação
-	Busca              string     `json:"busca"`               // nome da propriedade ou responsável, sem acento
-	PeriodoCampo       string     `json:"periodo_campo"`       // cadastro | recebimento
-	De                 *int64     `json:"de"`                  // ms UTC, inclusive
-	Ate                *int64     `json:"ate"`                 // ms UTC, inclusive
-	ComLocalizacao     *bool      `json:"com_localizacao"`
-	ComFoto            *bool      `json:"com_foto"`
-	ComArea            *bool      `json:"com_area"`
-	FaixasArea         []string   `json:"faixas_area"`
-	AreaMinHa          *float64   `json:"area_min_ha"` // inclusive
-	AreaMaxHa          *float64   `json:"area_max_ha"` // inclusive
-	Condicoes          []Condicao `json:"condicoes"`
+	Estudo         string     `json:"estudo"`   // estudo em foco ("" = todos); define a base (A28)
+	Jornadas       []string   `json:"jornadas"` // jornadas do estudo
+	Equipes        []string   `json:"equipes"`
+	Busca          string     `json:"busca"`         // nome da propriedade ou responsável, sem acento
+	PeriodoCampo   string     `json:"periodo_campo"` // cadastro | recebimento
+	De             *int64     `json:"de"`            // ms UTC, inclusive
+	Ate            *int64     `json:"ate"`           // ms UTC, inclusive
+	ComLocalizacao *bool      `json:"com_localizacao"`
+	ComFoto        *bool      `json:"com_foto"`
+	ComArea        *bool      `json:"com_area"`
+	FaixasArea     []string   `json:"faixas_area"`
+	AreaMinHa      *float64   `json:"area_min_ha"` // inclusive
+	AreaMaxHa      *float64   `json:"area_max_ha"` // inclusive
+	Condicoes      []Condicao `json:"condicoes"`
 }
 
 // Campo é uma quantidade que pode ser somada, filtrada e mostrada em coluna.
@@ -62,24 +62,30 @@ type Campo struct {
 
 // Familia é uma propriedade vigente (cada propriedade corresponde a uma família).
 type Familia struct {
-	UUID             string           `json:"uuid"`
-	Nome             string           `json:"nome"`
-	Responsavel      *string          `json:"responsavel"`
-	EquipeUUID       string           `json:"equipe_uuid"`
-	Equipe           string           `json:"equipe"`
-	AreaIdentificada *string          `json:"area_identificada"`
-	OperacaoUUID     string           `json:"operacao_uuid"`
-	Valores          map[string]int64 `json:"valores"`
-	AreaDm2          *int64           `json:"area_dm2"`
-	AreaHa           *string          `json:"area_ha"`
-	AreaUnidade      *string          `json:"area_unidade"`
-	ComLocalizacao   bool             `json:"com_localizacao"`
-	Lat              *float64         `json:"lat"`
-	Lon              *float64         `json:"lon"`
-	GpsOrigem        *string          `json:"gps_origem"` // gnss | manual
-	GpsPrecisaoM     *float64         `json:"gps_precisao_m"`
-	CriadoEm         int64            `json:"criado_em"`
-	RecebidoEm       int64            `json:"recebido_em"`
+	UUID           string           `json:"uuid"`
+	Nome           string           `json:"nome"`
+	Responsavel    string           `json:"responsavel"`
+	Observacoes    *string          `json:"observacoes"`
+	EquipeUUID     string           `json:"equipe_uuid"`
+	Equipe         string           `json:"equipe"`
+	EquipeCodigo   string           `json:"equipe_codigo"`
+	JornadaUUID    string           `json:"jornada_uuid"`
+	Jornada        string           `json:"jornada"` // "Jornada 2 · 11/10/2026"
+	JornadaNumero  int              `json:"jornada_numero"`
+	JornadaData    string           `json:"jornada_data"`
+	EstudoUUID     string           `json:"estudo_uuid"`
+	Estudo         string           `json:"estudo"`
+	Valores        map[string]int64 `json:"valores"`
+	AreaDm2        *int64           `json:"area_dm2"`
+	AreaHa         *string          `json:"area_ha"`
+	AreaUnidade    *string          `json:"area_unidade"`
+	ComLocalizacao bool             `json:"com_localizacao"`
+	Lat            *float64         `json:"lat"`
+	Lon            *float64         `json:"lon"`
+	GpsOrigem      *string          `json:"gps_origem"` // gnss | manual
+	GpsPrecisaoM   *float64         `json:"gps_precisao_m"`
+	CriadoEm       int64            `json:"criado_em"`
+	RecebidoEm     int64            `json:"recebido_em"`
 }
 
 // Totais de um conjunto de famílias.
@@ -97,7 +103,7 @@ type Totais struct {
 	SemFoto        int              `json:"sem_foto"`
 }
 
-// Grupo são os totais de uma equipe ou de uma área identificada.
+// Grupo são os totais de uma equipe ou de uma jornada.
 type Grupo struct {
 	Chave  string `json:"chave"`
 	Nome   string `json:"nome"`
@@ -131,14 +137,14 @@ type Resultado struct {
 	FamiliasBase int        `json:"familias_base"` // total sem filtros, para "N de M famílias"
 	Totais       Totais     `json:"totais"`
 	PorEquipe    []Grupo    `json:"por_equipe"`
-	PorArea      []Grupo    `json:"por_area"`
+	PorJornada   []Grupo    `json:"por_jornada"`
 	Itens        []TipoItem `json:"itens"`
 	FaixasArea   []Faixa    `json:"faixas_area"`
 	Familias     []Familia  `json:"familias"`
 	Campos       []Campo    `json:"campos"`
 	Equipes      []Opcao    `json:"equipes"`
-	Areas        []Opcao    `json:"areas"`
-	Operacoes    []Opcao    `json:"operacoes"`
+	Jornadas     []Opcao    `json:"jornadas"`
+	Estudos      []Opcao    `json:"estudos"`
 }
 
 // ---------- campos ----------
@@ -225,9 +231,9 @@ func faixaDe(dm2 *int64) string {
 
 // Base são as famílias vigentes e os tipos de item conhecidos (catálogo + "Outros" recebidos).
 type Base struct {
-	Familias  []Familia
-	Itens     []Campo // tipos de item (Chave com prefixo "item:")
-	Operacoes []Opcao
+	Familias []Familia
+	Itens    []Campo // tipos de item (Chave com prefixo "item:")
+	Estudos  []Opcao
 }
 
 func validar(f Filtro, conhecidos map[string]bool) error {
@@ -266,13 +272,6 @@ func contem(lista []string, v string) bool {
 	return false
 }
 
-func deref(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return strings.TrimSpace(*s)
-}
-
 func atende(c Condicao, v int64) bool {
 	switch c.Operador {
 	case "tem":
@@ -294,18 +293,18 @@ func haParaDm2(ha float64) int64 { return int64(math.Round(ha * dm2PorHa)) }
 
 // passa diz se a família atende ao filtro (busca já normalizada).
 func passa(p *Familia, f *Filtro, termo string) bool {
-	if len(f.Operacoes) > 0 && !contem(f.Operacoes, p.OperacaoUUID) {
+	if f.Estudo != "" && p.EstudoUUID != f.Estudo {
+		return false
+	}
+	if len(f.Jornadas) > 0 && !contem(f.Jornadas, p.JornadaUUID) {
 		return false
 	}
 	if len(f.Equipes) > 0 && !contem(f.Equipes, p.EquipeUUID) {
 		return false
 	}
-	if len(f.AreasIdentificadas) > 0 && !contem(f.AreasIdentificadas, deref(p.AreaIdentificada)) {
-		return false
-	}
 	if termo != "" {
 		nome, _ := dominio.NormalizarNome(p.Nome)
-		resp, _ := dominio.NormalizarNome(deref(p.Responsavel))
+		resp, _ := dominio.NormalizarNome(p.Responsavel)
 		if !strings.Contains(nome, termo) && !strings.Contains(resp, termo) {
 			return false
 		}
@@ -405,25 +404,31 @@ func Calcular(b *Base, f Filtro) (*Resultado, error) {
 	}
 	termo, _ := dominio.NormalizarNome(f.Busca)
 
-	r := &Resultado{Totais: novoTotais(), Campos: campos, Operacoes: b.Operacoes, Familias: []Familia{}}
+	r := &Resultado{Totais: novoTotais(), Campos: campos, Estudos: b.Estudos, Familias: []Familia{}}
 	porEquipe := map[string]*Grupo{}
-	porArea := map[string]*Grupo{}
+	porJornada := map[string]*Grupo{}
 	porFaixa := map[string]*Faixa{}
-	equipes := map[string]string{}
-	areas := map[string]bool{}
-	ordemEq, ordemArea := []string{}, []string{}
+	type opcaoOrdem struct {
+		Opcao
+		numero int
+	}
+	equipes := map[string]opcaoOrdem{}
+	jornadas := map[string]opcaoOrdem{}
+	ordemEq, ordemJor := []string{}, []string{}
 
 	for i := range b.Familias {
 		p := &b.Familias[i]
-		if len(f.Operacoes) > 0 && !contem(f.Operacoes, p.OperacaoUUID) {
+		if f.Estudo != "" && p.EstudoUUID != f.Estudo {
 			continue
 		}
 		r.FamiliasBase++
-		// Opções de seleção vêm de toda a base (para não sumirem ao filtrar).
+		// Opções de seleção vêm de toda a base do estudo (para não sumirem ao filtrar).
 		if _, ok := equipes[p.EquipeUUID]; !ok {
-			equipes[p.EquipeUUID] = p.Equipe
+			equipes[p.EquipeUUID] = opcaoOrdem{Opcao{p.EquipeUUID, RotuloEquipe(p)}, p.JornadaNumero}
 		}
-		areas[deref(p.AreaIdentificada)] = true
+		if _, ok := jornadas[p.JornadaUUID]; !ok {
+			jornadas[p.JornadaUUID] = opcaoOrdem{Opcao{p.JornadaUUID, p.Jornada}, p.JornadaNumero}
+		}
 		if !passa(p, &f, termo) {
 			continue
 		}
@@ -432,24 +437,19 @@ func Calcular(b *Base, f Filtro) (*Resultado, error) {
 
 		g, ok := porEquipe[p.EquipeUUID]
 		if !ok {
-			g = &Grupo{Chave: p.EquipeUUID, Nome: p.Equipe, Totais: novoTotais()}
+			g = &Grupo{Chave: p.EquipeUUID, Nome: RotuloEquipe(p), Totais: novoTotais()}
 			porEquipe[p.EquipeUUID] = g
 			ordemEq = append(ordemEq, p.EquipeUUID)
 		}
 		g.Totais.somar(p)
 
-		a := deref(p.AreaIdentificada)
-		ga, ok := porArea[a]
+		gj, ok := porJornada[p.JornadaUUID]
 		if !ok {
-			nome := a
-			if nome == "" {
-				nome = "Sem identificação da área"
-			}
-			ga = &Grupo{Chave: a, Nome: nome, Totais: novoTotais()}
-			porArea[a] = ga
-			ordemArea = append(ordemArea, a)
+			gj = &Grupo{Chave: p.JornadaUUID, Nome: p.Jornada, Totais: novoTotais()}
+			porJornada[p.JornadaUUID] = gj
+			ordemJor = append(ordemJor, p.JornadaUUID)
 		}
-		ga.Totais.somar(p)
+		gj.Totais.somar(p)
 
 		fx := faixaDe(p.AreaDm2)
 		if porFaixa[fx] == nil {
@@ -462,22 +462,27 @@ func Calcular(b *Base, f Filtro) (*Resultado, error) {
 	}
 	r.Totais.fechar()
 
-	sort.Slice(ordemEq, func(i, j int) bool { return comparar(porEquipe[ordemEq[i]].Nome, porEquipe[ordemEq[j]].Nome) < 0 })
+	// Equipes e jornadas na ordem das jornadas (e, dentro delas, pelo nome).
+	ordenar := func(ks []string, op map[string]opcaoOrdem) {
+		sort.Slice(ks, func(i, j int) bool {
+			a, b := op[ks[i]], op[ks[j]]
+			if a.numero != b.numero {
+				return a.numero < b.numero
+			}
+			return comparar(a.Rotulo, b.Rotulo) < 0
+		})
+	}
+	ordenar(ordemEq, equipes)
 	for _, k := range ordemEq {
 		g := porEquipe[k]
 		g.Totais.fechar()
 		r.PorEquipe = append(r.PorEquipe, *g)
 	}
-	sort.Slice(ordemArea, func(i, j int) bool {
-		if (ordemArea[i] == "") != (ordemArea[j] == "") {
-			return ordemArea[j] == "" // "sem identificação" no fim
-		}
-		return comparar(ordemArea[i], ordemArea[j]) < 0
-	})
-	for _, k := range ordemArea {
-		g := porArea[k]
+	ordenar(ordemJor, jornadas)
+	for _, k := range ordemJor {
+		g := porJornada[k]
 		g.Totais.fechar()
-		r.PorArea = append(r.PorArea, *g)
+		r.PorJornada = append(r.PorJornada, *g)
 	}
 
 	for _, fx := range faixas {
@@ -506,33 +511,49 @@ func Calcular(b *Base, f Filtro) (*Resultado, error) {
 		}
 	}
 
-	for k, v := range equipes {
-		r.Equipes = append(r.Equipes, Opcao{Valor: k, Rotulo: v})
-	}
-	sort.Slice(r.Equipes, func(i, j int) bool { return comparar(r.Equipes[i].Rotulo, r.Equipes[j].Rotulo) < 0 })
-	for a := range areas {
-		rot := a
-		if rot == "" {
-			rot = "Sem identificação da área"
+	opcoes := func(op map[string]opcaoOrdem) []Opcao {
+		ks := make([]string, 0, len(op))
+		for k := range op {
+			ks = append(ks, k)
 		}
-		r.Areas = append(r.Areas, Opcao{Valor: a, Rotulo: rot})
-	}
-	sort.Slice(r.Areas, func(i, j int) bool {
-		if (r.Areas[i].Valor == "") != (r.Areas[j].Valor == "") {
-			return r.Areas[j].Valor == ""
+		ordenar(ks, op)
+		out := make([]Opcao, 0, len(ks))
+		for _, k := range ks {
+			out = append(out, op[k].Opcao)
 		}
-		return comparar(r.Areas[i].Rotulo, r.Areas[j].Rotulo) < 0
-	})
+		return out
+	}
+	r.Equipes, r.Jornadas = opcoes(equipes), opcoes(jornadas)
 	if r.PorEquipe == nil {
 		r.PorEquipe = []Grupo{}
 	}
-	if r.PorArea == nil {
-		r.PorArea = []Grupo{}
+	if r.PorJornada == nil {
+		r.PorJornada = []Grupo{}
+	}
+	if r.Estudos == nil {
+		r.Estudos = []Opcao{}
 	}
 	if r.Itens == nil {
 		r.Itens = []TipoItem{}
 	}
 	return r, nil
+}
+
+// RotuloEquipe distingue equipes de mesmo nome em jornadas diferentes: "Alfa · J2 (11/10/2026)".
+func RotuloEquipe(p *Familia) string {
+	return fmt.Sprintf("%s · J%d (%s)", p.Equipe, p.JornadaNumero, dataBR(p.JornadaData))
+}
+
+// RotuloJornada é o texto padrão de uma jornada: "Jornada 2 · 11/10/2026".
+func RotuloJornada(numero int, data string) string {
+	return fmt.Sprintf("Jornada %d · %s", numero, dataBR(data))
+}
+
+func dataBR(d string) string {
+	if len(d) != 10 {
+		return d
+	}
+	return d[8:] + "/" + d[5:7] + "/" + d[:4]
 }
 
 // NovaFamilia completa os valores derivados (totais por grupo) de uma família.

@@ -169,6 +169,16 @@ type Plano struct {
 	Grupos         [][]int          `json:"grupos"` // índices em Marcadores, quando convém dividir
 	Largura        int              `json:"largura"`
 	Altura         int              `json:"altura"`
+	estudos        []string         // estudos das propriedades representadas
+}
+
+func contem(l []string, v string) bool {
+	for _, x := range l {
+		if x == v {
+			return true
+		}
+	}
+	return false
 }
 
 func origem(p estatisticas.Familia) string {
@@ -203,11 +213,10 @@ func montarPlano(fs []estatisticas.Familia, individual bool) (*Plano, error) {
 			p.SemLocalizacao = append(p.SemLocalizacao, f.Nome+" (coordenada inválida)")
 			continue
 		}
-		area := ""
-		if f.AreaIdentificada != nil {
-			area = *f.AreaIdentificada
+		p.Marcadores = append(p.Marcadores, carta.Marcador{Numero: len(p.Marcadores) + 1, Nome: f.Nome, Ponto: pt, PrecisaoM: f.GpsPrecisaoM, Origem: origem(f), Equipe: f.Equipe, Jornada: f.Jornada})
+		if !contem(p.estudos, f.EstudoUUID) {
+			p.estudos = append(p.estudos, f.EstudoUUID)
 		}
-		p.Marcadores = append(p.Marcadores, carta.Marcador{Numero: len(p.Marcadores) + 1, Nome: f.Nome, Ponto: pt, PrecisaoM: f.GpsPrecisaoM, Origem: origem(f), Equipe: f.Equipe, AreaIdentificada: area})
 		p.UUIDs = append(p.UUIDs, f.UUID)
 		pts = append(pts, pt)
 	}
@@ -432,7 +441,7 @@ func (s *CartaService) GerarCarta(p PedidoCarta) (*cartografia.CartaGuardada, er
 		subt = fmt.Sprintf("%d propriedade(s)", len(plano.Marcadores))
 	}
 	d := carta.Dados{Tipo: p.Tipo, Subtitulo: subt, Imagem: img, Atribuicao: atrib, Marcadores: plano.Marcadores, SemLocalizacao: plano.SemLocalizacao,
-		Criterios: p.Criterios, Operacao: s.operacao(), GeradoEm: s.agora(), NomesNoMapa: len(plano.Marcadores) <= 12}
+		Criterios: p.Criterios, Estudo: s.estudo(plano.estudos), GeradoEm: s.agora(), NomesNoMapa: len(plano.Marcadores) <= 12}
 	_, mapa, err := carta.MapaPNG(d)
 	if err != nil {
 		return nil, err
@@ -453,12 +462,15 @@ func (s *CartaService) GerarCarta(p PedidoCarta) (*cartografia.CartaGuardada, er
 	return &reg, nil
 }
 
-func (s *CartaService) operacao() string {
-	op, err := s.C.n.Pareamento.OperacaoAtiva(contexto())
-	if err != nil || op == nil {
-		return ""
+// estudo nomeia o(s) estudo(s) das propriedades da carta.
+func (s *CartaService) estudo(uuids []string) string {
+	var nomes []string
+	for _, u := range uuids {
+		if n := s.C.nomeEstudo(u); n != "" {
+			nomes = append(nomes, n)
+		}
 	}
-	return op.Nome
+	return strings.Join(nomes, "; ")
 }
 
 // Cartas guardadas (abrem sem internet).

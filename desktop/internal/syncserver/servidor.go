@@ -10,52 +10,43 @@ import (
 	"strconv"
 	"time"
 
+	"sitposse7/desktop/internal/contratos"
 	"sitposse7/desktop/internal/importacao"
 	"sitposse7/desktop/internal/pareamento"
 )
 
-// Versões de protocolo e esquema aceitas por esta Central.
+// Versões de protocolo e esquema aceitas por esta Central (só a 2: ADR-0024, ADR-0025).
 const (
-	ProtocoloVersao = 1
-	SchemaVersao    = 1
+	ProtocoloVersao = contratos.ProtocoloVersao
+	SchemaVersao    = contratos.SchemaVersao
 	PortaPadrao     = 38807
 )
 
-// Status é a resposta de GET /v1/status (shared/schemas/status.v1.schema.json).
+// Status é a resposta de GET /v1/status (shared/schemas/status.v2.schema.json).
 type Status struct {
-	ProtocoloVersao    int       `json:"protocolo_versao"`
-	ProtocoloVersaoMin int       `json:"protocolo_versao_min"`
-	ProtocoloVersaoMax int       `json:"protocolo_versao_max"`
-	SchemaVersaoMin    int       `json:"schema_versao_min"`
-	SchemaVersaoMax    int       `json:"schema_versao_max"`
-	CentralID          string    `json:"central_id"`
-	Operacao           *Operacao `json:"operacao"`
-	Horario            string    `json:"horario"`
+	ProtocoloVersao    int    `json:"protocolo_versao"`
+	ProtocoloVersaoMin int    `json:"protocolo_versao_min"`
+	ProtocoloVersaoMax int    `json:"protocolo_versao_max"`
+	SchemaVersaoMin    int    `json:"schema_versao_min"`
+	SchemaVersaoMax    int    `json:"schema_versao_max"`
+	CentralID          string `json:"central_id"`
+	Horario            string `json:"horario"`
 }
 
-// Operacao identifica a operação ativa.
-type Operacao struct {
-	UUID string `json:"uuid"`
-	Nome string `json:"nome"`
-}
-
-// PayloadQR é o conteúdo do QR de pareamento (shared/schemas/qr-pareamento.v1.schema.json).
+// PayloadQR é o conteúdo do QR de pareamento (shared/schemas/qr-pareamento.v2.schema.json).
 type PayloadQR struct {
-	V            int      `json:"v"`
-	CentralID    string   `json:"central_id"`
-	IPs          []string `json:"ips"`
-	Porta        int      `json:"porta"`
-	SPKISHA256   string   `json:"spki_sha256"`
-	Token        string   `json:"token_pareamento,omitempty"`
-	OperacaoUUID string   `json:"operacao_uuid,omitempty"`
-	OperacaoNome string   `json:"operacao_nome,omitempty"`
+	V          int      `json:"v"`
+	CentralID  string   `json:"central_id"`
+	IPs        []string `json:"ips"`
+	Porta      int      `json:"porta"`
+	SPKISHA256 string   `json:"spki_sha256"`
+	Token      string   `json:"token_pareamento,omitempty"`
 }
 
 // Servidor é o servidor HTTPS local da Central.
 type Servidor struct {
 	Identidade *Identidade
 	CentralID  string
-	Operacao   func() *Operacao
 	// Pareamento e Importador habilitam a API v1 completa (nil = só /v1/status).
 	Pareamento *pareamento.Servico
 	Importador *importacao.Importador
@@ -76,15 +67,11 @@ func (s *Servidor) Handler() http.Handler {
 }
 
 func (s *Servidor) status(w http.ResponseWriter, r *http.Request) {
-	var op *Operacao
-	if s.Operacao != nil {
-		op = s.Operacao()
-	}
 	escreverJSON(w, http.StatusOK, Status{
-		ProtocoloVersao: ProtocoloVersao, ProtocoloVersaoMin: 1, ProtocoloVersaoMax: ProtocoloVersao,
-		SchemaVersaoMin: 1, SchemaVersaoMax: SchemaVersao,
-		CentralID: s.CentralID, Operacao: op,
-		Horario: time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),
+		ProtocoloVersao: ProtocoloVersao, ProtocoloVersaoMin: ProtocoloVersao, ProtocoloVersaoMax: ProtocoloVersao,
+		SchemaVersaoMin: SchemaVersao, SchemaVersaoMax: SchemaVersao,
+		CentralID: s.CentralID,
+		Horario:   time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),
 	})
 }
 
@@ -162,16 +149,12 @@ func (s *Servidor) Parar(ctx context.Context) error {
 }
 
 // QR monta o payload de pareamento com os IPs atuais.
-func (s *Servidor) QR(token string, op *Operacao) PayloadQR {
+func (s *Servidor) QR(token string) PayloadQR {
 	ips := make([]string, 0, len(s.Identidade.IPs))
 	for _, ip := range s.Identidade.IPs {
 		if !ip.IsLoopback() {
 			ips = append(ips, ip.String())
 		}
 	}
-	p := PayloadQR{V: 1, CentralID: s.CentralID, IPs: ips, Porta: s.Porta(), SPKISHA256: s.Identidade.Pin(), Token: token}
-	if op != nil {
-		p.OperacaoUUID, p.OperacaoNome = op.UUID, op.Nome
-	}
-	return p
+	return PayloadQR{V: 2, CentralID: s.CentralID, IPs: ips, Porta: s.Porta(), SPKISHA256: s.Identidade.Pin(), Token: token}
 }

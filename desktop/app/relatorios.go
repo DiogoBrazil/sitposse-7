@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"sitposse7/desktop/internal/estatisticas"
+	"sitposse7/desktop/internal/estudos"
 	"sitposse7/desktop/internal/relatorios"
 )
 
@@ -33,12 +34,16 @@ var formatos = map[string]struct{ ext, descr string }{
 // ErrArquivoEmUso: o arquivo de destino está aberto em outro programa.
 var ErrArquivoEmUso = errors.New("não foi possível gravar: o arquivo está aberto em outro programa (feche-o e tente de novo)")
 
-func (s *RelatorioService) operacao() string {
-	op, err := s.C.n.Pareamento.OperacaoAtiva(contexto())
-	if err != nil || op == nil {
+// nomeEstudo devolve "Nome (SITPOSSE7-XXXX-XXXX)" do estudo em foco ("" = todos).
+func (c *Central) nomeEstudo(estudo string) string {
+	if estudo == "" {
+		return "Todos os estudos"
+	}
+	e, err := estudos.Detalhe(contexto(), c.n.B.Leitura, estudo)
+	if err != nil {
 		return ""
 	}
-	return op.Nome
+	return e.Nome + " (" + e.CodigoExibicao + ")"
 }
 
 // gravar escolhe o destino e grava com segurança (arquivo temporário, fsync e rename).
@@ -107,8 +112,16 @@ func (s *RelatorioService) Exportar(formato string, filtro estatisticas.Filtro, 
 		return "", err
 	}
 	agora := time.Now()
-	d := relatorios.Dados{Operacao: s.operacao(), GeradoEm: agora, Criterios: criterios, R: r, Fichas: fichas}
-	nome := relatorios.NomeArquivo("SITPOSSE-7", "Panorama", d.Operacao, agora.Format("2006-01-02 15h04"))
+	d := relatorios.Dados{Estudo: s.C.nomeEstudo(filtro.Estudo), GeradoEm: agora, Criterios: criterios, R: r, Fichas: fichas}
+	nomeArq := ""
+	if filtro.Estudo != "" && len(base.Estudos) > 0 {
+		for _, e := range base.Estudos {
+			if e.Valor == filtro.Estudo {
+				nomeArq = e.Rotulo
+			}
+		}
+	}
+	nome := relatorios.NomeArquivo("SITPOSSE-7", "Panorama", nomeArq, agora.Format("2006-01-02 15h04"))
 	return s.gravar(formato, nome, func() ([]byte, error) {
 		switch formato {
 		case "xlsx":
@@ -138,7 +151,7 @@ func (s *RelatorioService) ExportarFicha(formato, uuid string) (string, error) {
 		if p.UUID != uuid {
 			continue
 		}
-		doc := relatorios.MontarFicha(p, r.Campos, s.operacao(), time.Now())
+		doc := relatorios.MontarFicha(p, r.Campos, s.C.nomeEstudo(p.EstudoUUID), time.Now())
 		return s.gravar(formato, relatorios.NomeArquivo("SITPOSSE-7", "Ficha", p.Nome), func() ([]byte, error) {
 			if formato == "docx" {
 				return relatorios.DOCX(doc)

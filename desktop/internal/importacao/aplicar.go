@@ -10,20 +10,37 @@ import (
 
 	"sitposse7/desktop/internal/contratos"
 	"sitposse7/desktop/internal/dominio"
+	"sitposse7/desktop/internal/estudos"
 )
 
-// aplicar grava o lote numa única transação e devolve o recibo persistido.
+// aplicar grava, numa única transação, o destino da coleta (travado a partir daqui),
+// a decisão do operador, os registros do lote e o recibo persistido (ADR-0024).
 // Cada registro é aplicado num SAVEPOINT: um registro rejeitado não derruba os demais.
-// Regra de aplicação (A24, sem correções na Central): rev > rev_origem → aplicado;
-// rev ≤ rev_origem → duplicado. Nada é sobrescrito com rev menor ou igual.
-func (im *Importador) aplicar(ctx context.Context, d Dispositivo, l *contratos.Lote) (*contratos.Recibo, error) {
+// Regra de aplicação: rev > rev_origem → aplicado; rev ≤ rev_origem → duplicado.
+// Nada é sobrescrito com rev menor ou igual.
+func (im *Importador) aplicar(ctx context.Context, instalacao string, l *contratos.Lote, dest *estudos.Destino, codigoInformado string, operador any) (*contratos.Recibo, error) {
 	agora := im.agora().UnixMilli()
 	tx, err := im.B.Escrita.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
-	a := &aplicador{ctx: ctx, tx: tx, d: d, agora: agora, origem: "equipe:" + d.EquipeUUID, lote: l.LoteUUID}
+	coleta := l.Coleta.UUID
+	a := &aplicador{ctx: ctx, tx: tx, instalacao: instalacao, agora: agora, origem: "coleta:" + coleta, lote: l.LoteUUID, equipe: dest.EquipeUUID}
+
+	// Destino da coleta (o gatilho do banco impede trocar uma equipe já gravada) e decisão.
+	if _, err := tx.ExecContext(ctx, `UPDATE coletas SET equipe_uuid = ?, destino_confirmado_em = ? WHERE uuid = ? AND equipe_uuid IS NULL`,
+		dest.EquipeUUID, agora, coleta); err != nil {
+		return nil, fmt.Errorf("gravando destino da coleta: %w", err)
+	}
+	acao := "confirmar"
+	if dest.EquipeCodigo != codigoInformado {
+		acao = "alterar"
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO decisoes_destino (lote_uuid, coleta_uuid, acao, codigo_informado, codigo_confirmado, equipe_uuid, jornada_uuid, estudo_uuid, quando, operador)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, l.LoteUUID, coleta, acao, codigoInformado, dest.EquipeCodigo, dest.EquipeUUID, dest.JornadaUUID, dest.EstudoUUID, agora, operador); err != nil {
+		return nil, fmt.Errorf("gravando decisão: %w", err)
+	}
 
 	resultados := map[string]contratos.ResultadoRecibo{}
 	chave := func(ent, uuid string) string { return ent + "|" + uuid }
@@ -31,11 +48,11 @@ func (im *Importador) aplicar(ctx context.Context, d Dispositivo, l *contratos.L
 		resultados[chave(ent, uuid)] = contratos.ResultadoRecibo{Entidade: ent, UUID: uuid, Rev: rev, Resultado: res, Motivo: motivo}
 	}
 
-	res, motivo := a.comSavepoint(func() (string, error) { return a.equipe(&l.Equipe) })
-	registrar("equipe", l.Equipe.UUID, l.Equipe.Rev, res, motivo)
+	res, motivo := a.comSavepoint(func() (string, error) { return a.coleta(&l.Coleta) })
+	registrar("coleta", coleta, l.Coleta.Rev, res, motivo)
 	for i := range l.Propriedades {
 		p := &l.Propriedades[i]
-		res, motivo := a.comSavepoint(func() (string, error) { return a.propriedade(p, l.Equipe.UUID) })
+		res, motivo := a.comSavepoint(func() (string, error) { return a.propriedade(p, coleta) })
 		registrar("propriedade", p.UUID, p.Rev, res, motivo)
 	}
 	// Exclusões de itens primeiro: liberam o índice único de item predefinido (RN-32)
@@ -52,23 +69,25 @@ func (im *Importador) aplicar(ctx context.Context, d Dispositivo, l *contratos.L
 		}
 	}
 	for _, it := range ordemItens {
-		res, motivo := a.comSavepoint(func() (string, error) { return a.item(it, l.Equipe.UUID) })
+		res, motivo := a.comSavepoint(func() (string, error) { return a.item(it, coleta) })
 		registrar("item", it.UUID, it.Rev, res, motivo)
 	}
 	for i := range l.Fotos {
 		f := &l.Fotos[i]
-		res, motivo := a.comSavepoint(func() (string, error) { return a.foto(f, l.Equipe.UUID) })
+		res, motivo := a.comSavepoint(func() (string, error) { return a.foto(f, coleta) })
 		registrar("foto", f.UUID, f.Rev, res, motivo)
 	}
 
 	// Recibo na ordem do manifesto.
 	recibo := &contratos.Recibo{ProtocoloVersao: contratos.ProtocoloVersao, LoteUUID: l.LoteUUID, CentralID: im.CentralID,
-		ImportadoEm: contratos.FormatarInstante(agora)}
+		ImportadoEm: contratos.FormatarInstante(agora), Destino: contratos.Destino{
+			EstudoCodigo: dest.EstudoCodigo, EstudoNome: dest.EstudoNome, JornadaNumero: int64(dest.JornadaNumero), JornadaData: dest.JornadaData,
+			EquipeNome: dest.EquipeNome, EquipeCodigo: dest.EquipeCodigo, CodigoInformado: codigoInformado, Corrigido: acao == "alterar"}}
 	add := func(ent, uuid string) {
 		r := resultados[chave(ent, uuid)]
 		recibo.Resultados = append(recibo.Resultados, r)
 	}
-	add("equipe", l.Equipe.UUID)
+	add("coleta", coleta)
 	for _, p := range l.Propriedades {
 		add("propriedade", p.UUID)
 	}
@@ -94,9 +113,13 @@ func (im *Importador) aplicar(ctx context.Context, d Dispositivo, l *contratos.L
 	if err != nil {
 		return nil, err
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE lotes_recebidos SET status = 'importado', recibo_json = ?, importado_em = ? WHERE uuid = ? AND status = 'recebendo'`,
-		string(reciboJSON), agora, l.LoteUUID); err != nil {
+	res2, err := tx.ExecContext(ctx, `UPDATE lotes_recebidos SET status = 'importado', recibo_json = ?, importado_em = ?, equipe_destino_uuid = ?, decidido_em = ?
+		WHERE uuid = ? AND status = 'aguardando_confirmacao'`, string(reciboJSON), agora, dest.EquipeUUID, agora, l.LoteUUID)
+	if err != nil {
 		return nil, err
+	}
+	if n, _ := res2.RowsAffected(); n != 1 {
+		return nil, ErrJaDecidido
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("gravando importação: %w", err)
@@ -105,13 +128,14 @@ func (im *Importador) aplicar(ctx context.Context, d Dispositivo, l *contratos.L
 }
 
 type aplicador struct {
-	ctx    context.Context
-	tx     *sql.Tx
-	d      Dispositivo
-	agora  int64
-	origem string
-	lote   string
-	n      int
+	ctx        context.Context
+	tx         *sql.Tx
+	instalacao string
+	equipe     string // equipe de destino confirmada
+	agora      int64
+	origem     string
+	lote       string
+	n          int
 }
 
 // rejeicao é um erro esperado que vira "rejeitado" no recibo (não aborta o lote).
@@ -150,27 +174,25 @@ func (a *aplicador) comSavepoint(fn func() (string, error)) (string, string) {
 	return res, ""
 }
 
-// estadoAtual lê rev_origem e registro_json da entidade (ok=false se não existe).
-func (a *aplicador) estadoAtual(tabela, uuid string) (rev int64, registro string, corrigido bool, equipe string, ok bool, err error) {
+// estadoAtual lê rev_origem e registro_json da entidade e a coleta dona (ok=false se não existe).
+func (a *aplicador) estadoAtual(tabela, uuid string) (rev int64, registro string, corrigido bool, coleta string, ok bool, err error) {
 	var q string
 	switch tabela {
-	case "equipes":
-		q = `SELECT rev_origem, registro_json, 0, uuid FROM equipes WHERE uuid = ?`
 	case "propriedades":
-		q = `SELECT rev_origem, registro_json, corrigido_desde_rev_origem, equipe_uuid FROM propriedades WHERE uuid = ?`
+		q = `SELECT rev_origem, registro_json, corrigido_desde_rev_origem, coleta_uuid FROM propriedades WHERE uuid = ?`
 	case "itens_propriedade":
-		q = `SELECT i.rev_origem, i.registro_json, i.corrigido_desde_rev_origem, p.equipe_uuid FROM itens_propriedade i JOIN propriedades p ON p.uuid = i.propriedade_uuid WHERE i.uuid = ?`
+		q = `SELECT i.rev_origem, i.registro_json, i.corrigido_desde_rev_origem, p.coleta_uuid FROM itens_propriedade i JOIN propriedades p ON p.uuid = i.propriedade_uuid WHERE i.uuid = ?`
 	case "fotografias":
-		q = `SELECT f.rev_origem, f.registro_json, f.corrigido_desde_rev_origem, p.equipe_uuid FROM fotografias f JOIN propriedades p ON p.uuid = f.propriedade_uuid WHERE f.uuid = ?`
+		q = `SELECT f.rev_origem, f.registro_json, f.corrigido_desde_rev_origem, p.coleta_uuid FROM fotografias f JOIN propriedades p ON p.uuid = f.propriedade_uuid WHERE f.uuid = ?`
 	default:
 		return 0, "", false, "", false, fmt.Errorf("tabela desconhecida %s", tabela)
 	}
 	var c int64
-	err = a.tx.QueryRowContext(a.ctx, q, uuid).Scan(&rev, &registro, &c, &equipe)
+	err = a.tx.QueryRowContext(a.ctx, q, uuid).Scan(&rev, &registro, &c, &coleta)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, "", false, "", false, nil
 	}
-	return rev, registro, c == 1, equipe, err == nil, err
+	return rev, registro, c == 1, coleta, err == nil, err
 }
 
 func (a *aplicador) auditar(entidade, uuid, acao, antes string, depois []byte) error {
@@ -205,45 +227,39 @@ func msOpt(s *string) any {
 	return ms(*s)
 }
 
-func (a *aplicador) equipe(e *contratos.Equipe) (string, error) {
-	if err := contratos.ValidarEquipe(e); err != nil {
+func (a *aplicador) coleta(c *contratos.Coleta) (string, error) {
+	if err := contratos.ValidarColeta(c); err != nil {
 		return "", rejeitar("%v", err)
 	}
-	rev, antes, _, _, existe, err := a.estadoAtual("equipes", e.UUID)
-	if err != nil {
+	var rev int64
+	var antes sql.NullString
+	if err := a.tx.QueryRowContext(a.ctx, `SELECT rev_origem, registro_json FROM coletas WHERE uuid = ?`, c.UUID).Scan(&rev, &antes); err != nil {
 		return "", err
 	}
-	if existe && e.Rev <= rev {
+	if c.Rev <= rev {
 		return contratos.ResultadoDuplicado, nil
 	}
-	js, _ := json.Marshal(e)
-	if existe {
-		_, err = a.tx.ExecContext(a.ctx, `UPDATE equipes SET nome = ?, responsavel = ?, identificacao_area = ?, updated_at = ?, rev_origem = ?, recebido_em = ?, registro_json = ?
-			WHERE uuid = ? AND operacao_uuid = ?`, e.Nome, e.Responsavel, e.IdentificacaoArea, ms(e.UpdatedAt), e.Rev, a.agora, string(js), e.UUID, a.d.OperacaoUUID)
-	} else {
-		// A equipe é criada no pareamento; este ramo só cobre bancos antigos.
-		_, err = a.tx.ExecContext(a.ctx, `INSERT INTO equipes (uuid, operacao_uuid, nome, responsavel, identificacao_area, created_at, updated_at, rev_origem, recebido_em, registro_json)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, e.UUID, a.d.OperacaoUUID, e.Nome, e.Responsavel, e.IdentificacaoArea, ms(e.CreatedAt), ms(e.UpdatedAt), e.Rev, a.agora, string(js))
-	}
-	if err != nil {
+	js, _ := json.Marshal(c)
+	if _, err := a.tx.ExecContext(a.ctx, `UPDATE coletas SET codigo_informado = ?, codigo_original = ?, updated_at = ?, rev_origem = ?, recebido_em = ?, registro_json = ? WHERE uuid = ?`,
+		c.CodigoEquipe, c.CodigoOriginal, ms(c.UpdatedAt), c.Rev, a.agora, string(js), c.UUID); err != nil {
 		return "", err
 	}
-	return contratos.ResultadoAplicado, a.auditar("equipe", e.UUID, acaoDe(antes, nil), antes, js)
+	return contratos.ResultadoAplicado, a.auditar("coleta", c.UUID, acaoDe(antes.String, nil), antes.String, js)
 }
 
-func (a *aplicador) propriedade(p *contratos.Propriedade, equipe string) (string, error) {
+func (a *aplicador) propriedade(p *contratos.Propriedade, coleta string) (string, error) {
 	if err := contratos.ValidarPropriedade(p); err != nil {
 		return "", rejeitar("%v", err)
 	}
-	if p.EquipeUUID != equipe {
-		return "", rejeitar("propriedade de outra equipe")
+	if p.ColetaUUID != coleta {
+		return "", rejeitar("propriedade de outra coleta")
 	}
-	rev, antes, corrigido, equipeAtual, existe, err := a.estadoAtual("propriedades", p.UUID)
+	rev, antes, corrigido, coletaAtual, existe, err := a.estadoAtual("propriedades", p.UUID)
 	if err != nil {
 		return "", err
 	}
-	if existe && equipeAtual != equipe {
-		return "", rejeitar("UUID já pertence a cadastro de outra equipe")
+	if existe && coletaAtual != coleta {
+		return "", rejeitar("UUID já pertence a cadastro de outra coleta")
 	}
 	if existe && p.Rev <= rev {
 		return contratos.ResultadoDuplicado, nil
@@ -253,26 +269,26 @@ func (a *aplicador) propriedade(p *contratos.Propriedade, equipe string) (string
 		return "", rejeitar("cadastro corrigido na Central; resolução de conflitos ainda não disponível")
 	}
 	js, _ := json.Marshal(p)
-	args := []any{p.NomePropriedade, p.ResponsavelFamilia,
+	args := []any{p.NomePropriedade, p.ResponsavelFamilia, p.ObservacoesRelevantes,
 		p.PessoasAdultos, p.PessoasJovens, p.PessoasCriancas, p.VeicCaminhoes, p.VeicAutomoveisUtilitarios, p.VeicMotosCiclomotores,
 		p.BovAdultos, p.BovBezerros, p.EquAdultos, p.EquPotros, p.AreaValorMilesimos, p.AreaUnidade,
 		p.Lat, p.Lon, p.GPSOrigem, p.GPSPrecisaoM, msOpt(p.GPSCapturadoEm), p.GPSSatelites,
-		ms(p.UpdatedAt), msOpt(p.ExcluidoEm), p.Rev, a.agora, a.d.InstalacaoUUID, string(js)}
+		ms(p.UpdatedAt), msOpt(p.ExcluidoEm), p.Rev, a.agora, a.instalacao, string(js)}
 	if existe {
-		_, err = a.tx.ExecContext(a.ctx, `UPDATE propriedades SET nome_propriedade = ?, responsavel_familia = ?,
+		_, err = a.tx.ExecContext(a.ctx, `UPDATE propriedades SET nome_propriedade = ?, responsavel_familia = ?, observacoes_relevantes = ?,
 			pessoas_adultos = ?, pessoas_jovens = ?, pessoas_criancas = ?, veic_caminhoes = ?, veic_automoveis_utilitarios = ?, veic_motos_ciclomotores = ?,
 			bov_adultos = ?, bov_bezerros = ?, equ_adultos = ?, equ_potros = ?, area_valor_milesimos = ?, area_unidade = ?,
 			lat = ?, lon = ?, gps_origem = ?, gps_precisao_m = ?, gps_capturado_em = ?, gps_satelites = ?,
 			updated_at = ?, excluido_em = ?, rev_origem = ?, recebido_em = ?, origem_instalacao = ?, registro_json = ?
 			WHERE uuid = ?`, append(args, p.UUID)...)
 	} else {
-		_, err = a.tx.ExecContext(a.ctx, `INSERT INTO propriedades (nome_propriedade, responsavel_familia,
+		_, err = a.tx.ExecContext(a.ctx, `INSERT INTO propriedades (nome_propriedade, responsavel_familia, observacoes_relevantes,
 			pessoas_adultos, pessoas_jovens, pessoas_criancas, veic_caminhoes, veic_automoveis_utilitarios, veic_motos_ciclomotores,
 			bov_adultos, bov_bezerros, equ_adultos, equ_potros, area_valor_milesimos, area_unidade,
 			lat, lon, gps_origem, gps_precisao_m, gps_capturado_em, gps_satelites,
 			updated_at, excluido_em, rev_origem, recebido_em, origem_instalacao, registro_json,
-			uuid, equipe_uuid, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-			append(args, p.UUID, equipe, ms(p.CreatedAt))...)
+			uuid, coleta_uuid, equipe_uuid, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+			append(args, p.UUID, coleta, a.equipe, ms(p.CreatedAt))...)
 	}
 	if err != nil {
 		return "", err
@@ -280,23 +296,23 @@ func (a *aplicador) propriedade(p *contratos.Propriedade, equipe string) (string
 	return contratos.ResultadoAplicado, a.auditar("propriedade", p.UUID, acaoDe(antes, p.ExcluidoEm), antes, js)
 }
 
-// propriedadeDaEquipe confere que a propriedade existe na Central e é da equipe.
-func (a *aplicador) propriedadeDaEquipe(uuid, equipe string) error {
-	var eq string
-	err := a.tx.QueryRowContext(a.ctx, `SELECT equipe_uuid FROM propriedades WHERE uuid = ?`, uuid).Scan(&eq)
+// propriedadeDaColeta confere que a propriedade existe na Central e é da coleta.
+func (a *aplicador) propriedadeDaColeta(uuid, coleta string) error {
+	var c string
+	err := a.tx.QueryRowContext(a.ctx, `SELECT coleta_uuid FROM propriedades WHERE uuid = ?`, uuid).Scan(&c)
 	if errors.Is(err, sql.ErrNoRows) {
 		return rejeitar("propriedade %s não recebida", uuid)
 	}
 	if err != nil {
 		return err
 	}
-	if eq != equipe {
-		return rejeitar("propriedade de outra equipe")
+	if c != coleta {
+		return rejeitar("propriedade de outra coleta")
 	}
 	return nil
 }
 
-func (a *aplicador) item(it *contratos.Item, equipe string) (string, error) {
+func (a *aplicador) item(it *contratos.Item, coleta string) (string, error) {
 	if err := contratos.ValidarItem(it); err != nil {
 		return "", rejeitar("%v", err)
 	}
@@ -307,7 +323,7 @@ func (a *aplicador) item(it *contratos.Item, equipe string) (string, error) {
 		}
 		return "", err
 	}
-	if err := a.propriedadeDaEquipe(it.PropriedadeUUID, equipe); err != nil {
+	if err := a.propriedadeDaColeta(it.PropriedadeUUID, coleta); err != nil {
 		return "", err
 	}
 	rev, antes, corrigido, _, existe, err := a.estadoAtual("itens_propriedade", it.UUID)
@@ -331,12 +347,12 @@ func (a *aplicador) item(it *contratos.Item, equipe string) (string, error) {
 		_, err = a.tx.ExecContext(a.ctx, `UPDATE itens_propriedade SET propriedade_uuid = ?, categoria = ?, codigo_catalogo = ?, nome_personalizado = ?, nome_normalizado = ?,
 			quantidade = ?, updated_at = ?, excluido_em = ?, rev_origem = ?, recebido_em = ?, origem_instalacao = ?, registro_json = ? WHERE uuid = ?`,
 			it.PropriedadeUUID, it.Categoria, it.CodigoCatalogo, it.NomePersonalizado, normalizado, it.Quantidade, ms(it.UpdatedAt), msOpt(it.ExcluidoEm),
-			it.Rev, a.agora, a.d.InstalacaoUUID, string(js), it.UUID)
+			it.Rev, a.agora, a.instalacao, string(js), it.UUID)
 	} else {
 		_, err = a.tx.ExecContext(a.ctx, `INSERT INTO itens_propriedade (uuid, propriedade_uuid, categoria, codigo_catalogo, nome_personalizado, nome_normalizado,
 			quantidade, created_at, updated_at, excluido_em, rev_origem, recebido_em, origem_instalacao, registro_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			it.UUID, it.PropriedadeUUID, it.Categoria, it.CodigoCatalogo, it.NomePersonalizado, normalizado, it.Quantidade, ms(it.CreatedAt), ms(it.UpdatedAt),
-			msOpt(it.ExcluidoEm), it.Rev, a.agora, a.d.InstalacaoUUID, string(js))
+			msOpt(it.ExcluidoEm), it.Rev, a.agora, a.instalacao, string(js))
 	}
 	if err != nil {
 		return "", err
@@ -344,11 +360,11 @@ func (a *aplicador) item(it *contratos.Item, equipe string) (string, error) {
 	return contratos.ResultadoAplicado, a.auditar("item", it.UUID, acaoDe(antes, it.ExcluidoEm), antes, js)
 }
 
-func (a *aplicador) foto(f *contratos.Foto, equipe string) (string, error) {
+func (a *aplicador) foto(f *contratos.Foto, coleta string) (string, error) {
 	if err := contratos.ValidarFoto(f); err != nil {
 		return "", rejeitar("%v", err)
 	}
-	if err := a.propriedadeDaEquipe(f.PropriedadeUUID, equipe); err != nil {
+	if err := a.propriedadeDaColeta(f.PropriedadeUUID, coleta); err != nil {
 		return "", err
 	}
 	rev, antes, corrigido, _, existe, err := a.estadoAtual("fotografias", f.UUID)
@@ -377,12 +393,12 @@ func (a *aplicador) foto(f *contratos.Foto, equipe string) (string, error) {
 		_, err = a.tx.ExecContext(a.ctx, `UPDATE fotografias SET propriedade_uuid = ?, caminho_relativo = ?, mime = ?, tamanho_bytes = ?, sha256 = ?, largura = ?, altura = ?,
 			capturada_em = ?, updated_at = ?, excluido_em = ?, rev_origem = ?, recebido_em = ?, origem_instalacao = ?, registro_json = ? WHERE uuid = ?`,
 			f.PropriedadeUUID, caminho, f.Mime, f.TamanhoBytes, f.SHA256, f.Largura, f.Altura, ms(f.CapturadaEm), ms(f.UpdatedAt), msOpt(f.ExcluidoEm),
-			f.Rev, a.agora, a.d.InstalacaoUUID, string(js), f.UUID)
+			f.Rev, a.agora, a.instalacao, string(js), f.UUID)
 	} else {
 		_, err = a.tx.ExecContext(a.ctx, `INSERT INTO fotografias (uuid, propriedade_uuid, caminho_relativo, mime, tamanho_bytes, sha256, largura, altura,
 			capturada_em, created_at, updated_at, excluido_em, rev_origem, recebido_em, origem_instalacao, registro_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			f.UUID, f.PropriedadeUUID, caminho, f.Mime, f.TamanhoBytes, f.SHA256, f.Largura, f.Altura, ms(f.CapturadaEm), ms(f.CreatedAt), ms(f.UpdatedAt),
-			msOpt(f.ExcluidoEm), f.Rev, a.agora, a.d.InstalacaoUUID, string(js))
+			msOpt(f.ExcluidoEm), f.Rev, a.agora, a.instalacao, string(js))
 	}
 	if err != nil {
 		return "", err

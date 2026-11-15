@@ -1,55 +1,93 @@
--- 0002: esquema de negócio e de recepção do MVP (A24).
--- Modelo: docs/architecture/modelo-de-dados.md. Só cria tabelas novas (não destrutiva).
+-- 0002: esquema de negócio e de recepção, GERAÇÃO 2 (A28, ADR-0023/0024/0025).
+-- Substitui o 0002 do MVP (operação única, equipe vinda do celular). Bancos da
+-- geração anterior são recusados por banco.Migrar (ver ADR-0025); nada é apagado.
+-- Modelo: docs/architecture/modelo-de-dados.md.
 -- Cada entidade recebida guarda rev_origem (última rev do Android aplicada) e
 -- registro_json (último payload aplicado, usado como "antes" da auditoria).
--- rev_central/corrigido_desde_rev_origem ficam prontos para as correções da Central
--- (Fase 2/3); no MVP a Central não edita cadastros, então nunca há conflito.
+-- rev_central/corrigido_desde_rev_origem ficam prontos para as correções da Central.
 
-CREATE TABLE operacoes (
-    uuid       TEXT PRIMARY KEY,
-    nome       TEXT NOT NULL CHECK (length(trim(nome)) > 0),
-    descricao  TEXT,
-    status     TEXT NOT NULL CHECK (status IN ('ativa', 'encerrada')),
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+INSERT INTO meta (chave, valor, created_at, updated_at)
+    VALUES ('esquema_geracao', '2', CAST(unixepoch('subsec') * 1000 AS INTEGER), CAST(unixepoch('subsec') * 1000 AS INTEGER));
+
+-- Estudo de situação → jornadas → equipes (RN-01, RN-02).
+CREATE TABLE estudos (
+    uuid        TEXT PRIMARY KEY,
+    codigo      TEXT NOT NULL UNIQUE CHECK (length(codigo) = 17 AND codigo LIKE 'SITPOSSE7%'),
+    nome        TEXT NOT NULL CHECK (length(trim(nome)) > 0),
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    excluido_em INTEGER
 ) STRICT;
-CREATE UNIQUE INDEX operacoes_uma_ativa ON operacoes (status) WHERE status = 'ativa';
+
+CREATE TABLE jornadas (
+    uuid        TEXT PRIMARY KEY,
+    estudo_uuid TEXT NOT NULL REFERENCES estudos (uuid),
+    numero      INTEGER NOT NULL CHECK (numero >= 1),
+    data        TEXT NOT NULL CHECK (data GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    excluido_em INTEGER,
+    UNIQUE (estudo_uuid, numero)
+) STRICT;
+CREATE INDEX jornadas_estudo_data ON jornadas (estudo_uuid, data);
 
 CREATE TABLE equipes (
-    uuid               TEXT PRIMARY KEY,
-    operacao_uuid      TEXT NOT NULL REFERENCES operacoes (uuid),
-    nome               TEXT NOT NULL CHECK (length(trim(nome)) > 0),
-    responsavel        TEXT NOT NULL CHECK (length(trim(responsavel)) > 0),
-    identificacao_area TEXT,
-    created_at         INTEGER NOT NULL,
-    updated_at         INTEGER NOT NULL,
-    rev_origem         INTEGER NOT NULL CHECK (rev_origem >= 1),
-    recebido_em        INTEGER NOT NULL,
-    registro_json      TEXT NOT NULL
+    uuid             TEXT PRIMARY KEY,
+    jornada_uuid     TEXT NOT NULL REFERENCES jornadas (uuid),
+    nome             TEXT NOT NULL CHECK (length(trim(nome)) > 0),
+    nome_normalizado TEXT NOT NULL,
+    codigo           TEXT NOT NULL UNIQUE CHECK (length(codigo) = 10 AND codigo LIKE 'EQ%'),
+    created_at       INTEGER NOT NULL,
+    updated_at       INTEGER NOT NULL,
+    excluido_em      INTEGER
 ) STRICT;
+CREATE INDEX equipes_jornada ON equipes (jornada_uuid);
+CREATE UNIQUE INDEX equipes_nome_na_jornada ON equipes (jornada_uuid, nome_normalizado) WHERE excluido_em IS NULL;
 
+-- Pareamento só do aparelho (ADR-0024).
 CREATE TABLE tokens_pareamento (
-    token_hash    TEXT PRIMARY KEY,
-    operacao_uuid TEXT NOT NULL REFERENCES operacoes (uuid),
-    criado_em     INTEGER NOT NULL,
-    expira_em     INTEGER NOT NULL,
-    usado_em      INTEGER
+    token_hash TEXT PRIMARY KEY,
+    criado_em  INTEGER NOT NULL,
+    expira_em  INTEGER NOT NULL,
+    usado_em   INTEGER
 ) STRICT;
 
 CREATE TABLE dispositivos (
     instalacao_uuid TEXT PRIMARY KEY,
-    equipe_uuid     TEXT NOT NULL REFERENCES equipes (uuid),
     credencial_hash TEXT NOT NULL UNIQUE,
     rotulo_aparelho TEXT,
     pareado_em      INTEGER NOT NULL,
     revogado_em     INTEGER
 ) STRICT;
 
+-- Coleta do celular (RN-05). equipe_uuid é preenchido na 1ª confirmação do destino e
+-- nunca mais muda (destino travado, RN-09).
+CREATE TABLE coletas (
+    uuid                  TEXT PRIMARY KEY,
+    instalacao_uuid       TEXT NOT NULL REFERENCES dispositivos (instalacao_uuid),
+    codigo_informado      TEXT NOT NULL,
+    codigo_original       TEXT NOT NULL,
+    equipe_uuid           TEXT REFERENCES equipes (uuid),
+    destino_confirmado_em INTEGER,
+    created_at            INTEGER NOT NULL,
+    updated_at            INTEGER NOT NULL,
+    rev_origem            INTEGER NOT NULL DEFAULT 0 CHECK (rev_origem >= 0),
+    recebido_em           INTEGER NOT NULL,
+    registro_json         TEXT,
+    CHECK ((equipe_uuid IS NULL) = (destino_confirmado_em IS NULL))
+) STRICT;
+CREATE INDEX coletas_equipe ON coletas (equipe_uuid);
+CREATE TRIGGER coletas_destino_travado BEFORE UPDATE OF equipe_uuid ON coletas
+    WHEN OLD.equipe_uuid IS NOT NULL AND NEW.equipe_uuid IS NOT OLD.equipe_uuid
+BEGIN SELECT RAISE(ABORT, 'destino da coleta já confirmado'); END;
+
 CREATE TABLE propriedades (
     uuid                        TEXT PRIMARY KEY,
+    coleta_uuid                 TEXT NOT NULL REFERENCES coletas (uuid),
     equipe_uuid                 TEXT NOT NULL REFERENCES equipes (uuid),
     nome_propriedade            TEXT NOT NULL CHECK (length(trim(nome_propriedade)) > 0),
-    responsavel_familia         TEXT,
+    responsavel_familia         TEXT NOT NULL CHECK (length(trim(responsavel_familia)) > 0),
+    observacoes_relevantes      TEXT CHECK (length(observacoes_relevantes) <= 4000),
     pessoas_adultos             INTEGER NOT NULL DEFAULT 0 CHECK (pessoas_adultos >= 0),
     pessoas_jovens              INTEGER NOT NULL DEFAULT 0 CHECK (pessoas_jovens >= 0),
     pessoas_criancas            INTEGER NOT NULL DEFAULT 0 CHECK (pessoas_criancas >= 0),
@@ -83,6 +121,7 @@ CREATE TABLE propriedades (
     CHECK (gps_origem IS NOT 'manual' OR gps_precisao_m IS NULL)
 ) STRICT;
 CREATE INDEX propriedades_equipe_vigentes ON propriedades (equipe_uuid) WHERE excluido_em IS NULL;
+CREATE INDEX propriedades_coleta ON propriedades (coleta_uuid);
 
 CREATE TABLE catalogo_itens (
     codigo          TEXT PRIMARY KEY,
@@ -162,19 +201,50 @@ CREATE TABLE fotografias (
 CREATE INDEX fotografias_vigentes ON fotografias (propriedade_uuid) WHERE excluido_em IS NULL;
 
 CREATE TABLE lotes_recebidos (
-    uuid            TEXT PRIMARY KEY,
-    instalacao_uuid TEXT NOT NULL REFERENCES dispositivos (instalacao_uuid),
-    equipe_uuid     TEXT NOT NULL REFERENCES equipes (uuid),
-    canal           TEXT NOT NULL CHECK (canal IN ('wifi', 'usb')),
-    status          TEXT NOT NULL CHECK (status IN ('recebendo', 'importado')),
-    manifesto_json  TEXT NOT NULL,
-    manifesto_sha256 TEXT NOT NULL,
-    recibo_json     TEXT,
-    recebido_em     INTEGER NOT NULL,
-    importado_em    INTEGER,
-    ack_em          INTEGER,
-    CHECK ((status = 'importado') = (recibo_json IS NOT NULL))
+    uuid                TEXT PRIMARY KEY,
+    instalacao_uuid     TEXT NOT NULL REFERENCES dispositivos (instalacao_uuid),
+    coleta_uuid         TEXT NOT NULL REFERENCES coletas (uuid),
+    codigo_informado    TEXT NOT NULL,
+    canal               TEXT NOT NULL CHECK (canal IN ('wifi', 'usb')),
+    status              TEXT NOT NULL CHECK (status IN ('recebendo', 'aguardando_confirmacao', 'importado', 'cancelado')),
+    equipe_destino_uuid TEXT REFERENCES equipes (uuid),
+    decidido_em         INTEGER,
+    motivo_cancelamento TEXT CHECK (motivo_cancelamento IN ('cancelado_operador', 'codigo_inexistente')),
+    manifesto_json      TEXT NOT NULL,
+    manifesto_sha256    TEXT NOT NULL,
+    recibo_json         TEXT,
+    recebido_em         INTEGER NOT NULL,
+    aguardando_desde    INTEGER,
+    importado_em        INTEGER,
+    ack_em              INTEGER,
+    CHECK ((status = 'importado') = (recibo_json IS NOT NULL)),
+    CHECK ((status = 'importado') = (equipe_destino_uuid IS NOT NULL)),
+    CHECK ((status = 'cancelado') = (motivo_cancelamento IS NOT NULL)),
+    CHECK ((status IN ('importado', 'cancelado')) = (decidido_em IS NOT NULL))
 ) STRICT;
+CREATE INDEX lotes_status ON lotes_recebidos (status);
+CREATE INDEX lotes_coleta ON lotes_recebidos (coleta_uuid);
+
+-- Decisões do operador sobre o destino de cada lote (somente acréscimo, ADR-0024).
+CREATE TABLE decisoes_destino (
+    id                INTEGER PRIMARY KEY,
+    lote_uuid         TEXT NOT NULL REFERENCES lotes_recebidos (uuid),
+    coleta_uuid       TEXT NOT NULL REFERENCES coletas (uuid),
+    acao              TEXT NOT NULL CHECK (acao IN ('confirmar', 'alterar', 'cancelar')),
+    codigo_informado  TEXT NOT NULL,
+    codigo_confirmado TEXT,
+    equipe_uuid       TEXT REFERENCES equipes (uuid),
+    jornada_uuid      TEXT REFERENCES jornadas (uuid),
+    estudo_uuid       TEXT REFERENCES estudos (uuid),
+    quando            INTEGER NOT NULL,
+    operador          TEXT,
+    CHECK ((acao = 'cancelar') = (equipe_uuid IS NULL))
+) STRICT;
+CREATE INDEX decisoes_lote ON decisoes_destino (lote_uuid);
+CREATE TRIGGER decisoes_sem_update BEFORE UPDATE ON decisoes_destino
+BEGIN SELECT RAISE(ABORT, 'decisões de destino são somente acréscimo'); END;
+CREATE TRIGGER decisoes_sem_delete BEFORE DELETE ON decisoes_destino
+BEGIN SELECT RAISE(ABORT, 'decisões de destino são somente acréscimo'); END;
 
 -- Fotos que um lote ainda em recepção espera receber (para PUT /v1/fotos).
 CREATE TABLE fotos_esperadas (
@@ -187,7 +257,7 @@ CREATE TABLE fotos_esperadas (
 
 CREATE TABLE aplicacoes (
     lote_uuid     TEXT NOT NULL REFERENCES lotes_recebidos (uuid),
-    entidade      TEXT NOT NULL CHECK (entidade IN ('equipe', 'propriedade', 'item', 'foto')),
+    entidade      TEXT NOT NULL CHECK (entidade IN ('coleta', 'propriedade', 'item', 'foto')),
     entidade_uuid TEXT NOT NULL,
     rev           INTEGER NOT NULL,
     resultado     TEXT NOT NULL CHECK (resultado IN ('aplicado', 'duplicado', 'conflito', 'rejeitado')),
@@ -213,8 +283,16 @@ CREATE TRIGGER auditoria_sem_delete BEFORE DELETE ON auditoria
 BEGIN SELECT RAISE(ABORT, 'auditoria é somente acréscimo'); END;
 
 -- Visões vigentes: única base de estatísticas e consultas (RN-80).
+-- v_propriedades_vigentes traz também equipe, jornada e estudo de destino.
 CREATE VIEW v_propriedades_vigentes AS
-    SELECT * FROM propriedades WHERE excluido_em IS NULL;
+    SELECT p.*, e.nome AS equipe_nome, e.codigo AS equipe_codigo,
+           j.uuid AS jornada_uuid, j.numero AS jornada_numero, j.data AS jornada_data,
+           s.uuid AS estudo_uuid, s.nome AS estudo_nome, s.codigo AS estudo_codigo
+    FROM propriedades p
+    JOIN equipes e ON e.uuid = p.equipe_uuid
+    JOIN jornadas j ON j.uuid = e.jornada_uuid
+    JOIN estudos s ON s.uuid = j.estudo_uuid
+    WHERE p.excluido_em IS NULL;
 CREATE VIEW v_itens_vigentes AS
     SELECT i.* FROM itens_propriedade i
     JOIN propriedades p ON p.uuid = i.propriedade_uuid

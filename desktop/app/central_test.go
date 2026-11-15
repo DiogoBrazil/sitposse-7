@@ -28,22 +28,59 @@ func TestCentralIniciaEPreservaID(t *testing.T) {
 	}
 }
 
-func TestQRExigeOperacaoETrazToken(t *testing.T) {
+func TestQRTrazTokenSemOperacao(t *testing.T) {
 	c := &Central{PastaDados: t.TempDir()}
 	if err := c.Iniciar(context.Background(), 0); err != nil {
 		t.Fatal(err)
 	}
 	defer c.Encerrar()
-	sinc := &SincronizacaoService{C: c}
-	if _, err := sinc.GerarQRPareamento(); err == nil {
-		t.Fatal("QR gerado sem operação ativa")
+	qr, err := (&SincronizacaoService{C: c}).GerarQRPareamento()
+	if err != nil || len(qr.Payload.Token) < 32 || qr.Payload.V != 2 {
+		t.Fatalf("QR: %v %+v", err, qr)
 	}
-	if _, err := (&OperacaoService{C: c}).Criar("Operação Teste", ""); err != nil {
+}
+
+func TestEstudoEmFoco(t *testing.T) {
+	c := &Central{PastaDados: t.TempDir()}
+	if err := c.Iniciar(context.Background(), 0); err != nil {
 		t.Fatal(err)
 	}
-	qr, err := sinc.GerarQRPareamento()
-	if err != nil || len(qr.Payload.Token) < 32 || qr.Payload.OperacaoNome != "Operação Teste" {
-		t.Fatalf("QR: %v %+v", err, qr)
+	defer c.Encerrar()
+	s := &EstudoService{C: c}
+	if f, err := s.EmFoco(); err != nil || f != "" {
+		t.Fatalf("sem estudos: %q %v", f, err)
+	}
+	a, _ := s.Criar("A", "2026-10-10", nil)
+	b, _ := s.Criar("B", "2026-10-11", []string{"Alfa"})
+	if f, _ := s.EmFoco(); f != b.UUID {
+		t.Fatalf("o estudo criado por último deveria estar em foco: %q", f)
+	}
+	if err := s.DefinirEmFoco(a.UUID); err != nil {
+		t.Fatal(err)
+	}
+	if f, _ := s.EmFoco(); f != a.UUID {
+		t.Fatalf("em foco: %q", f)
+	}
+}
+
+// Banco da geração anterior: a Central sobe só com a mensagem de bloqueio (ADR-0025).
+func TestBancoDaGeracaoAnteriorBloqueia(t *testing.T) {
+	dir := t.TempDir()
+	c := &Central{PastaDados: dir}
+	if err := c.Iniciar(context.Background(), 0); err != nil {
+		t.Fatal(err)
+	}
+	c.n.B.Escrita.Exec(`DELETE FROM meta WHERE chave = 'esquema_geracao'`)
+	c.Encerrar()
+	c2 := &Central{PastaDados: dir}
+	if err := c2.Iniciar(context.Background(), 0); err != nil {
+		t.Fatal(err)
+	}
+	if inf := (&SincronizacaoService{C: c2}).Info(); inf.Bloqueio == "" || inf.ServidorAtivo {
+		t.Fatalf("esperado bloqueio: %+v", inf)
+	}
+	if ls, err := (&SincronizacaoService{C: c2}).Aguardando(); err != nil || len(ls) != 0 {
+		t.Fatal("aguardando com banco bloqueado")
 	}
 }
 

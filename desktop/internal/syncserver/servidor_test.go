@@ -125,8 +125,8 @@ func TestSomenteRedeLocal(t *testing.T) {
 
 func TestPayloadQR(t *testing.T) {
 	s := novoServidor(t, t.TempDir())
-	q := s.QR("tok", &Operacao{UUID: "u", Nome: "Op"})
-	if q.V != 1 || q.SPKISHA256 != s.Identidade.Pin() || len(q.IPs) != 1 || q.IPs[0] != "192.168.43.10" || q.Porta != s.Porta() || q.OperacaoNome != "Op" {
+	q := s.QR("tok")
+	if q.V != 2 || q.SPKISHA256 != s.Identidade.Pin() || len(q.IPs) != 1 || q.IPs[0] != "192.168.43.10" || q.Porta != s.Porta() || q.Token != "tok" {
 		t.Fatalf("payload inesperado: %+v", q)
 	}
 	if len(q.SPKISHA256) != 43 {

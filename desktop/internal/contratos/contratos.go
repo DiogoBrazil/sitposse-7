@@ -1,5 +1,5 @@
-// Package contratos define os payloads JSON v1 trocados com o app Campo
-// (shared/schemas/*.v1.schema.json) e a validação deles em Go.
+// Package contratos define os payloads JSON v2 trocados com o app Campo
+// (shared/schemas/*.v2.schema.json, ADR-0024) e a validação deles em Go.
 //
 // A Central não usa a biblioteca de JSON Schema em produção (só nos testes):
 // os testes garantem que estas validações e os schemas concordam em todas as
@@ -15,17 +15,20 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"sitposse7/desktop/internal/codigos"
 )
 
 // Versões aceitas por esta Central.
 const (
-	ProtocoloVersao = 1
-	SchemaVersao    = 1
+	ProtocoloVersao = 2
+	SchemaVersao    = 2
 )
 
 // Limites (iguais aos dos schemas).
 const (
 	MaxTexto        = 200
+	MaxTextoLongo   = 4000 // observações relevantes (RN-15), em caracteres Unicode
 	MaxQuantidade   = 1_000_000
 	MaxTamanhoFoto  = 50 * 1024 * 1024
 	MaxPropriedades = 5000
@@ -62,23 +65,23 @@ func LerInstante(s string) (int64, error) {
 // UUIDValido confere UUID v4 em minúsculas.
 func UUIDValido(s string) bool { return reUUID.MatchString(s) }
 
-// Equipe é a equipe de campo (RN-01..02).
-type Equipe struct {
-	UUID              string  `json:"uuid"`
-	Nome              string  `json:"nome"`
-	Responsavel       string  `json:"responsavel"`
-	IdentificacaoArea *string `json:"identificacao_area"`
-	CreatedAt         string  `json:"created_at"`
-	UpdatedAt         string  `json:"updated_at"`
-	Rev               int64   `json:"rev"`
+// Coleta é o conjunto de cadastros feitos no celular com um código de equipe (RN-05, ADR-0024).
+type Coleta struct {
+	UUID           string `json:"uuid"`
+	CodigoEquipe   string `json:"codigo_equipe"`
+	CodigoOriginal string `json:"codigo_original"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+	Rev            int64  `json:"rev"`
 }
 
 // Propriedade é o cadastro de propriedade/família (RN-10..55).
 type Propriedade struct {
 	UUID                      string   `json:"uuid"`
-	EquipeUUID                string   `json:"equipe_uuid"`
+	ColetaUUID                string   `json:"coleta_uuid"`
 	NomePropriedade           string   `json:"nome_propriedade"`
-	ResponsavelFamilia        *string  `json:"responsavel_familia"`
+	ResponsavelFamilia        string   `json:"responsavel_familia"`
+	ObservacoesRelevantes     *string  `json:"observacoes_relevantes"`
 	PessoasAdultos            int64    `json:"pessoas_adultos"`
 	PessoasJovens             int64    `json:"pessoas_jovens"`
 	PessoasCriancas           int64    `json:"pessoas_criancas"`
@@ -140,7 +143,7 @@ type Lote struct {
 	LoteUUID        string        `json:"lote_uuid"`
 	InstalacaoUUID  string        `json:"instalacao_uuid"`
 	CriadoEm        string        `json:"criado_em"`
-	Equipe          Equipe        `json:"equipe"`
+	Coleta          Coleta        `json:"coleta"`
 	Propriedades    []Propriedade `json:"propriedades"`
 	Itens           []Item        `json:"itens"`
 	Fotos           []Foto        `json:"fotos"`
@@ -152,13 +155,28 @@ type FotoFaltante struct {
 	Offset int64  `json:"offset"`
 }
 
-// EstadoLote é a resposta de PUT/GET /v1/lotes/{lote} (estado-lote.v1).
+// Estados do lote na Central (estado-lote.v2).
+const (
+	StatusRecebendo  = "recebendo"
+	StatusAguardando = "aguardando_confirmacao"
+	StatusImportado  = "importado"
+	StatusCancelado  = "cancelado"
+)
+
+// Motivos de cancelamento.
+const (
+	MotivoCanceladoOperador = "cancelado_operador"
+	MotivoCodigoInexistente = "codigo_inexistente"
+)
+
+// EstadoLote é a resposta de PUT/GET /v1/lotes/{lote} e do importar (estado-lote.v2).
 type EstadoLote struct {
 	ProtocoloVersao int            `json:"protocolo_versao"`
 	LoteUUID        string         `json:"lote_uuid"`
-	Status          string         `json:"status"` // recebendo | importado
+	Status          string         `json:"status"`
 	FotosFaltantes  []FotoFaltante `json:"fotos_faltantes"`
 	Recibo          *Recibo        `json:"recibo"`
+	Motivo          *string        `json:"motivo"`
 }
 
 // Resultados possíveis da aplicação de um registro (protocolo.md §6).
@@ -179,20 +197,36 @@ type ResultadoRecibo struct {
 	ConflitoUUID string `json:"conflito_uuid,omitempty"`
 }
 
-// Recibo é o comprovante persistido da importação de um lote (recibo.v1).
+// Destino é a equipe confirmada pelo operador para a coleta do lote (ADR-0024).
+type Destino struct {
+	EstudoCodigo    string `json:"estudo_codigo"`
+	EstudoNome      string `json:"estudo_nome"`
+	JornadaNumero   int64  `json:"jornada_numero"`
+	JornadaData     string `json:"jornada_data"`
+	EquipeNome      string `json:"equipe_nome"`
+	EquipeCodigo    string `json:"equipe_codigo"`
+	CodigoInformado string `json:"codigo_informado"`
+	Corrigido       bool   `json:"corrigido"`
+}
+
+// Recibo é o comprovante persistido da importação de um lote (recibo.v2).
 type Recibo struct {
 	ProtocoloVersao int               `json:"protocolo_versao"`
 	LoteUUID        string            `json:"lote_uuid"`
 	CentralID       string            `json:"central_id"`
 	ImportadoEm     string            `json:"importado_em"`
+	Destino         Destino           `json:"destino"`
 	Resultados      []ResultadoRecibo `json:"resultados"`
 	ReciboSHA256    string            `json:"recibo_sha256"`
 }
 
-// TextoCanonico é a entrada do recibo_sha256 (descrição em recibo.v1.schema.json).
+// TextoCanonico é a entrada do recibo_sha256 (descrição em recibo.v2.schema.json).
 func (r *Recibo) TextoCanonico() string {
 	var b strings.Builder
 	b.WriteString(r.LoteUUID + "\n" + r.CentralID + "\n" + r.ImportadoEm + "\n")
+	d := r.Destino
+	b.WriteString("destino|" + d.EstudoCodigo + "|" + strconv.FormatInt(d.JornadaNumero, 10) + "|" + d.JornadaData + "|" +
+		d.EquipeCodigo + "|" + d.CodigoInformado + "|" + strconv.FormatBool(d.Corrigido) + "\n")
 	for _, x := range r.Resultados {
 		b.WriteString(x.Entidade + "|" + x.UUID + "|" + strconv.FormatInt(x.Rev, 10) + "|" + x.Resultado + "|" + x.Motivo + "\n")
 	}
@@ -212,21 +246,13 @@ type PedidoPareamento struct {
 	Token           string  `json:"token_pareamento"`
 	InstalacaoUUID  string  `json:"instalacao_uuid"`
 	RotuloAparelho  *string `json:"rotulo_aparelho,omitempty"`
-	Equipe          Equipe  `json:"equipe"`
-}
-
-// OperacaoResumo identifica uma operação.
-type OperacaoResumo struct {
-	UUID string `json:"uuid"`
-	Nome string `json:"nome"`
 }
 
 // RespostaPareamento é a resposta 200 de POST /v1/pareamento.
 type RespostaPareamento struct {
-	ProtocoloVersao       int            `json:"protocolo_versao"`
-	CentralID             string         `json:"central_id"`
-	CredencialDispositivo string         `json:"credencial_dispositivo"`
-	Operacao              OperacaoResumo `json:"operacao"`
+	ProtocoloVersao       int    `json:"protocolo_versao"`
+	CentralID             string `json:"central_id"`
+	CredencialDispositivo string `json:"credencial_dispositivo"`
 }
 
 // ---------- validação ----------
@@ -244,6 +270,19 @@ func textoObrigatorio(campo, v string) error {
 func textoOpcional(campo string, v *string) error {
 	if v != nil && utf8.RuneCountInString(*v) > MaxTexto {
 		return fmt.Errorf("%s com mais de %d caracteres", campo, MaxTexto)
+	}
+	return nil
+}
+
+func textoLongoOpcional(campo string, v *string) error {
+	if v == nil {
+		return nil
+	}
+	if strings.TrimSpace(*v) == "" {
+		return fmt.Errorf("%s vazio deve ir como null", campo)
+	}
+	if utf8.RuneCountInString(*v) > MaxTextoLongo {
+		return fmt.Errorf("%s com mais de %d caracteres", campo, MaxTextoLongo)
 	}
 	return nil
 }
@@ -285,26 +324,33 @@ func primeiroErro(erros ...error) error {
 	return nil
 }
 
-// ValidarEquipe aplica RN-01..02.
-func ValidarEquipe(e *Equipe) error {
+func codigoEquipe(campo, v string) error {
+	if !codigos.Valido(v, codigos.PrefixoEquipe) {
+		return fmt.Errorf("%s inválido: %q", campo, v)
+	}
+	return nil
+}
+
+// ValidarColeta aplica RN-02 e RN-05.
+func ValidarColeta(c *Coleta) error {
 	return primeiroErro(
-		uuidCampo("equipe.uuid", e.UUID),
-		textoObrigatorio("nome da equipe", e.Nome),
-		textoObrigatorio("responsável da equipe", e.Responsavel),
-		textoOpcional("identificação da área", e.IdentificacaoArea),
-		instanteCampo("equipe.created_at", e.CreatedAt),
-		instanteCampo("equipe.updated_at", e.UpdatedAt),
-		revCampo(e.Rev),
+		uuidCampo("coleta.uuid", c.UUID),
+		codigoEquipe("coleta.codigo_equipe", c.CodigoEquipe),
+		codigoEquipe("coleta.codigo_original", c.CodigoOriginal),
+		instanteCampo("coleta.created_at", c.CreatedAt),
+		instanteCampo("coleta.updated_at", c.UpdatedAt),
+		revCampo(c.Rev),
 	)
 }
 
-// ValidarPropriedade aplica RN-11..55 a um registro recebido.
+// ValidarPropriedade aplica RN-11..55 (e RN-15) a um registro recebido.
 func ValidarPropriedade(p *Propriedade) error {
 	if err := primeiroErro(
 		uuidCampo("uuid", p.UUID),
-		uuidCampo("equipe_uuid", p.EquipeUUID),
+		uuidCampo("coleta_uuid", p.ColetaUUID),
 		textoObrigatorio("nome da propriedade", p.NomePropriedade),
-		textoOpcional("responsável pela família", p.ResponsavelFamilia),
+		textoObrigatorio("nome do responsável", p.ResponsavelFamilia),
+		textoLongoOpcional("observações relevantes", p.ObservacoesRelevantes),
 		instanteCampo("created_at", p.CreatedAt),
 		instanteCampo("updated_at", p.UpdatedAt),
 		instanteOpcional("excluido_em", p.ExcluidoEm),
@@ -451,7 +497,7 @@ func ValidarEnvelope(l *Lote) error {
 		uuidCampo("lote_uuid", l.LoteUUID),
 		uuidCampo("instalacao_uuid", l.InstalacaoUUID),
 		instanteCampo("criado_em", l.CriadoEm),
-		ValidarEquipe(&l.Equipe),
+		ValidarColeta(&l.Coleta),
 	); err != nil {
 		return err
 	}
@@ -495,6 +541,5 @@ func ValidarPedidoPareamento(p *PedidoPareamento) error {
 	return primeiroErro(
 		uuidCampo("instalacao_uuid", p.InstalacaoUUID),
 		textoOpcional("rótulo do aparelho", p.RotuloAparelho),
-		ValidarEquipe(&p.Equipe),
 	)
 }

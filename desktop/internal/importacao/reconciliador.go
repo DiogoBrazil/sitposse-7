@@ -12,8 +12,8 @@ import (
 
 // RelatorioReconciliacao resume o que o reconciliador fez (integridade.md §Fotos na Central).
 type RelatorioReconciliacao struct {
-	PartesRemovidas    int      `json:"partes_removidas"`
-	OrfasRemovidas     int      `json:"orfas_removidas"`
+	PartesRemovidas     int      `json:"partes_removidas"`
+	OrfasRemovidas      int      `json:"orfas_removidas"`
 	RegistrosSemArquivo []string `json:"registros_sem_arquivo"` // ALARME: nunca apagados
 }
 
@@ -28,14 +28,24 @@ func (im *Importador) Reconciliar(ctx context.Context) (RelatorioReconciliacao, 
 	var rel RelatorioReconciliacao
 	agora := im.agora()
 
-	esperadaEmRecepcao := func(foto string) (bool, error) {
+	// Lotes em recepção ou aguardando o operador ainda vão usar a foto; os cancelados
+	// guardam o .part (até IdadeMaximaParte) para o reenvio da mesma coleta (ADR-0024).
+	esperadaPor := func(foto string, status ...string) (bool, error) {
 		var n int
-		err := im.B.Escrita.QueryRowContext(ctx, `SELECT count(*) FROM fotos_esperadas fe JOIN lotes_recebidos l ON l.uuid = fe.lote_uuid
-			WHERE fe.foto_uuid = ? AND l.status = 'recebendo'`, foto).Scan(&n)
+		q := `SELECT count(*) FROM fotos_esperadas fe JOIN lotes_recebidos l ON l.uuid = fe.lote_uuid WHERE fe.foto_uuid = ? AND l.status IN (?` +
+			strings.Repeat(", ?", len(status)-1) + `)`
+		args := []any{foto}
+		for _, s := range status {
+			args = append(args, s)
+		}
+		err := im.B.Escrita.QueryRowContext(ctx, q, args...).Scan(&n)
 		return n > 0, err
 	}
+	esperadaEmRecepcao := func(foto string) (bool, error) {
+		return esperadaPor(foto, "recebendo", "aguardando_confirmacao")
+	}
 
-	// 1. Staging: .part de foto que nenhum lote em recepção espera, ou parado há 7 dias.
+	// 1. Staging: .part de foto que nenhum lote em recepção, aguardando ou cancelado espera, ou parado há 7 dias.
 	entradas, err := os.ReadDir(im.dirStaging())
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return rel, err
@@ -50,7 +60,7 @@ func (im *Importador) Reconciliar(ctx context.Context) (RelatorioReconciliacao, 
 		if err != nil {
 			continue
 		}
-		emRecepcao, err := esperadaEmRecepcao(foto)
+		emRecepcao, err := esperadaPor(foto, "recebendo", "aguardando_confirmacao", "cancelado")
 		if err != nil {
 			return rel, err
 		}

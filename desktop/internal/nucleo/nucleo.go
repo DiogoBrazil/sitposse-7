@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"sitposse7/desktop/internal/banco"
+	"sitposse7/desktop/internal/estudos"
 	"sitposse7/desktop/internal/importacao"
 	"sitposse7/desktop/internal/pareamento"
 	"sitposse7/desktop/internal/syncserver"
@@ -26,6 +27,7 @@ type Nucleo struct {
 	B          *banco.Banco
 	Pareamento *pareamento.Servico
 	Importador *importacao.Importador
+	Estudos    *estudos.Servico
 	Servidor   *syncserver.Servidor
 	// Reconciliacao é o resultado do reconciliador na abertura.
 	Reconciliacao importacao.RelatorioReconciliacao
@@ -50,6 +52,7 @@ func Abrir(ctx context.Context, pasta string, ips []net.IP) (*Nucleo, error) {
 	}
 	n.Pareamento = &pareamento.Servico{B: b, CentralID: n.CentralID}
 	n.Importador = &importacao.Importador{B: b, PastaDados: pasta, CentralID: n.CentralID}
+	n.Estudos = &estudos.Servico{B: b}
 	if n.Reconciliacao, err = n.Importador.Reconciliar(ctx); err != nil {
 		b.Fechar()
 		return nil, fmt.Errorf("reconciliador: %w", err)
@@ -57,13 +60,6 @@ func Abrir(ctx context.Context, pasta string, ips []net.IP) (*Nucleo, error) {
 	n.Servidor = &syncserver.Servidor{
 		Identidade: id, CentralID: n.CentralID,
 		Pareamento: n.Pareamento, Importador: n.Importador,
-		Operacao: func() *syncserver.Operacao {
-			op, err := n.Pareamento.OperacaoAtiva(context.Background())
-			if err != nil || op == nil {
-				return nil
-			}
-			return &syncserver.Operacao{UUID: op.UUID, Nome: op.Nome}
-		},
 	}
 	return n, nil
 }

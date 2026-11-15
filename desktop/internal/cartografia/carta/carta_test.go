@@ -37,7 +37,7 @@ func dados(t *testing.T, n int, tipo string) Dados {
 	for i := 0; i < n; i++ {
 		p := geo.Ponto{Lat: -10.40 - 0.013*float64(i%5), Lon: -62.50 + 0.017*float64(i/5) + 0.004*float64(i%3)}
 		prec := 6.0
-		ms = append(ms, Marcador{Numero: i + 1, Nome: "Sítio São João " + string(rune('A'+i%26)), Ponto: p, PrecisaoM: &prec, Origem: "gnss", Equipe: "Bravo", AreaIdentificada: "Linha C-25"})
+		ms = append(ms, Marcador{Numero: i + 1, Nome: "Sítio São João " + string(rune('A'+i%26)), Ponto: p, PrecisaoM: &prec, Origem: "gnss", Equipe: "Bravo", Jornada: "Jornada 1 · 10/10/2026"})
 		pts = append(pts, p)
 	}
 	r, err := geo.Enquadrar(pts, 400, 1200, 2000, 1500)
@@ -47,7 +47,7 @@ func dados(t *testing.T, n int, tipo string) Dados {
 	d := time.Date(2026, 10, 28, 0, 0, 0, 0, time.UTC)
 	img := &cartografia.Imagem{PNG: satelite(2000, 1500), Ret: r, Largura: 2000, Altura: 1500, Data: &d, ResolucaoNativaM: 10}
 	return Dados{Tipo: tipo, Subtitulo: "Teste", Imagem: img, Atribuicao: "Contains modified Copernicus Sentinel data 2026", Marcadores: ms,
-		SemLocalizacao: []string{"Chácara Sem GPS"}, Criterios: []string{"Equipe: Bravo"}, Operacao: "Levantamento Linha C-25", GeradoEm: time.Date(2026, 11, 14, 22, 0, 0, 0, time.Local), NomesNoMapa: n <= 12}
+		SemLocalizacao: []string{"Chácara Sem GPS"}, Criterios: []string{"Equipe: Bravo"}, Estudo: "Levantamento Linha C-25 (SITPOSSE7-A82F-91C6)", GeradoEm: time.Date(2026, 11, 14, 22, 0, 0, 0, time.Local), NomesNoMapa: n <= 12}
 }
 
 // Correspondência entre a prévia e o arquivo: o centro de cada pino desenhado está em geo.Pixel.

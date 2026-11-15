@@ -12,21 +12,26 @@ import (
 	"regexp"
 	"strings"
 
+	"sitposse7/desktop/internal/banco"
 	"sitposse7/desktop/internal/consultas"
 	"sitposse7/desktop/internal/estatisticas"
+	"sitposse7/desktop/internal/importacao"
 	"sitposse7/desktop/internal/nucleo"
 	"sitposse7/desktop/internal/pareamento"
 	"sitposse7/desktop/internal/syncserver"
 )
 
 // Versao do aplicativo Central.
-const Versao = "0.5.1-mvp"
+const Versao = "0.6.0-mvp"
 
 // Central inicializa o núcleo e mantém o servidor de sincronização.
 type Central struct {
 	PastaDados string
 	// Arquivos: janelas de salvar/abrir do sistema (main.go). Pode ser nil nos testes.
 	Arquivos Arquivos
+	// Bloqueio é a mensagem mostrada no lugar das telas quando o banco não pode ser
+	// aberto por ser de uma geração anterior (ADR-0025). Nada foi alterado no banco.
+	Bloqueio string
 	n        *nucleo.Nucleo
 	c        *consultas.Consultas
 	erroServ string
@@ -44,11 +49,17 @@ type Info struct {
 	ErroServidor    string   `json:"erro_servidor"`
 	VersaoEsquema   int      `json:"versao_esquema"`
 	FotosSemArquivo []string `json:"fotos_sem_arquivo"` // alarme do reconciliador
+	Bloqueio        string   `json:"bloqueio"`          // banco de geração anterior (ADR-0025)
 }
 
 // Iniciar abre o núcleo e sobe o servidor HTTPS.
+// Banco de geração anterior não é erro fatal: a Central abre só com a tela de bloqueio.
 func (c *Central) Iniciar(ctx context.Context, porta int) error {
 	n, err := nucleo.Abrir(ctx, c.PastaDados, syncserver.IPsLocaisPrivados())
+	if errors.Is(err, banco.ErrBancoGeracaoAnterior) {
+		c.Bloqueio = banco.ErrBancoGeracaoAnterior.Error() + ". Pasta de dados: " + c.PastaDados
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -90,7 +101,7 @@ func (c *Central) HandlerFotos() http.Handler {
 }
 
 func (c *Central) info() Info {
-	inf := Info{Versao: Versao, PastaDados: c.PastaDados, ErroServidor: c.erroServ, FotosSemArquivo: []string{}}
+	inf := Info{Versao: Versao, PastaDados: c.PastaDados, ErroServidor: c.erroServ, FotosSemArquivo: []string{}, Bloqueio: c.Bloqueio}
 	if c.n == nil {
 		return inf
 	}
@@ -160,11 +171,11 @@ func (s *SincronizacaoService) GerarQRPareamento() (*QRPareamento, error) {
 		return nil, errors.New("servidor de sincronização indisponível")
 	}
 	c.atualizarIPs()
-	token, op, expira, err := c.n.Pareamento.GerarToken(context.Background())
+	token, expira, err := c.n.Pareamento.GerarToken(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	p := c.n.Servidor.QR(token, &syncserver.Operacao{UUID: op.UUID, Nome: op.Nome})
+	p := c.n.Servidor.QR(token)
 	return &QRPareamento{Payload: p, ExpiraEm: expira.UnixMilli()}, nil
 }
 
@@ -191,28 +202,35 @@ func (s *SincronizacaoService) Rejeicoes(lote string) ([]consultas.Rejeicao, err
 	return s.C.c.Rejeicoes(contexto(), lote)
 }
 
-// OperacaoService: operação ativa.
-type OperacaoService struct{ C *Central }
-
-// Ativa devolve a operação ativa (nil se não houver).
-func (s *OperacaoService) Ativa() (*pareamento.Operacao, error) {
-	return s.C.n.Pareamento.OperacaoAtiva(contexto())
+// Aguardando lista os lotes que esperam a confirmação do destino (ADR-0024).
+func (s *SincronizacaoService) Aguardando() ([]importacao.LoteAguardando, error) {
+	if s.C.n == nil {
+		return []importacao.LoteAguardando{}, nil
+	}
+	return s.C.n.Importador.Aguardando(contexto())
 }
 
-// Criar cria e ativa a operação.
-func (s *OperacaoService) Criar(nome, descricao string) (*pareamento.Operacao, error) {
-	return s.C.n.Pareamento.CriarOperacao(contexto(), nome, descricao)
+// DecidirDestino importa o lote para a equipe escolhida ou, com equipe vazia, cancela a
+// sincronização. Devolve o estado final ("importado" ou "cancelado").
+func (s *SincronizacaoService) DecidirDestino(lote, equipe string) (string, error) {
+	e, err := s.C.n.Importador.Decidir(contexto(), lote, importacao.Decisao{Cancelar: equipe == "", EquipeUUID: equipe})
+	if err != nil {
+		return "", err
+	}
+	return e.Status, nil
 }
 
 // ConsultaService: leituras para o painel, propriedades e equipes (somente leitura).
 type ConsultaService struct{ C *Central }
 
-// Resumo devolve os números do painel.
-func (s *ConsultaService) Resumo() (*consultas.Resumo, error) { return s.C.c.Resumo(contexto()) }
+// Resumo devolve os números do painel do estudo ("" = todos).
+func (s *ConsultaService) Resumo(estudo string) (*consultas.Resumo, error) {
+	return s.C.c.Resumo(contexto(), estudo)
+}
 
-// Propriedades lista as propriedades vigentes.
-func (s *ConsultaService) Propriedades(busca, equipe string) ([]consultas.PropriedadeLinha, error) {
-	return s.C.c.Propriedades(contexto(), busca, equipe)
+// Propriedades lista as propriedades vigentes do estudo ("" = todos).
+func (s *ConsultaService) Propriedades(busca, estudo, equipe string) ([]consultas.PropriedadeLinha, error) {
+	return s.C.c.Propriedades(contexto(), busca, estudo, equipe)
 }
 
 // Propriedade devolve o detalhe (nil se não existir).
@@ -228,11 +246,6 @@ func (s *ConsultaService) Estatisticas(filtro estatisticas.Filtro) (*estatistica
 		return nil, err
 	}
 	return estatisticas.Calcular(base, filtro)
-}
-
-// Equipes lista as equipes.
-func (s *ConsultaService) Equipes() ([]consultas.EquipeLinha, error) {
-	return s.C.c.Equipes(contexto())
 }
 
 func contexto() context.Context { return context.Background() }

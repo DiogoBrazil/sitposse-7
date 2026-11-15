@@ -36,7 +36,7 @@ const logoLarguraPx, logoAlturaPx = 150, 182
 
 // Dados de um relatório geral (panorama + famílias).
 type Dados struct {
-	Operacao  string
+	Estudo    string // estudo em foco: "Nome (SITPOSSE7-XXXX-XXXX)"
 	GeradoEm  time.Time
 	Criterios []string // filtros ativos, como na tela ("Equipe: Alfa", "Bovinos (total): mais de 5")
 	R         *estatisticas.Resultado
@@ -198,7 +198,7 @@ func Montar(d Dados) Documento {
 		Subtitulo: "Panorama geral e por família",
 		GeradoEm:  d.GeradoEm,
 		Meta: [][2]string{
-			{"Operação", deref(&d.Operacao, "—")},
+			{"Estudo", deref(&d.Estudo, "—")},
 			{"Filtros aplicados", filtros},
 			{"Famílias no relatório", fmt.Sprintf("%s de %s recebidas", Int(int64(t.Familias)), Int(int64(r.FamiliasBase)))},
 			{"Gerado em", d.GeradoEm.Local().Format("02/01/2006 15:04")},
@@ -241,9 +241,9 @@ func Montar(d Dados) Documento {
 		geral,
 	}})
 
-	doc.Secoes = append(doc.Secoes, Secao{Titulo: "2. Por equipe e por área identificada", Blocos: []Bloco{
+	doc.Secoes = append(doc.Secoes, Secao{Titulo: "2. Por jornada e por equipe", Blocos: []Bloco{
+		tabelaGrupos("Por jornada", "Jornada", r.PorJornada, t),
 		tabelaGrupos("Por equipe", "Equipe", r.PorEquipe, t),
-		tabelaGrupos("Por área identificada", "Área identificada", r.PorArea, t),
 	}})
 
 	itens := Tabela{Titulo: "Itens por tipo", Colunas: []Coluna{{"Categoria", 1.3}, {"Tipo", 1.8}, {"Origem", 1.3}, {"Quantidade", 1}, {"Famílias que possuem", 1.2}}, Vazio: "Nenhum item registrado."}
@@ -283,14 +283,14 @@ func Montar(d Dados) Documento {
 		Vazio: "Nenhuma família com os filtros aplicados."}
 	for _, p := range r.Familias {
 		nome := p.Nome
-		if p.Responsavel != nil && strings.TrimSpace(*p.Responsavel) != "" {
-			nome += "\n" + *p.Responsavel
+		if strings.TrimSpace(p.Responsavel) != "" {
+			nome += "\n" + p.Responsavel
 		}
 		loc := "Não"
 		if p.ComLocalizacao {
 			loc = "Sim"
 		}
-		fam.Linhas = append(fam.Linhas, []string{nome, p.Equipe, val(p.Valores, "pessoas_total"), val(p.Valores, "veic_total"),
+		fam.Linhas = append(fam.Linhas, []string{nome, estatisticas.RotuloEquipe(&p), val(p.Valores, "pessoas_total"), val(p.Valores, "veic_total"),
 			val(p.Valores, "bov_total"), val(p.Valores, "equ_total"), val(p.Valores, "aves_total"), Ha(deref(p.AreaHa, "—")), loc})
 	}
 	if len(r.Familias) > 0 {
@@ -327,12 +327,12 @@ func rotulosItens(campos []estatisticas.Campo) map[string]rotuloItem {
 }
 
 // MontarFicha produz o documento de uma única propriedade.
-func MontarFicha(p estatisticas.Familia, campos []estatisticas.Campo, operacao string, geradoEm time.Time) Documento {
+func MontarFicha(p estatisticas.Familia, campos []estatisticas.Campo, estudo string, geradoEm time.Time) Documento {
 	s := FichaSecao(p, rotulosItens(campos))
 	s.NovaPagina = false
 	return Documento{
 		Titulo: "Ficha da propriedade", GeradoEm: geradoEm,
-		Meta:   [][2]string{{"Operação", deref(&operacao, "—")}, {"Gerado em", geradoEm.Local().Format("02/01/2006 15:04")}},
+		Meta:   [][2]string{{"Estudo", deref(&estudo, "—")}, {"Gerado em", geradoEm.Local().Format("02/01/2006 15:04")}},
 		Secoes: []Secao{s},
 	}
 }
@@ -360,9 +360,10 @@ func FichaSecao(p estatisticas.Familia, rotulos map[string]rotuloItem) Secao {
 		}
 	}
 	dados := Pares{Itens: [][2]string{
-		{"Responsável", deref(p.Responsavel, "Não informado")},
+		{"Responsável", p.Responsavel},
+		{"Estudo", p.Estudo},
+		{"Jornada", p.Jornada},
 		{"Equipe", p.Equipe},
-		{"Área identificada", deref(p.AreaIdentificada, "—")},
 		{"Área da propriedade", area},
 		{"Localização", loc},
 		{"Fotos", Int(v[estatisticas.Fotos])},
@@ -403,10 +404,14 @@ func FichaSecao(p estatisticas.Familia, rotulos map[string]rotuloItem) Secao {
 	for _, l := range ls {
 		bens.Linhas = append(bens.Linhas, []string{l.cat, l.nome, Int(l.q)})
 	}
+	blocos := []Bloco{dados}
+	if p.Observacoes != nil && strings.TrimSpace(*p.Observacoes) != "" {
+		blocos = append(blocos, Paragrafo{Texto: "Observações relevantes", Fraco: true}, Paragrafo{Texto: *p.Observacoes})
+	}
 	return Secao{
 		Titulo: p.Nome, NovaPagina: true,
-		Subtitulo: fmt.Sprintf("%s · Equipe %s", deref(p.Responsavel, "Responsável não informado"), p.Equipe),
-		Blocos:    []Bloco{dados, qtd, bens},
+		Subtitulo: fmt.Sprintf("%s · %s · %s", p.Responsavel, p.Equipe, p.Jornada),
+		Blocos:    append(blocos, qtd, bens),
 	}
 }
 

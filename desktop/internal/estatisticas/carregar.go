@@ -69,29 +69,26 @@ func Carregar(ctx context.Context, db *sql.DB) (*Base, error) {
 		return nil, err
 	}
 
-	rows, err = db.QueryContext(ctx, `SELECT uuid, nome, status FROM operacoes ORDER BY created_at`)
+	rows, err = db.QueryContext(ctx, `SELECT uuid, nome FROM estudos WHERE excluido_em IS NULL ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
 		var o Opcao
-		var st string
-		if err := rows.Scan(&o.Valor, &o.Rotulo, &st); err != nil {
+		if err := rows.Scan(&o.Valor, &o.Rotulo); err != nil {
 			rows.Close()
 			return nil, err
 		}
-		if st == "ativa" {
-			o.Rotulo += " (ativa)"
-		}
-		b.Operacoes = append(b.Operacoes, o)
+		b.Estudos = append(b.Estudos, o)
 	}
 	rows.Close()
 
-	rows, err = db.QueryContext(ctx, `SELECT p.uuid, p.nome_propriedade, p.responsavel_familia, p.equipe_uuid, e.nome, e.identificacao_area, e.operacao_uuid,
+	rows, err = db.QueryContext(ctx, `SELECT p.uuid, p.nome_propriedade, p.responsavel_familia, p.observacoes_relevantes,
+		p.equipe_uuid, p.equipe_nome, p.equipe_codigo, p.jornada_uuid, p.jornada_numero, p.jornada_data, p.estudo_uuid, p.estudo_nome,
 		p.pessoas_adultos, p.pessoas_jovens, p.pessoas_criancas, p.veic_caminhoes, p.veic_automoveis_utilitarios, p.veic_motos_ciclomotores,
 		p.bov_adultos, p.bov_bezerros, p.equ_adultos, p.equ_potros, p.area_valor_milesimos, p.area_unidade, p.lat IS NOT NULL, p.lat, p.lon, p.gps_origem, p.gps_precisao_m,
 		(SELECT count(*) FROM v_fotos_vigentes f WHERE f.propriedade_uuid = p.uuid), p.created_at, p.recebido_em
-		FROM v_propriedades_vigentes p JOIN equipes e ON e.uuid = p.equipe_uuid
+		FROM v_propriedades_vigentes p
 		ORDER BY p.nome_propriedade COLLATE NOCASE, p.uuid`)
 	if err != nil {
 		return nil, err
@@ -102,7 +99,8 @@ func Carregar(ctx context.Context, db *sql.DB) (*Base, error) {
 		var ad, jo, cr, ca, au, mo, ba, bb, ea, ep, fotos int64
 		var mil sql.NullInt64
 		var un sql.NullString
-		if err := rows.Scan(&p.UUID, &p.Nome, &p.Responsavel, &p.EquipeUUID, &p.Equipe, &p.AreaIdentificada, &p.OperacaoUUID,
+		if err := rows.Scan(&p.UUID, &p.Nome, &p.Responsavel, &p.Observacoes, &p.EquipeUUID, &p.Equipe, &p.EquipeCodigo,
+			&p.JornadaUUID, &p.JornadaNumero, &p.JornadaData, &p.EstudoUUID, &p.Estudo,
 			&ad, &jo, &cr, &ca, &au, &mo, &ba, &bb, &ea, &ep, &mil, &un, &p.ComLocalizacao, &p.Lat, &p.Lon, &p.GpsOrigem, &p.GpsPrecisaoM, &fotos, &p.CriadoEm, &p.RecebidoEm); err != nil {
 			return nil, err
 		}
@@ -115,6 +113,7 @@ func Carregar(ctx context.Context, db *sql.DB) (*Base, error) {
 			v[k] = q
 		}
 		p.Valores = v
+		p.Jornada = RotuloJornada(p.JornadaNumero, p.JornadaData)
 		if mil.Valid {
 			dm2 := dominio.Area{Milesimos: mil.Int64, Unidade: dominio.UnidadeArea(un.String)}.Dm2()
 			ha := dominio.FormatarHa(dm2)

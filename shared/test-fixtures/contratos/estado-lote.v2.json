@@ -1,0 +1,164 @@
+{
+  "_descricao": "estado-lote.v2 (ADR-0024): estados aguardando_confirmacao e cancelado.",
+  "validos": [
+    {
+      "protocolo_versao": 2,
+      "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+      "status": "recebendo",
+      "fotos_faltantes": [
+        {
+          "uuid": "7cd18d9f-aeb0-4bc2-9d3e-4f5a6b7c8d9e",
+          "offset": 1048576
+        }
+      ],
+      "recibo": null,
+      "motivo": null
+    },
+    {
+      "protocolo_versao": 2,
+      "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+      "status": "importado",
+      "fotos_faltantes": [],
+      "recibo": {
+        "protocolo_versao": 2,
+        "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+        "central_id": "8de29eaf-bfc1-4cd3-8e4f-5a6b7c8d9eaf",
+        "importado_em": "2026-11-14T18:00:05.123Z",
+        "destino": {
+          "estudo_codigo": "SITPOSSE7A82F91C6",
+          "estudo_nome": "Fazenda Santa Maria",
+          "jornada_numero": 1,
+          "jornada_data": "2026-10-10",
+          "equipe_nome": "Equipe Alfa",
+          "equipe_codigo": "EQ4HZ2RTB5",
+          "codigo_informado": "EQ7K3M9QX1",
+          "corrigido": true
+        },
+        "resultados": [
+          {
+            "entidade": "coleta",
+            "uuid": "0b6a1c2e-3d4f-4a5b-8c6d-7e8f9a0b1c2d",
+            "rev": 1,
+            "resultado": "aplicado"
+          },
+          {
+            "entidade": "propriedade",
+            "uuid": "3e9d4f5b-6a7c-4d8e-9f9a-0b1c2d3e4f5a",
+            "rev": 3,
+            "resultado": "aplicado"
+          },
+          {
+            "entidade": "propriedade",
+            "uuid": "4fae5a6c-7b8d-4e9f-8a0b-1c2d3e4f5a6b",
+            "rev": 1,
+            "resultado": "duplicado"
+          },
+          {
+            "entidade": "item",
+            "uuid": "5abf6b7d-8c9e-4fa0-9b1c-2d3e4f5a6b7c",
+            "rev": 1,
+            "resultado": "aplicado"
+          },
+          {
+            "entidade": "item",
+            "uuid": "6bc07c8e-9daf-4ab1-8c2d-3e4f5a6b7c8d",
+            "rev": 2,
+            "resultado": "rejeitado",
+            "motivo": "código de catálogo desconhecido: ave.emu"
+          },
+          {
+            "entidade": "foto",
+            "uuid": "7cd18d9f-aeb0-4bc2-9d3e-4f5a6b7c8d9e",
+            "rev": 1,
+            "resultado": "aplicado"
+          }
+        ],
+        "recibo_sha256": "1f2a471be29fcfaaec6247d2569dc3a9ea9c73a97856ecd8718f41481c5cc597"
+      },
+      "motivo": null
+    },
+    {
+      "protocolo_versao": 2,
+      "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+      "status": "aguardando_confirmacao",
+      "fotos_faltantes": [],
+      "recibo": null,
+      "motivo": null
+    },
+    {
+      "protocolo_versao": 2,
+      "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+      "status": "cancelado",
+      "fotos_faltantes": [],
+      "recibo": null,
+      "motivo": "codigo_inexistente"
+    }
+  ],
+  "invalidos": [
+    {
+      "motivo": "status desconhecido",
+      "dado": {
+        "protocolo_versao": 2,
+        "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+        "status": "pronto",
+        "fotos_faltantes": [
+          {
+            "uuid": "7cd18d9f-aeb0-4bc2-9d3e-4f5a6b7c8d9e",
+            "offset": 1048576
+          }
+        ],
+        "recibo": null,
+        "motivo": null
+      }
+    },
+    {
+      "motivo": "offset negativo",
+      "dado": {
+        "protocolo_versao": 2,
+        "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+        "status": "recebendo",
+        "fotos_faltantes": [
+          {
+            "uuid": "7cd18d9f-aeb0-4bc2-9d3e-4f5a6b7c8d9e",
+            "offset": -1
+          }
+        ],
+        "recibo": null,
+        "motivo": null
+      }
+    },
+    {
+      "motivo": "cancelado sem motivo",
+      "dado": {
+        "protocolo_versao": 2,
+        "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+        "status": "cancelado",
+        "fotos_faltantes": [],
+        "recibo": null,
+        "motivo": null
+      }
+    },
+    {
+      "motivo": "importado sem recibo",
+      "dado": {
+        "protocolo_versao": 2,
+        "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+        "status": "importado",
+        "fotos_faltantes": [],
+        "recibo": null,
+        "motivo": null
+      }
+    },
+    {
+      "motivo": "aguardando com motivo",
+      "dado": {
+        "protocolo_versao": 2,
+        "lote_uuid": "2d8c3e4a-5f6b-4c7d-8e8f-9a0b1c2d3e4f",
+        "status": "aguardando_confirmacao",
+        "fotos_faltantes": [],
+        "recibo": null,
+        "motivo": "cancelado_operador"
+      }
+    }
+  ]
+}

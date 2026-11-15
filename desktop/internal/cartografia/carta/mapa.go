@@ -28,13 +28,13 @@ import (
 
 // Marcador é uma propriedade com coordenada válida.
 type Marcador struct {
-	Numero           int       `json:"numero"`
-	Nome             string    `json:"nome"`
-	Ponto            geo.Ponto `json:"ponto"`
-	PrecisaoM        *float64  `json:"precisao_m"`
-	Origem           string    `json:"origem"` // gnss | manual
-	Equipe           string    `json:"equipe"`
-	AreaIdentificada string    `json:"area_identificada"`
+	Numero    int       `json:"numero"`
+	Nome      string    `json:"nome"`
+	Ponto     geo.Ponto `json:"ponto"`
+	PrecisaoM *float64  `json:"precisao_m"`
+	Origem    string    `json:"origem"` // gnss | manual
+	Equipe    string    `json:"equipe"`
+	Jornada   string    `json:"jornada"`
 }
 
 // Dados de uma carta.
@@ -46,7 +46,7 @@ type Dados struct {
 	Marcadores     []Marcador
 	SemLocalizacao []string // propriedades que não podem ser representadas (RN-94)
 	Criterios      []string
-	Operacao       string
+	Estudo         string
 	GeradoEm       time.Time
 	NomesNoMapa    bool // escrever o nome ao lado do pino (senão, só o número)
 }

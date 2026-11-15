@@ -1,0 +1,392 @@
+{
+  "schema_versao": 2,
+  "descricao": "Base de exemplo das estatísticas (docs/requirements/estatisticas.md §22-A; A28: estudo → jornada → equipe). O estudo 'Levantamento Linha 25' tem 2 jornadas (Alfa e Bravo na 1ª, Charlie na 2ª) e 6 famílias; o estudo 'Outro estudo' tem 1 família, que só aparece quando o filtro não fixa o estudo. Só registros vigentes; os excluídos ficam em 'excluidos' e não podem aparecer em nenhum número.",
+  "estudos": [
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000800",
+      "codigo": "SITPOSSE7A82F91C6",
+      "nome": "Levantamento Linha 25"
+    },
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000810",
+      "codigo": "SITPOSSE70000000X",
+      "nome": "Outro estudo"
+    }
+  ],
+  "jornadas": [
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000851",
+      "estudo_uuid": "5e7a0000-0000-4000-8000-000000000800",
+      "numero": 1,
+      "data": "2025-11-15"
+    },
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000852",
+      "estudo_uuid": "5e7a0000-0000-4000-8000-000000000800",
+      "numero": 2,
+      "data": "2025-11-16"
+    },
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000861",
+      "estudo_uuid": "5e7a0000-0000-4000-8000-000000000810",
+      "numero": 1,
+      "data": "2025-12-01"
+    }
+  ],
+  "equipes": [
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000901",
+      "jornada_uuid": "5e7a0000-0000-4000-8000-000000000851",
+      "nome": "Alfa",
+      "codigo": "EQ7K3M9QX1"
+    },
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000902",
+      "jornada_uuid": "5e7a0000-0000-4000-8000-000000000851",
+      "nome": "Bravo",
+      "codigo": "EQ4HZ2RTB5"
+    },
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000903",
+      "jornada_uuid": "5e7a0000-0000-4000-8000-000000000852",
+      "nome": "Charlie",
+      "codigo": "EQ0A1B0C1X"
+    },
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000904",
+      "jornada_uuid": "5e7a0000-0000-4000-8000-000000000861",
+      "nome": "Delta",
+      "codigo": "EQ10Q0K1MX"
+    }
+  ],
+  "familias": [
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000001",
+      "nome": "Sítio Boa Esperança",
+      "responsavel": "João Souza",
+      "equipe_uuid": "5e7a0000-0000-4000-8000-000000000901",
+      "quantidades": {
+        "pessoas_adultos": 2,
+        "pessoas_jovens": 1,
+        "pessoas_criancas": 2,
+        "veic_caminhoes": 1,
+        "veic_automoveis_utilitarios": 1,
+        "veic_motos_ciclomotores": 0,
+        "bov_adultos": 20,
+        "bov_bezerros": 5,
+        "equ_adultos": 1,
+        "equ_potros": 0
+      },
+      "area": {
+        "milesimos": 10000,
+        "unidade": "alq_paulista"
+      },
+      "localizacao": true,
+      "fotos": 2,
+      "criado_em": 1763186400000,
+      "recebido_em": 1763964000000,
+      "itens": [
+        {
+          "codigo": "eletro.geladeira",
+          "quantidade": 1
+        },
+        {
+          "codigo": "eletro.fogao",
+          "quantidade": 1
+        },
+        {
+          "codigo": "ave.galinha",
+          "quantidade": 30
+        }
+      ]
+    },
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000002",
+      "nome": "Chácara Lua de Prata",
+      "responsavel": "Rita Alves",
+      "equipe_uuid": "5e7a0000-0000-4000-8000-000000000901",
+      "quantidades": {
+        "pessoas_adultos": 1,
+        "pessoas_jovens": 0,
+        "pessoas_criancas": 1,
+        "veic_caminhoes": 0,
+        "veic_automoveis_utilitarios": 1,
+        "veic_motos_ciclomotores": 2,
+        "bov_adultos": 3,
+        "bov_bezerros": 0,
+        "equ_adultos": 0,
+        "equ_potros": 0
+      },
+      "area": {
+        "milesimos": 5000,
+        "unidade": "ha"
+      },
+      "localizacao": false,
+      "fotos": 0,
+      "criado_em": 1763272800000,
+      "recebido_em": 1763964000000,
+      "itens": [
+        {
+          "codigo": "eletro.fogao",
+          "quantidade": 1
+        },
+        {
+          "codigo": "eletro.outros",
+          "nome_personalizado": "Micro-ondas",
+          "nome_normalizado": "micro-ondas",
+          "quantidade": 1
+        },
+        {
+          "codigo": "ave.outros",
+          "nome_personalizado": "Codornas",
+          "nome_normalizado": "codornas",
+          "quantidade": 12
+        }
+      ]
+    },
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000003",
+      "nome": "Fazenda Jaraguá",
+      "responsavel": "Pedro Pereira",
+      "equipe_uuid": "5e7a0000-0000-4000-8000-000000000901",
+      "quantidades": {
+        "pessoas_adultos": 2,
+        "pessoas_jovens": 2,
+        "pessoas_criancas": 3,
+        "veic_caminhoes": 2,
+        "veic_automoveis_utilitarios": 1,
+        "veic_motos_ciclomotores": 1,
+        "bov_adultos": 40,
+        "bov_bezerros": 12,
+        "equ_adultos": 3,
+        "equ_potros": 1
+      },
+      "area": {
+        "milesimos": 60500,
+        "unidade": "ha"
+      },
+      "localizacao": true,
+      "fotos": 1,
+      "criado_em": 1763359200000,
+      "recebido_em": 1764050400000,
+      "itens": [
+        {
+          "codigo": "eletro.geladeira",
+          "quantidade": 2
+        },
+        {
+          "codigo": "movel.sofa",
+          "quantidade": 1
+        },
+        {
+          "codigo": "ave.galinha",
+          "quantidade": 50
+        },
+        {
+          "codigo": "ave.outros",
+          "nome_personalizado": "Codornas ",
+          "nome_normalizado": "codornas",
+          "quantidade": 8
+        }
+      ]
+    },
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000004",
+      "nome": "Sítio Ipê Amarelo",
+      "responsavel": "Maria Lima",
+      "equipe_uuid": "5e7a0000-0000-4000-8000-000000000902",
+      "quantidades": {
+        "pessoas_adultos": 2,
+        "pessoas_jovens": 0,
+        "pessoas_criancas": 0,
+        "veic_caminhoes": 0,
+        "veic_automoveis_utilitarios": 0,
+        "veic_motos_ciclomotores": 1,
+        "bov_adultos": 0,
+        "bov_bezerros": 0,
+        "equ_adultos": 0,
+        "equ_potros": 0
+      },
+      "area": null,
+      "localizacao": true,
+      "fotos": 1,
+      "criado_em": 1763445600000,
+      "recebido_em": 1764136800000,
+      "itens": [
+        {
+          "codigo": "eletro.fogao",
+          "quantidade": 1
+        }
+      ]
+    },
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000005",
+      "nome": "Chácara São José",
+      "responsavel": "Antônio Carlos",
+      "equipe_uuid": "5e7a0000-0000-4000-8000-000000000902",
+      "quantidades": {
+        "pessoas_adultos": 3,
+        "pessoas_jovens": 1,
+        "pessoas_criancas": 4,
+        "veic_caminhoes": 1,
+        "veic_automoveis_utilitarios": 0,
+        "veic_motos_ciclomotores": 1,
+        "bov_adultos": 6,
+        "bov_bezerros": 2,
+        "equ_adultos": 1,
+        "equ_potros": 1
+      },
+      "area": {
+        "milesimos": 30000,
+        "unidade": "ha"
+      },
+      "localizacao": true,
+      "fotos": 0,
+      "criado_em": 1763532000000,
+      "recebido_em": 1764136800000,
+      "itens": [
+        {
+          "codigo": "eletro.geladeira",
+          "quantidade": 1
+        },
+        {
+          "codigo": "eletro.freezer",
+          "quantidade": 1
+        },
+        {
+          "codigo": "movel.mesa_jantar",
+          "quantidade": 1
+        },
+        {
+          "codigo": "ave.pato",
+          "quantidade": 6
+        }
+      ]
+    },
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000006",
+      "nome": "Sítio Água Boa",
+      "responsavel": "Luzia Santos",
+      "equipe_uuid": "5e7a0000-0000-4000-8000-000000000903",
+      "quantidades": {
+        "pessoas_adultos": 1,
+        "pessoas_jovens": 1,
+        "pessoas_criancas": 0,
+        "veic_caminhoes": 0,
+        "veic_automoveis_utilitarios": 2,
+        "veic_motos_ciclomotores": 0,
+        "bov_adultos": 0,
+        "bov_bezerros": 0,
+        "equ_adultos": 2,
+        "equ_potros": 0
+      },
+      "area": {
+        "milesimos": 120000,
+        "unidade": "ha"
+      },
+      "localizacao": false,
+      "fotos": 3,
+      "criado_em": 1763618400000,
+      "recebido_em": 1764223200000,
+      "itens": [
+        {
+          "codigo": "eletro.geladeira",
+          "quantidade": 1
+        }
+      ]
+    }
+  ],
+  "familias_outro_estudo": [
+    {
+      "uuid": "5e7a0000-0000-4000-8000-000000000008",
+      "nome": "Sítio do Outro Estudo",
+      "responsavel": "Carlos Mendes",
+      "equipe_uuid": "5e7a0000-0000-4000-8000-000000000904",
+      "quantidades": {
+        "pessoas_adultos": 2,
+        "pessoas_jovens": 1,
+        "pessoas_criancas": 2,
+        "veic_caminhoes": 1,
+        "veic_automoveis_utilitarios": 1,
+        "veic_motos_ciclomotores": 0,
+        "bov_adultos": 20,
+        "bov_bezerros": 5,
+        "equ_adultos": 1,
+        "equ_potros": 0
+      },
+      "area": {
+        "milesimos": 10000,
+        "unidade": "alq_paulista"
+      },
+      "localizacao": true,
+      "fotos": 2,
+      "criado_em": 1763186400000,
+      "recebido_em": 1763964000000,
+      "itens": [
+        {
+          "codigo": "eletro.geladeira",
+          "quantidade": 1,
+          "familia_uuid": "5e7a0000-0000-4000-8000-000000000008"
+        },
+        {
+          "codigo": "eletro.fogao",
+          "quantidade": 1,
+          "familia_uuid": "5e7a0000-0000-4000-8000-000000000008"
+        },
+        {
+          "codigo": "ave.galinha",
+          "quantidade": 30,
+          "familia_uuid": "5e7a0000-0000-4000-8000-000000000008"
+        }
+      ]
+    }
+  ],
+  "excluidos": {
+    "familias": [
+      {
+        "uuid": "5e7a0000-0000-4000-8000-000000000007",
+        "nome": "Sítio Excluído",
+        "responsavel": "Excluído",
+        "equipe_uuid": "5e7a0000-0000-4000-8000-000000000901",
+        "quantidades": {
+          "pessoas_adultos": 9,
+          "pessoas_jovens": 9,
+          "pessoas_criancas": 9,
+          "veic_caminhoes": 9,
+          "veic_automoveis_utilitarios": 9,
+          "veic_motos_ciclomotores": 9,
+          "bov_adultos": 99,
+          "bov_bezerros": 9,
+          "equ_adultos": 9,
+          "equ_potros": 9
+        },
+        "area": {
+          "milesimos": 999000,
+          "unidade": "ha"
+        },
+        "localizacao": true,
+        "fotos": 4,
+        "criado_em": 1763704800000,
+        "recebido_em": 1764223200000,
+        "itens": [
+          {
+            "codigo": "eletro.geladeira",
+            "quantidade": 9
+          }
+        ]
+      }
+    ],
+    "itens": [
+      {
+        "familia_uuid": "5e7a0000-0000-4000-8000-000000000001",
+        "codigo": "movel.sofa",
+        "quantidade": 7
+      }
+    ],
+    "fotos": [
+      {
+        "familia_uuid": "5e7a0000-0000-4000-8000-000000000002"
+      }
+    ]
+  }
+}

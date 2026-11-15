@@ -1,0 +1,155 @@
+{
+  "_descricao": "RN-02, ADR-0023. Alfabeto Crockford Base32; corpo de 8 = 7 aleatórios + dígito Luhn mod 32. Normalização: maiúsculas; remover espaços, '-', '.', '_' e '/'; tirar o prefixo se presente (entrada com prefixo + 8, ou só os 8); no corpo, O→0 e I/L→1; conferir alfabeto e dígito. Erros: vazio, tamanho, caractere, digito.",
+  "alfabeto": "0123456789ABCDEFGHJKMNPQRSTVWXYZ",
+  "luhn": "gerar: fator=2, soma=0; da direita para a esquerda: a=fator*indice(c); fator alterna 2↔1; soma += a div 32 + a mod 32; digito = alfabeto[(32 - soma mod 32) mod 32]. validar (8 caracteres): fator começa em 1; válido se soma mod 32 = 0.",
+  "digitos": [
+    {
+      "corpo": "K1YAPBW",
+      "digito": "0"
+    },
+    {
+      "corpo": "C62FB95",
+      "digito": "6"
+    },
+    {
+      "corpo": "ZANN8QX",
+      "digito": "N"
+    },
+    {
+      "corpo": "QB2V0QK",
+      "digito": "9"
+    },
+    {
+      "corpo": "MPRM5D6",
+      "digito": "S"
+    },
+    {
+      "corpo": "2T6WWP7",
+      "digito": "X"
+    },
+    {
+      "corpo": "F77KGP0",
+      "digito": "3"
+    },
+    {
+      "corpo": "1G8KJ99",
+      "digito": "B"
+    },
+    {
+      "corpo": "M9ANQ7X",
+      "digito": "M"
+    },
+    {
+      "corpo": "QJ7R73T",
+      "digito": "K"
+    },
+    {
+      "corpo": "WB9DCGT",
+      "digito": "0"
+    },
+    {
+      "corpo": "1V7HCS1",
+      "digito": "H"
+    },
+    {
+      "corpo": "0000000",
+      "digito": "0"
+    },
+    {
+      "corpo": "ZZZZZZZ",
+      "digito": "7"
+    }
+  ],
+  "normalizacao": [
+    {
+      "entrada": "EQ-7K3M-9QX1",
+      "prefixo": "EQ",
+      "normalizado": "EQ7K3M9QX1",
+      "exibicao": "EQ-7K3M-9QX1"
+    },
+    {
+      "entrada": "eq 7k3m 9qx1",
+      "prefixo": "EQ",
+      "normalizado": "EQ7K3M9QX1",
+      "exibicao": "EQ-7K3M-9QX1"
+    },
+    {
+      "entrada": "7K3M9QX1",
+      "prefixo": "EQ",
+      "normalizado": "EQ7K3M9QX1",
+      "exibicao": "EQ-7K3M-9QX1"
+    },
+    {
+      "entrada": "  EQ.7K3M9QX1  ",
+      "prefixo": "EQ",
+      "normalizado": "EQ7K3M9QX1",
+      "exibicao": "EQ-7K3M-9QX1"
+    },
+    {
+      "entrada": "EQ-lOQO-KlMY",
+      "prefixo": "EQ",
+      "normalizado": "EQ10Q0K1MY",
+      "exibicao": "EQ-10Q0-K1MY"
+    },
+    {
+      "entrada": "EQ-OAlB-OClV",
+      "prefixo": "EQ",
+      "normalizado": "EQ0A1B0C1V",
+      "exibicao": "EQ-0A1B-0C1V"
+    },
+    {
+      "entrada": "SITPOSSE7-A82F-91C6",
+      "prefixo": "SITPOSSE7",
+      "normalizado": "SITPOSSE7A82F91C6",
+      "exibicao": "SITPOSSE7-A82F-91C6"
+    },
+    {
+      "entrada": "sitposse7 a82f91c6",
+      "prefixo": "SITPOSSE7",
+      "normalizado": "SITPOSSE7A82F91C6",
+      "exibicao": "SITPOSSE7-A82F-91C6"
+    }
+  ],
+  "erros": [
+    {
+      "entrada": "",
+      "prefixo": "EQ",
+      "erro": "vazio"
+    },
+    {
+      "entrada": "EQ-7K3M-9QX",
+      "prefixo": "EQ",
+      "erro": "tamanho"
+    },
+    {
+      "entrada": "EQ-7K3M9QX19",
+      "prefixo": "EQ",
+      "erro": "tamanho"
+    },
+    {
+      "entrada": "EQ-7K4M9QX1",
+      "prefixo": "EQ",
+      "erro": "digito"
+    },
+    {
+      "entrada": "EQ-7K39MQX1",
+      "prefixo": "EQ",
+      "erro": "digito"
+    },
+    {
+      "entrada": "EQ-7K3M9QXU",
+      "prefixo": "EQ",
+      "erro": "caractere"
+    },
+    {
+      "entrada": "EQ-7K3M9QX#",
+      "prefixo": "EQ",
+      "erro": "caractere"
+    },
+    {
+      "entrada": "SITPOSSE7-A82F91C6",
+      "prefixo": "EQ",
+      "erro": "tamanho"
+    }
+  ]
+}

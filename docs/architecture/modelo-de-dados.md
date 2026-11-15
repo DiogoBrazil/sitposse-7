@@ -48,7 +48,7 @@ Status: **Recomendado R1/R2, aprovado com o plano em 13/11/2026; estrutura de es
 | coluna | Android | Central |
 |---|---|---|
 | uuid | TEXT PK (gerado no celular) | TEXT PK (o mesmo) |
-| codigo | `codigo_equipe` (atual, normalizado) e `codigo_original` | `codigo_informado` (o último recebido) |
+| codigo | `codigo_equipe` (atual, normalizado) e `codigo_original` | `codigo_informado` (o último recebido) e `codigo_original` |
 | status | `em_andamento` \| `concluida`; `iniciada_em`, `concluida_em` | — |
 | destino | `destino_confirmado_em`, `destino_json` (vindos do recibo) | `equipe_uuid` NULL até a 1ª confirmação; depois **imutável** (gatilho); `destino_confirmado_em` |
 | instalação | — | `instalacao_uuid` FK |

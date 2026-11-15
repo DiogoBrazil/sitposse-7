@@ -41,11 +41,11 @@ func precisao(mk Marcador) string {
 // Informacoes do quadro da carta (pares rótulo/valor), iguais no PNG e no PDF.
 func Informacoes(d Dados) [][2]string {
 	esc := geo.CalcularEscala(d.Imagem.Ret, d.Imagem.Largura)
-	equipes, areas := unicos(d.Marcadores, func(m Marcador) string { return m.Equipe }), unicos(d.Marcadores, func(m Marcador) string { return m.AreaIdentificada })
+	equipes, jornadas := unicos(d.Marcadores, func(m Marcador) string { return m.Equipe }), unicos(d.Marcadores, func(m Marcador) string { return m.Jornada })
 	out := [][2]string{
-		{"Operação", padrao(d.Operacao, "—")},
+		{"Estudo", padrao(d.Estudo, "—")},
+		{"Jornada(s)", padrao(strings.Join(jornadas, ", "), "—")},
 		{"Equipe(s)", padrao(strings.Join(equipes, ", "), "—")},
-		{"Área(s) de estudo", padrao(strings.Join(areas, ", "), "—")},
 		{"Imagem", "Copernicus Sentinel-2 L2A (Copernicus Data Space Ecosystem), cores reais (B04, B03, B02)"},
 		{"Data da imagem", d.Imagem.Periodo()},
 		{"Resolução", fmt.Sprintf("10 m (imagem); apresentação ≈ %.1f m por pixel", esc.MetrosPorPixel)},

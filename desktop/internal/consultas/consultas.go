@@ -1,12 +1,15 @@
-// Package consultas faz as leituras da Central para as telas (somente leitura, A24).
+// Package consultas faz as leituras da Central para as telas (somente leitura).
 // Totais e listas usam só as visões vigentes (RN-80); SQL sempre parametrizado.
+// O parâmetro estudo ("" = todos) limita ao estudo em foco (A28).
 package consultas
 
 import (
 	"context"
 	"database/sql"
+	"strconv"
 	"strings"
 
+	"sitposse7/desktop/internal/codigos"
 	"sitposse7/desktop/internal/dominio"
 )
 
@@ -15,64 +18,68 @@ type Consultas struct{ DB *sql.DB }
 
 // Resumo são os números do painel.
 type Resumo struct {
-	Equipes         int    `json:"equipes"`
-	Aparelhos       int    `json:"aparelhos"`
-	Propriedades    int    `json:"propriedades"`
-	Pessoas         int64  `json:"pessoas"`
-	Veiculos        int64  `json:"veiculos"`
-	Bovinos         int64  `json:"bovinos"`
-	Equinos         int64  `json:"equinos"`
-	Aves            int64  `json:"aves"`
-	Eletrodomesticos int64 `json:"eletrodomesticos"`
-	Moveis          int64  `json:"moveis"`
-	Fotos           int    `json:"fotos"`
-	AreaHa          string `json:"area_ha"` // soma das áreas informadas, 2 casas
-	ComArea         int    `json:"com_area"`
-	SemArea         int    `json:"sem_area"` // RN-45: não entra como zero
-	ComGPS          int    `json:"com_gps"`
-	LotesImportados int    `json:"lotes_importados"`
+	Equipes          int    `json:"equipes"`
+	Aparelhos        int    `json:"aparelhos"`
+	Propriedades     int    `json:"propriedades"`
+	Pessoas          int64  `json:"pessoas"`
+	Veiculos         int64  `json:"veiculos"`
+	Bovinos          int64  `json:"bovinos"`
+	Equinos          int64  `json:"equinos"`
+	Aves             int64  `json:"aves"`
+	Eletrodomesticos int64  `json:"eletrodomesticos"`
+	Moveis           int64  `json:"moveis"`
+	Fotos            int    `json:"fotos"`
+	AreaHa           string `json:"area_ha"` // soma das áreas informadas, 2 casas
+	ComArea          int    `json:"com_area"`
+	SemArea          int    `json:"sem_area"` // RN-45: não entra como zero
+	ComGPS           int    `json:"com_gps"`
+	LotesImportados  int    `json:"lotes_importados"`
 	UltimaImportacao *int64 `json:"ultima_importacao"`
 }
 
-// Resumo calcula os números gerais da operação ativa (ou de todas, se não houver).
-func (c *Consultas) Resumo(ctx context.Context) (*Resumo, error) {
+// Resumo calcula os números gerais do estudo ("" = de todos).
+func (c *Consultas) Resumo(ctx context.Context, estudo string) (*Resumo, error) {
 	r := &Resumo{}
+	const doEstudo = `(?1 = '' OR p.estudo_uuid = ?1)`
 	err := c.DB.QueryRowContext(ctx, `SELECT count(*),
 		coalesce(sum(pessoas_adultos + pessoas_jovens + pessoas_criancas), 0),
 		coalesce(sum(veic_caminhoes + veic_automoveis_utilitarios + veic_motos_ciclomotores), 0),
 		coalesce(sum(bov_adultos + bov_bezerros), 0),
 		coalesce(sum(equ_adultos + equ_potros), 0),
 		coalesce(sum(lat IS NOT NULL), 0)
-		FROM v_propriedades_vigentes`).Scan(&r.Propriedades, &r.Pessoas, &r.Veiculos, &r.Bovinos, &r.Equinos, &r.ComGPS)
+		FROM v_propriedades_vigentes p WHERE `+doEstudo, estudo).Scan(&r.Propriedades, &r.Pessoas, &r.Veiculos, &r.Bovinos, &r.Equinos, &r.ComGPS)
 	if err != nil {
 		return nil, err
 	}
 	err = c.DB.QueryRowContext(ctx, `SELECT
-		coalesce(sum(CASE WHEN categoria = 'ave' THEN quantidade END), 0),
-		coalesce(sum(CASE WHEN categoria = 'eletrodomestico' THEN quantidade END), 0),
-		coalesce(sum(CASE WHEN categoria = 'movel' THEN quantidade END), 0)
-		FROM v_itens_vigentes`).Scan(&r.Aves, &r.Eletrodomesticos, &r.Moveis)
+		coalesce(sum(CASE WHEN i.categoria = 'ave' THEN i.quantidade END), 0),
+		coalesce(sum(CASE WHEN i.categoria = 'eletrodomestico' THEN i.quantidade END), 0),
+		coalesce(sum(CASE WHEN i.categoria = 'movel' THEN i.quantidade END), 0)
+		FROM v_itens_vigentes i JOIN v_propriedades_vigentes p ON p.uuid = i.propriedade_uuid WHERE `+doEstudo, estudo).Scan(&r.Aves, &r.Eletrodomesticos, &r.Moveis)
 	if err != nil {
 		return nil, err
 	}
-	if err := c.DB.QueryRowContext(ctx, `SELECT count(*) FROM v_fotos_vigentes`).Scan(&r.Fotos); err != nil {
+	if err := c.DB.QueryRowContext(ctx, `SELECT count(*) FROM v_fotos_vigentes f JOIN v_propriedades_vigentes p ON p.uuid = f.propriedade_uuid WHERE `+doEstudo, estudo).Scan(&r.Fotos); err != nil {
 		return nil, err
 	}
-	if err := c.DB.QueryRowContext(ctx, `SELECT count(*) FROM equipes`).Scan(&r.Equipes); err != nil {
+	if err := c.DB.QueryRowContext(ctx, `SELECT count(*) FROM equipes e JOIN jornadas j ON j.uuid = e.jornada_uuid
+		WHERE e.excluido_em IS NULL AND j.excluido_em IS NULL AND (?1 = '' OR j.estudo_uuid = ?1)`, estudo).Scan(&r.Equipes); err != nil {
 		return nil, err
 	}
 	if err := c.DB.QueryRowContext(ctx, `SELECT count(*) FROM dispositivos WHERE revogado_em IS NULL`).Scan(&r.Aparelhos); err != nil {
 		return nil, err
 	}
 	var ultima sql.NullInt64
-	if err := c.DB.QueryRowContext(ctx, `SELECT count(*), max(importado_em) FROM lotes_recebidos WHERE status = 'importado'`).Scan(&r.LotesImportados, &ultima); err != nil {
+	if err := c.DB.QueryRowContext(ctx, `SELECT count(*), max(l.importado_em) FROM lotes_recebidos l
+		LEFT JOIN equipes e ON e.uuid = l.equipe_destino_uuid LEFT JOIN jornadas j ON j.uuid = e.jornada_uuid
+		WHERE l.status = 'importado' AND (?1 = '' OR j.estudo_uuid = ?1)`, estudo).Scan(&r.LotesImportados, &ultima); err != nil {
 		return nil, err
 	}
 	if ultima.Valid {
 		r.UltimaImportacao = &ultima.Int64
 	}
 	// Área: soma exata em dm² (RN-44/45), formatada só na exibição.
-	rows, err := c.DB.QueryContext(ctx, `SELECT area_valor_milesimos, area_unidade FROM v_propriedades_vigentes`)
+	rows, err := c.DB.QueryContext(ctx, `SELECT area_valor_milesimos, area_unidade FROM v_propriedades_vigentes p WHERE `+doEstudo, estudo)
 	if err != nil {
 		return nil, err
 	}
@@ -99,9 +106,11 @@ func (c *Consultas) Resumo(ctx context.Context) (*Resumo, error) {
 type PropriedadeLinha struct {
 	UUID         string  `json:"uuid"`
 	Nome         string  `json:"nome"`
-	Responsavel  *string `json:"responsavel"`
+	Responsavel  string  `json:"responsavel"`
 	EquipeUUID   string  `json:"equipe_uuid"`
 	Equipe       string  `json:"equipe"`
+	Jornada      string  `json:"jornada"` // "Jornada 2 · 2026-10-11"
+	JornadaData  string  `json:"jornada_data"`
 	Pessoas      int64   `json:"pessoas"`
 	Bovinos      int64   `json:"bovinos"`
 	AreaHa       *string `json:"area_ha"`
@@ -114,14 +123,18 @@ type PropriedadeLinha struct {
 // Propriedades lista as propriedades vigentes; busca por nome da propriedade ou do
 // responsável, sem diferenciar maiúsculas nem acentos (mesma normalização do RN-35).
 // O filtro é feito em Go: o volume é pequeno (A13) e o SQLite não remove acentos.
-func (c *Consultas) Propriedades(ctx context.Context, busca, equipe string) ([]PropriedadeLinha, error) {
-	q := `SELECT p.uuid, p.nome_propriedade, p.responsavel_familia, p.equipe_uuid, e.nome,
+func (c *Consultas) Propriedades(ctx context.Context, busca, estudo, equipe string) ([]PropriedadeLinha, error) {
+	q := `SELECT p.uuid, p.nome_propriedade, p.responsavel_familia, p.equipe_uuid, p.equipe_nome, p.jornada_numero, p.jornada_data,
 		p.pessoas_adultos + p.pessoas_jovens + p.pessoas_criancas, p.bov_adultos + p.bov_bezerros,
 		p.area_valor_milesimos, p.area_unidade, p.lat IS NOT NULL,
 		(SELECT count(*) FROM v_fotos_vigentes f WHERE f.propriedade_uuid = p.uuid), p.updated_at, p.recebido_em
-		FROM v_propriedades_vigentes p JOIN equipes e ON e.uuid = p.equipe_uuid WHERE 1 = 1`
+		FROM v_propriedades_vigentes p WHERE 1 = 1`
 	var args []any
 	termo, temBusca := dominio.NormalizarNome(busca)
+	if estudo != "" {
+		q += ` AND p.estudo_uuid = ?`
+		args = append(args, estudo)
+	}
 	if equipe != "" {
 		q += ` AND p.equipe_uuid = ?`
 		args = append(args, equipe)
@@ -137,16 +150,15 @@ func (c *Consultas) Propriedades(ctx context.Context, busca, equipe string) ([]P
 		var l PropriedadeLinha
 		var m sql.NullInt64
 		var u sql.NullString
-		if err := rows.Scan(&l.UUID, &l.Nome, &l.Responsavel, &l.EquipeUUID, &l.Equipe, &l.Pessoas, &l.Bovinos, &m, &u, &l.TemGPS, &l.Fotos, &l.AtualizadoEm, &l.RecebidoEm); err != nil {
+		var nj int
+		if err := rows.Scan(&l.UUID, &l.Nome, &l.Responsavel, &l.EquipeUUID, &l.Equipe, &nj, &l.JornadaData, &l.Pessoas, &l.Bovinos, &m, &u, &l.TemGPS, &l.Fotos, &l.AtualizadoEm, &l.RecebidoEm); err != nil {
 			return nil, err
 		}
+		l.Jornada = RotuloJornada(nj, l.JornadaData)
 		l.AreaHa = areaHa(m, u)
 		if temBusca {
 			nome, _ := dominio.NormalizarNome(l.Nome)
-			resp := ""
-			if l.Responsavel != nil {
-				resp, _ = dominio.NormalizarNome(*l.Responsavel)
-			}
+			resp, _ := dominio.NormalizarNome(l.Responsavel)
 			if !strings.Contains(nome, termo) && !strings.Contains(resp, termo) {
 				continue
 			}
@@ -154,6 +166,19 @@ func (c *Consultas) Propriedades(ctx context.Context, busca, equipe string) ([]P
 		out = append(out, l)
 	}
 	return out, rows.Err()
+}
+
+// RotuloJornada é o texto padrão de uma jornada: "Jornada 2 · 11/10/2026".
+func RotuloJornada(numero int, data string) string {
+	return "Jornada " + strconv.Itoa(numero) + " · " + DataBR(data)
+}
+
+// DataBR converte AAAA-MM-DD em DD/MM/AAAA (texto inválido volta como veio).
+func DataBR(data string) string {
+	if len(data) != 10 || data[4] != '-' || data[7] != '-' {
+		return data
+	}
+	return data[8:] + "/" + data[5:7] + "/" + data[:4]
 }
 
 func areaHa(m sql.NullInt64, u sql.NullString) *string {
@@ -189,9 +214,15 @@ type FotoLinha struct {
 type PropriedadeDetalhe struct {
 	UUID                      string      `json:"uuid"`
 	Nome                      string      `json:"nome"`
-	Responsavel               *string     `json:"responsavel"`
+	Responsavel               string      `json:"responsavel"`
+	Observacoes               *string     `json:"observacoes"`
 	Equipe                    string      `json:"equipe"`
-	EquipeArea                *string     `json:"equipe_area"`
+	EquipeCodigo              string      `json:"equipe_codigo"`
+	JornadaNumero             int         `json:"jornada_numero"`
+	JornadaData               string      `json:"jornada_data"`
+	EstudoUUID                string      `json:"estudo_uuid"`
+	Estudo                    string      `json:"estudo"`
+	EstudoCodigo              string      `json:"estudo_codigo"`
 	PessoasAdultos            int64       `json:"pessoas_adultos"`
 	PessoasJovens             int64       `json:"pessoas_jovens"`
 	PessoasCriancas           int64       `json:"pessoas_criancas"`
@@ -224,12 +255,13 @@ func (c *Consultas) Propriedade(ctx context.Context, uuid string) (*PropriedadeD
 	d := &PropriedadeDetalhe{Itens: []ItemLinha{}, Fotos: []FotoLinha{}}
 	var m sql.NullInt64
 	var u sql.NullString
-	err := c.DB.QueryRowContext(ctx, `SELECT p.uuid, p.nome_propriedade, p.responsavel_familia, e.nome, e.identificacao_area,
+	err := c.DB.QueryRowContext(ctx, `SELECT p.uuid, p.nome_propriedade, p.responsavel_familia, p.observacoes_relevantes,
+		p.equipe_nome, p.equipe_codigo, p.jornada_numero, p.jornada_data, p.estudo_uuid, p.estudo_nome, p.estudo_codigo,
 		p.pessoas_adultos, p.pessoas_jovens, p.pessoas_criancas, p.veic_caminhoes, p.veic_automoveis_utilitarios, p.veic_motos_ciclomotores,
 		p.bov_adultos, p.bov_bezerros, p.equ_adultos, p.equ_potros, p.area_valor_milesimos, p.area_unidade,
 		p.lat, p.lon, p.gps_origem, p.gps_precisao_m, p.gps_capturado_em, p.gps_satelites, p.created_at, p.updated_at, p.recebido_em, p.rev_origem
-		FROM v_propriedades_vigentes p JOIN equipes e ON e.uuid = p.equipe_uuid WHERE p.uuid = ?`, uuid).Scan(
-		&d.UUID, &d.Nome, &d.Responsavel, &d.Equipe, &d.EquipeArea,
+		FROM v_propriedades_vigentes p WHERE p.uuid = ?`, uuid).Scan(
+		&d.UUID, &d.Nome, &d.Responsavel, &d.Observacoes, &d.Equipe, &d.EquipeCodigo, &d.JornadaNumero, &d.JornadaData, &d.EstudoUUID, &d.Estudo, &d.EstudoCodigo,
 		&d.PessoasAdultos, &d.PessoasJovens, &d.PessoasCriancas, &d.VeicCaminhoes, &d.VeicAutomoveisUtilitarios, &d.VeicMotosCiclomotores,
 		&d.BovAdultos, &d.BovBezerros, &d.EquAdultos, &d.EquPotros, &m, &u,
 		&d.Lat, &d.Lon, &d.GPSOrigem, &d.GPSPrecisaoM, &d.GPSCapturadoEm, &d.GPSSatelites, &d.CriadoEm, &d.AtualizadoEm, &d.RecebidoEm, &d.Rev)
@@ -239,6 +271,7 @@ func (c *Consultas) Propriedade(ctx context.Context, uuid string) (*PropriedadeD
 	if err != nil {
 		return nil, err
 	}
+	d.EquipeCodigo, d.EstudoCodigo = codigos.Exibir(d.EquipeCodigo), codigos.Exibir(d.EstudoCodigo)
 	if m.Valid {
 		d.AreaMilesimos = &m.Int64
 		d.AreaUnidade = &u.String
@@ -285,51 +318,24 @@ func (c *Consultas) CaminhoFotoVigente(ctx context.Context, uuid string) (string
 	return cam, err
 }
 
-// EquipeLinha resume uma equipe.
-type EquipeLinha struct {
-	UUID              string  `json:"uuid"`
-	Nome              string  `json:"nome"`
-	Responsavel       string  `json:"responsavel"`
-	IdentificacaoArea *string `json:"identificacao_area"`
-	Aparelhos         int     `json:"aparelhos"`
-	Propriedades      int     `json:"propriedades"`
-	UltimaImportacao  *int64  `json:"ultima_importacao"`
-}
-
-// Equipes lista as equipes com aparelhos e propriedades vigentes.
-func (c *Consultas) Equipes(ctx context.Context) ([]EquipeLinha, error) {
-	rows, err := c.DB.QueryContext(ctx, `SELECT e.uuid, e.nome, e.responsavel, e.identificacao_area,
-		(SELECT count(*) FROM dispositivos d WHERE d.equipe_uuid = e.uuid AND d.revogado_em IS NULL),
-		(SELECT count(*) FROM v_propriedades_vigentes p WHERE p.equipe_uuid = e.uuid),
-		(SELECT max(l.importado_em) FROM lotes_recebidos l WHERE l.equipe_uuid = e.uuid)
-		FROM equipes e ORDER BY e.nome COLLATE NOCASE`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	out := []EquipeLinha{}
-	for rows.Next() {
-		var l EquipeLinha
-		if err := rows.Scan(&l.UUID, &l.Nome, &l.Responsavel, &l.IdentificacaoArea, &l.Aparelhos, &l.Propriedades, &l.UltimaImportacao); err != nil {
-			return nil, err
-		}
-		out = append(out, l)
-	}
-	return out, rows.Err()
-}
-
 // LoteLinha é uma linha do histórico de recepção.
 type LoteLinha struct {
-	UUID        string `json:"uuid"`
-	Equipe      string `json:"equipe"`
-	Aparelho    *string `json:"aparelho"`
-	Status      string `json:"status"`
-	RecebidoEm  int64  `json:"recebido_em"`
-	ImportadoEm *int64 `json:"importado_em"`
-	Aplicados   int    `json:"aplicados"`
-	Duplicados  int    `json:"duplicados"`
-	Rejeitados  int    `json:"rejeitados"`
-	Conflitos   int    `json:"conflitos"`
+	UUID            string  `json:"uuid"`
+	CodigoInformado string  `json:"codigo_informado"` // como veio do celular (exibição com hífens)
+	Estudo          *string `json:"estudo"`           // destino (nulo enquanto não decidido ou se cancelado)
+	Jornada         *string `json:"jornada"`
+	Equipe          *string `json:"equipe"`
+	EquipeCodigo    *string `json:"equipe_codigo"`
+	Corrigido       bool    `json:"corrigido"` // destino diferente do código recebido
+	Motivo          *string `json:"motivo"`    // motivo do cancelamento
+	Aparelho        *string `json:"aparelho"`
+	Status          string  `json:"status"`
+	RecebidoEm      int64   `json:"recebido_em"`
+	ImportadoEm     *int64  `json:"importado_em"`
+	Aplicados       int     `json:"aplicados"`
+	Duplicados      int     `json:"duplicados"`
+	Rejeitados      int     `json:"rejeitados"`
+	Conflitos       int     `json:"conflitos"`
 }
 
 // Lotes lista os últimos lotes recebidos (mais recentes primeiro).
@@ -337,12 +343,14 @@ func (c *Consultas) Lotes(ctx context.Context, limite int) ([]LoteLinha, error) 
 	if limite <= 0 || limite > 500 {
 		limite = 100
 	}
-	rows, err := c.DB.QueryContext(ctx, `SELECT l.uuid, e.nome, d.rotulo_aparelho, l.status, l.recebido_em, l.importado_em,
+	rows, err := c.DB.QueryContext(ctx, `SELECT l.uuid, l.codigo_informado, s.nome, j.numero, j.data, e.nome, e.codigo, l.motivo_cancelamento,
+		d.rotulo_aparelho, l.status, l.recebido_em, l.importado_em,
 		(SELECT count(*) FROM aplicacoes a WHERE a.lote_uuid = l.uuid AND a.resultado = 'aplicado'),
 		(SELECT count(*) FROM aplicacoes a WHERE a.lote_uuid = l.uuid AND a.resultado = 'duplicado'),
 		(SELECT count(*) FROM aplicacoes a WHERE a.lote_uuid = l.uuid AND a.resultado = 'rejeitado'),
 		(SELECT count(*) FROM aplicacoes a WHERE a.lote_uuid = l.uuid AND a.resultado = 'conflito')
-		FROM lotes_recebidos l JOIN equipes e ON e.uuid = l.equipe_uuid
+		FROM lotes_recebidos l LEFT JOIN equipes e ON e.uuid = l.equipe_destino_uuid
+		LEFT JOIN jornadas j ON j.uuid = e.jornada_uuid LEFT JOIN estudos s ON s.uuid = j.estudo_uuid
 		LEFT JOIN dispositivos d ON d.instalacao_uuid = l.instalacao_uuid
 		ORDER BY l.recebido_em DESC LIMIT ?`, limite)
 	if err != nil {
@@ -352,8 +360,21 @@ func (c *Consultas) Lotes(ctx context.Context, limite int) ([]LoteLinha, error) 
 	out := []LoteLinha{}
 	for rows.Next() {
 		var l LoteLinha
-		if err := rows.Scan(&l.UUID, &l.Equipe, &l.Aparelho, &l.Status, &l.RecebidoEm, &l.ImportadoEm, &l.Aplicados, &l.Duplicados, &l.Rejeitados, &l.Conflitos); err != nil {
+		var jn sql.NullInt64
+		var jd sql.NullString
+		if err := rows.Scan(&l.UUID, &l.CodigoInformado, &l.Estudo, &jn, &jd, &l.Equipe, &l.EquipeCodigo, &l.Motivo,
+			&l.Aparelho, &l.Status, &l.RecebidoEm, &l.ImportadoEm, &l.Aplicados, &l.Duplicados, &l.Rejeitados, &l.Conflitos); err != nil {
 			return nil, err
+		}
+		l.Corrigido = l.EquipeCodigo != nil && *l.EquipeCodigo != l.CodigoInformado
+		l.CodigoInformado = codigos.Exibir(l.CodigoInformado)
+		if l.EquipeCodigo != nil {
+			e := codigos.Exibir(*l.EquipeCodigo)
+			l.EquipeCodigo = &e
+		}
+		if jn.Valid {
+			r := RotuloJornada(int(jn.Int64), jd.String)
+			l.Jornada = &r
 		}
 		out = append(out, l)
 	}

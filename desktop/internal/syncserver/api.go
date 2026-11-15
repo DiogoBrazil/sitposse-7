@@ -59,11 +59,11 @@ func responderErro(w http.ResponseWriter, err error) {
 		{importacao.ErrNaoEncontrado, http.StatusNotFound, "nao_encontrado"},
 		{importacao.ErrConflitoLote, http.StatusConflict, "lote_divergente"},
 		{pareamento.ErrTokenInvalido, http.StatusGone, "token_invalido"},
-		{pareamento.ErrOutraOperacao, http.StatusConflict, "outra_operacao"},
+		{importacao.ErrLoteCancelado, http.StatusConflict, "lote_cancelado"},
+		{importacao.ErrJaDecidido, http.StatusConflict, "ja_decidido"},
 		{pareamento.ErrRecusado, http.StatusForbidden, "recusado"},
 		// 409 (e não 408): o OkHttp repete sozinho requisições que recebem 408.
 		{pareamento.ErrTempoEsgotado, http.StatusConflict, "tempo_esgotado"},
-		{pareamento.ErrSemOperacao, http.StatusConflict, "sem_operacao"},
 	} {
 		if errors.Is(err, m.alvo) {
 			escreverJSON(w, m.status, ErroAPI{Codigo: m.codigo, Erro: err.Error()})

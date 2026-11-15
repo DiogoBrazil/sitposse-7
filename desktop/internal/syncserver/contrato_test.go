@@ -32,7 +32,7 @@ func validarJSON(t *testing.T, s *jsonschema.Schema, dado []byte) error {
 }
 
 func TestContratoQRFixtures(t *testing.T) {
-	s := compilarSchema(t, "qr-pareamento.v1.schema.json")
+	s := compilarSchema(t, "qr-pareamento.v2.schema.json")
 	var fx struct {
 		Validos   []json.RawMessage `json:"validos"`
 		Invalidos []struct {
@@ -40,7 +40,7 @@ func TestContratoQRFixtures(t *testing.T) {
 			Dado   json.RawMessage `json:"dado"`
 		} `json:"invalidos"`
 	}
-	testutil.LerFixture(t, "contratos/qr-pareamento.v1.json", &fx)
+	testutil.LerFixture(t, "contratos/qr-pareamento.v2.json", &fx)
 	for i, v := range fx.Validos {
 		if err := validarJSON(t, s, v); err != nil {
 			t.Errorf("válido %d rejeitado: %v", i, err)
@@ -57,8 +57,8 @@ func TestContratoSaidasReaisDoServidor(t *testing.T) {
 	srv := novoServidor(t, t.TempDir())
 	srv.CentralID = "3f1c9a52-6a0e-4c1b-9d55-2f7f1f0b8e21"
 
-	qr, _ := json.Marshal(srv.QR("", nil))
-	if err := validarJSON(t, compilarSchema(t, "qr-pareamento.v1.schema.json"), qr); err != nil {
+	qr, _ := json.Marshal(srv.QR(""))
+	if err := validarJSON(t, compilarSchema(t, "qr-pareamento.v2.schema.json"), qr); err != nil {
 		t.Fatalf("QR real fora do contrato: %v\n%s", err, qr)
 	}
 
@@ -69,7 +69,7 @@ func TestContratoSaidasReaisDoServidor(t *testing.T) {
 	defer resp.Body.Close()
 	var buf bytes.Buffer
 	buf.ReadFrom(resp.Body)
-	if err := validarJSON(t, compilarSchema(t, "status.v1.schema.json"), buf.Bytes()); err != nil {
+	if err := validarJSON(t, compilarSchema(t, "status.v2.schema.json"), buf.Bytes()); err != nil {
 		t.Fatalf("status real fora do contrato: %v\n%s", err, buf.String())
 	}
 }

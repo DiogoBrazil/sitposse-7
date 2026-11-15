@@ -66,15 +66,21 @@ func centralComPropriedades(t *testing.T) *Central {
 			t.Fatal(err)
 		}
 	}
-	ex(`INSERT INTO operacoes (uuid, nome, status, created_at, updated_at) VALUES ('op', 'Operação', 'ativa', 1, 1)`)
-	ex(`INSERT INTO equipes (uuid, operacao_uuid, nome, responsavel, identificacao_area, created_at, updated_at, rev_origem, recebido_em, registro_json) VALUES ('eq', 'op', 'Bravo', 'Sgt', 'Linha C-25', 1, 1, 1, 1, '{}')`)
+	e, err := c.n.Estudos.CriarEstudo(context.Background(), "Levantamento Linha C-25", "2026-10-10", []string{"Bravo"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	eq := e.ListaJornadas[0].Equipes[0]
+	ex(`INSERT INTO dispositivos (instalacao_uuid, credencial_hash, pareado_em) VALUES ('i', 'h', 1)`)
+	ex(`INSERT INTO coletas (uuid, instalacao_uuid, codigo_informado, codigo_original, equipe_uuid, destino_confirmado_em, created_at, updated_at, recebido_em)
+		VALUES ('col', 'i', ?, ?, ?, 1, 1, 1, 1)`, eq.Codigo, eq.Codigo, eq.UUID)
 	prop := func(uuid, nome string, lat, lon any) {
 		gps := any(nil)
 		if lat != nil {
 			gps = "gnss"
 		}
-		ex(`INSERT INTO propriedades (uuid, equipe_uuid, nome_propriedade, lat, lon, gps_origem, gps_precisao_m, created_at, updated_at, rev_origem, recebido_em, origem_instalacao, registro_json)
-			VALUES (?, 'eq', ?, ?, ?, ?, 5, 1, 1, 1, 1, 'x', '{}')`, uuid, nome, lat, lon, gps)
+		ex(`INSERT INTO propriedades (uuid, coleta_uuid, equipe_uuid, nome_propriedade, responsavel_familia, lat, lon, gps_origem, gps_precisao_m, created_at, updated_at, rev_origem, recebido_em, origem_instalacao, registro_json)
+			VALUES (?, 'col', ?, ?, 'Fulano', ?, ?, ?, 5, 1, 1, 1, 1, 'x', '{}')`, uuid, eq.UUID, nome, lat, lon, gps)
 	}
 	prop("u1", "Sítio A", -10.40, -62.50)
 	prop("u2", "Sítio B", -10.42, -62.47)
@@ -177,8 +183,8 @@ func TestCartaRecusaImagemIncompletaEPontoFora(t *testing.T) {
 
 func TestPontosDistantesSaoAgrupados(t *testing.T) {
 	c := centralComPropriedades(t)
-	if _, err := c.n.B.Escrita.Exec(`INSERT INTO propriedades (uuid, equipe_uuid, nome_propriedade, lat, lon, gps_origem, created_at, updated_at, rev_origem, recebido_em, origem_instalacao, registro_json)
-		VALUES ('u4', 'eq', 'Sítio Longe', -11.9, -61.0, 'gnss', 1, 1, 1, 1, 'x', '{}')`); err != nil {
+	if _, err := c.n.B.Escrita.Exec(`INSERT INTO propriedades (uuid, coleta_uuid, equipe_uuid, nome_propriedade, responsavel_familia, lat, lon, gps_origem, created_at, updated_at, rev_origem, recebido_em, origem_instalacao, registro_json)
+		SELECT 'u4', 'col', equipe_uuid, 'Sítio Longe', 'Fulano', -11.9, -61.0, 'gnss', 1, 1, 1, 1, 'x', '{}' FROM coletas WHERE uuid = 'col'`); err != nil {
 		t.Fatal(err)
 	}
 	s := servico(t, c, &provedorFalso{})

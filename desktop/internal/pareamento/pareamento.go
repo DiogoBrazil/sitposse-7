@@ -1,6 +1,7 @@
-// Package pareamento cuida das operações, dos tokens do QR, dos pedidos de
-// pareamento (que esperam a confirmação do operador) e da autenticação dos
-// aparelhos pela credencial (docs/synchronization/protocolo.md §2, ADR-0012).
+// Package pareamento cuida dos tokens do QR, dos pedidos de pareamento (que esperam a
+// confirmação do operador) e da autenticação dos aparelhos pela credencial
+// (docs/synchronization/protocolo.md §2). O pareamento é só do aparelho: a equipe vem
+// de cada coleta, pelo código (ADR-0024).
 package pareamento
 
 import (
@@ -13,7 +14,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -26,42 +26,27 @@ import (
 
 // Erros com significado HTTP (o syncserver traduz).
 var (
-	ErrSemOperacao      = errors.New("nenhuma operação ativa na Central")
-	ErrOperacaoAtiva    = errors.New("já existe uma operação ativa; encerre-a antes de criar outra")
-	ErrTokenInvalido    = errors.New("QR de pareamento expirado ou já usado; gere um novo QR na Central")
-	ErrOutraOperacao    = errors.New("esta equipe já pertence a outra operação")
-	ErrRecusado         = errors.New("pareamento recusado pelo operador da Central")
-	ErrTempoEsgotado    = errors.New("o operador não confirmou a tempo; leia o QR de novo")
-	ErrNaoAutorizado    = errors.New("aparelho não pareado ou credencial revogada")
+	ErrTokenInvalido     = errors.New("QR de pareamento expirado ou já usado; gere um novo QR na Central")
+	ErrRecusado          = errors.New("pareamento recusado pelo operador da Central")
+	ErrTempoEsgotado     = errors.New("o operador não confirmou a tempo; leia o QR de novo")
+	ErrNaoAutorizado     = errors.New("aparelho não pareado ou credencial revogada")
 	ErrPedidoInexistente = errors.New("pedido de pareamento não encontrado")
 )
 
 // Prazos (protocolo.md §2).
 const (
-	ValidadeToken   = 10 * time.Minute
-	EsperaOperador  = 90 * time.Second
+	ValidadeToken  = 10 * time.Minute
+	EsperaOperador = 90 * time.Second
 )
-
-// Operacao é uma operação de campo (ADR-0012).
-type Operacao struct {
-	UUID      string `json:"uuid"`
-	Nome      string `json:"nome"`
-	Descricao string `json:"descricao"`
-	Status    string `json:"status"`
-	CriadaEm  int64  `json:"criada_em"`
-}
 
 // PedidoResumo é o que a tela da Central mostra para o operador decidir.
 type PedidoResumo struct {
-	ID                string  `json:"id"`
-	EquipeUUID        string  `json:"equipe_uuid"`
-	EquipeNome        string  `json:"equipe_nome"`
-	Responsavel       string  `json:"responsavel"`
-	IdentificacaoArea *string `json:"identificacao_area"`
-	RotuloAparelho    *string `json:"rotulo_aparelho"`
-	InstalacaoUUID    string  `json:"instalacao_uuid"`
-	EquipeConhecida   bool    `json:"equipe_conhecida"`
-	RecebidoEm        int64   `json:"recebido_em"`
+	ID             string  `json:"id"`
+	RotuloAparelho *string `json:"rotulo_aparelho"`
+	InstalacaoUUID string  `json:"instalacao_uuid"`
+	// AparelhoConhecido: este aparelho já foi pareado antes (o novo pareamento troca a credencial).
+	AparelhoConhecido bool  `json:"aparelho_conhecido"`
+	RecebidoEm        int64 `json:"recebido_em"`
 }
 
 type pedido struct {
@@ -70,7 +55,7 @@ type pedido struct {
 	decisao chan bool
 }
 
-// Servico concentra operações, pareamento e autenticação.
+// Servico concentra pareamento e autenticação.
 type Servico struct {
 	B         *banco.Banco
 	CentralID string
@@ -103,90 +88,31 @@ func HashSegredo(s string) string {
 	return hex.EncodeToString(h[:])
 }
 
-// ---------- operações ----------
-
-// OperacaoAtiva devolve a operação ativa (nil se não houver).
-func (s *Servico) OperacaoAtiva(ctx context.Context) (*Operacao, error) {
-	var o Operacao
-	var desc sql.NullString
-	err := s.B.Leitura.QueryRowContext(ctx, `SELECT uuid, nome, descricao, status, created_at FROM operacoes WHERE status = 'ativa'`).
-		Scan(&o.UUID, &o.Nome, &desc, &o.Status, &o.CriadaEm)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	}
-	o.Descricao = desc.String
-	return &o, err
-}
-
-// CriarOperacao cria e ativa uma operação (só uma ativa por vez).
-func (s *Servico) CriarOperacao(ctx context.Context, nome, descricao string) (*Operacao, error) {
-	nome = strings.TrimSpace(nome)
-	if nome == "" {
-		return nil, errors.New("informe o nome da operação")
-	}
-	if len([]rune(nome)) > contratos.MaxTexto {
-		return nil, fmt.Errorf("nome com mais de %d caracteres", contratos.MaxTexto)
-	}
-	if atv, err := s.OperacaoAtiva(ctx); err != nil {
-		return nil, err
-	} else if atv != nil {
-		return nil, ErrOperacaoAtiva
-	}
-	o := &Operacao{UUID: uuid.NewString(), Nome: nome, Descricao: strings.TrimSpace(descricao), Status: "ativa", CriadaEm: s.agora().UnixMilli()}
-	tx, err := s.B.Escrita.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-	var desc any
-	if o.Descricao != "" {
-		desc = o.Descricao
-	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO operacoes (uuid, nome, descricao, status, created_at, updated_at) VALUES (?, ?, ?, 'ativa', ?, ?)`,
-		o.UUID, o.Nome, desc, o.CriadaEm, o.CriadaEm); err != nil {
-		return nil, err
-	}
-	depois, _ := json.Marshal(o)
-	if _, err := tx.ExecContext(ctx, `INSERT INTO auditoria (quando, operador, origem, entidade, entidade_uuid, acao, depois_json) VALUES (?, NULL, 'central', 'operacao', ?, 'criar', ?)`,
-		o.CriadaEm, o.UUID, string(depois)); err != nil {
-		return nil, err
-	}
-	return o, tx.Commit()
-}
-
 // ---------- tokens ----------
 
 // GerarToken cria um token de uso único para o QR (10 min).
-func (s *Servico) GerarToken(ctx context.Context) (token string, op *Operacao, expira time.Time, err error) {
-	op, err = s.OperacaoAtiva(ctx)
-	if err != nil {
-		return "", nil, time.Time{}, err
-	}
-	if op == nil {
-		return "", nil, time.Time{}, ErrSemOperacao
-	}
+func (s *Servico) GerarToken(ctx context.Context) (token string, expira time.Time, err error) {
 	token, err = aleatorio32()
 	if err != nil {
-		return "", nil, time.Time{}, err
+		return "", time.Time{}, err
 	}
 	agora := s.agora()
 	expira = agora.Add(ValidadeToken)
-	_, err = s.B.Escrita.ExecContext(ctx, `INSERT INTO tokens_pareamento (token_hash, operacao_uuid, criado_em, expira_em) VALUES (?, ?, ?, ?)`,
-		HashSegredo(token), op.UUID, agora.UnixMilli(), expira.UnixMilli())
-	return token, op, expira, err
+	_, err = s.B.Escrita.ExecContext(ctx, `INSERT INTO tokens_pareamento (token_hash, criado_em, expira_em) VALUES (?, ?, ?)`,
+		HashSegredo(token), agora.UnixMilli(), expira.UnixMilli())
+	return token, expira, err
 }
 
 func (s *Servico) conferirToken(ctx context.Context, q interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
-}, token string) (operacao string, err error) {
+}, token string) error {
 	var expira int64
 	var usado sql.NullInt64
-	err = q.QueryRowContext(ctx, `SELECT t.operacao_uuid, t.expira_em, t.usado_em FROM tokens_pareamento t
-		JOIN operacoes o ON o.uuid = t.operacao_uuid WHERE t.token_hash = ? AND o.status = 'ativa'`, HashSegredo(token)).Scan(&operacao, &expira, &usado)
+	err := q.QueryRowContext(ctx, `SELECT expira_em, usado_em FROM tokens_pareamento WHERE token_hash = ?`, HashSegredo(token)).Scan(&expira, &usado)
 	if errors.Is(err, sql.ErrNoRows) || (err == nil && (usado.Valid || s.agora().UnixMilli() > expira)) {
-		return "", ErrTokenInvalido
+		return ErrTokenInvalido
 	}
-	return operacao, err
+	return err
 }
 
 // ---------- pedidos ----------
@@ -196,24 +122,16 @@ func (s *Servico) Pedir(ctx context.Context, req contratos.PedidoPareamento) (*c
 	if err := contratos.ValidarPedidoPareamento(&req); err != nil {
 		return nil, fmt.Errorf("%w: %v", importacao.ErrInvalido, err)
 	}
-	op, err := s.conferirToken(ctx, s.B.Leitura, req.Token)
-	if err != nil {
+	if err := s.conferirToken(ctx, s.B.Leitura, req.Token); err != nil {
 		return nil, err
 	}
-	var opEquipe string
-	err = s.B.Leitura.QueryRowContext(ctx, `SELECT operacao_uuid FROM equipes WHERE uuid = ?`, req.Equipe.UUID).Scan(&opEquipe)
-	conhecida := err == nil
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	var n int
+	if err := s.B.Leitura.QueryRowContext(ctx, `SELECT count(*) FROM dispositivos WHERE instalacao_uuid = ?`, req.InstalacaoUUID).Scan(&n); err != nil {
 		return nil, err
 	}
-	if conhecida && opEquipe != op {
-		return nil, ErrOutraOperacao // P6: decidir depois; nunca mudar de operação em silêncio
-	}
-
 	p := &pedido{req: req, decisao: make(chan bool, 1), resumo: PedidoResumo{
-		ID: uuid.NewString(), EquipeUUID: req.Equipe.UUID, EquipeNome: req.Equipe.Nome, Responsavel: req.Equipe.Responsavel,
-		IdentificacaoArea: req.Equipe.IdentificacaoArea, RotuloAparelho: req.RotuloAparelho, InstalacaoUUID: req.InstalacaoUUID,
-		EquipeConhecida: conhecida, RecebidoEm: s.agora().UnixMilli(),
+		ID: uuid.NewString(), RotuloAparelho: req.RotuloAparelho, InstalacaoUUID: req.InstalacaoUUID,
+		AparelhoConhecido: n > 0, RecebidoEm: s.agora().UnixMilli(),
 	}}
 	s.mu.Lock()
 	if s.pendentes == nil {
@@ -283,41 +201,19 @@ func (s *Servico) efetivar(ctx context.Context, req contratos.PedidoPareamento) 
 		return nil, err
 	}
 	defer tx.Rollback()
-	op, err := s.conferirToken(ctx, tx, req.Token) // de novo, agora dentro da transação
-	if err != nil {
-		return nil, err
-	}
-	var opNome string
-	if err := tx.QueryRowContext(ctx, `SELECT nome FROM operacoes WHERE uuid = ?`, op).Scan(&opNome); err != nil {
+	if err := s.conferirToken(ctx, tx, req.Token); err != nil { // de novo, agora dentro da transação
 		return nil, err
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE tokens_pareamento SET usado_em = ? WHERE token_hash = ?`, agora, HashSegredo(req.Token)); err != nil {
 		return nil, err
 	}
-	e := req.Equipe
-	js, _ := json.Marshal(e)
-	criado, _ := contratos.LerInstante(e.CreatedAt)
-	atualizado, _ := contratos.LerInstante(e.UpdatedAt)
-	var opEquipe string
-	err = tx.QueryRowContext(ctx, `SELECT operacao_uuid FROM equipes WHERE uuid = ?`, e.UUID).Scan(&opEquipe)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		if _, err := tx.ExecContext(ctx, `INSERT INTO equipes (uuid, operacao_uuid, nome, responsavel, identificacao_area, created_at, updated_at, rev_origem, recebido_em, registro_json)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, e.UUID, op, e.Nome, e.Responsavel, e.IdentificacaoArea, criado, atualizado, e.Rev, agora, string(js)); err != nil {
-			return nil, err
-		}
-	case err != nil:
-		return nil, err
-	case opEquipe != op:
-		return nil, ErrOutraOperacao
-	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO dispositivos (instalacao_uuid, equipe_uuid, credencial_hash, rotulo_aparelho, pareado_em) VALUES (?, ?, ?, ?, ?)
-		ON CONFLICT (instalacao_uuid) DO UPDATE SET equipe_uuid = excluded.equipe_uuid, credencial_hash = excluded.credencial_hash,
+	if _, err := tx.ExecContext(ctx, `INSERT INTO dispositivos (instalacao_uuid, credencial_hash, rotulo_aparelho, pareado_em) VALUES (?, ?, ?, ?)
+		ON CONFLICT (instalacao_uuid) DO UPDATE SET credencial_hash = excluded.credencial_hash,
 		rotulo_aparelho = excluded.rotulo_aparelho, pareado_em = excluded.pareado_em, revogado_em = NULL`,
-		req.InstalacaoUUID, e.UUID, HashSegredo(credencial), req.RotuloAparelho, agora); err != nil {
+		req.InstalacaoUUID, HashSegredo(credencial), req.RotuloAparelho, agora); err != nil {
 		return nil, err
 	}
-	depois, _ := json.Marshal(map[string]any{"instalacao_uuid": req.InstalacaoUUID, "equipe_uuid": e.UUID, "rotulo_aparelho": req.RotuloAparelho, "operacao_uuid": op})
+	depois, _ := json.Marshal(map[string]any{"instalacao_uuid": req.InstalacaoUUID, "rotulo_aparelho": req.RotuloAparelho})
 	if _, err := tx.ExecContext(ctx, `INSERT INTO auditoria (quando, operador, origem, entidade, entidade_uuid, acao, depois_json) VALUES (?, NULL, 'central', 'dispositivo', ?, 'parear', ?)`,
 		agora, req.InstalacaoUUID, string(depois)); err != nil {
 		return nil, err
@@ -326,7 +222,7 @@ func (s *Servico) efetivar(ctx context.Context, req contratos.PedidoPareamento) 
 		return nil, err
 	}
 	return &contratos.RespostaPareamento{ProtocoloVersao: contratos.ProtocoloVersao, CentralID: s.CentralID,
-		CredencialDispositivo: credencial, Operacao: contratos.OperacaoResumo{UUID: op, Nome: opNome}}, nil
+		CredencialDispositivo: credencial}, nil
 }
 
 // ---------- autenticação ----------
@@ -337,9 +233,8 @@ func (s *Servico) Autenticar(ctx context.Context, credencial string) (importacao
 	if credencial == "" {
 		return d, ErrNaoAutorizado
 	}
-	err := s.B.Leitura.QueryRowContext(ctx, `SELECT d.instalacao_uuid, d.equipe_uuid, e.operacao_uuid FROM dispositivos d
-		JOIN equipes e ON e.uuid = d.equipe_uuid WHERE d.credencial_hash = ? AND d.revogado_em IS NULL`, HashSegredo(credencial)).
-		Scan(&d.InstalacaoUUID, &d.EquipeUUID, &d.OperacaoUUID)
+	err := s.B.Leitura.QueryRowContext(ctx, `SELECT instalacao_uuid FROM dispositivos WHERE credencial_hash = ? AND revogado_em IS NULL`,
+		HashSegredo(credencial)).Scan(&d.InstalacaoUUID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return d, ErrNaoAutorizado
 	}

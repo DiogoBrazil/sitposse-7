@@ -31,17 +31,19 @@ func main() {
 	defer central.Encerrar()
 
 	cartas := &app.CartaService{C: central}
+	servicos := []application.Service{application.NewService(&app.SincronizacaoService{C: central})}
+	if central.Bloqueio == "" { // banco de geração anterior: só a tela de bloqueio (ADR-0025)
+		servicos = append(servicos,
+			application.NewService(&app.EstudoService{C: central}),
+			application.NewService(&app.ConsultaService{C: central}),
+			application.NewService(&app.RelatorioService{C: central}),
+			application.NewService(cartas))
+	}
 
 	wapp := application.New(application.Options{
 		Name:        "SITPOSSE-7 Central",
 		Description: "Central de consolidação do SITPOSSE-7 — 7º BPM/PMRO",
-		Services: []application.Service{
-			application.NewService(&app.SincronizacaoService{C: central}),
-			application.NewService(&app.OperacaoService{C: central}),
-			application.NewService(&app.ConsultaService{C: central}),
-			application.NewService(&app.RelatorioService{C: central}),
-			application.NewService(cartas),
-		},
+		Services:    servicos,
 		Assets: application.AssetOptions{
 			Handler: rotas(central, cartas, application.AssetFileServerFS(assets)),
 		},

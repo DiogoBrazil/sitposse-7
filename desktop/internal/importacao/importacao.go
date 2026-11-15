@@ -1,6 +1,8 @@
 // Package importacao é o núcleo único de recepção de lotes (Wi-Fi agora; USB depois):
-// recebe o manifesto, recebe as fotos em staging, confere tamanho e SHA-256, publica
-// os arquivos ANTES dos registros e aplica tudo numa transação que grava o recibo.
+// recebe o manifesto de uma coleta, recebe as fotos em staging, confere tamanho e
+// SHA-256 e deixa o lote aguardando a decisão do operador sobre o destino (ADR-0024).
+// Na confirmação, publica os arquivos ANTES dos registros e aplica tudo numa
+// transação que grava o destino da coleta, a decisão e o recibo.
 //
 // Referências: docs/synchronization/protocolo.md §5–6, integridade.md,
 // desktop/docs/importacao-e-consolidacao.md.
@@ -35,6 +37,10 @@ var (
 	ErrConflitoLote   = errors.New("já existe um lote com este UUID e conteúdo diferente")
 	ErrOffset         = errors.New("offset diferente do recebido até agora")
 	ErrFotosFaltantes = errors.New("ainda faltam fotos para importar o lote")
+	ErrLoteCancelado  = errors.New("este envio foi cancelado na Central; envie de novo")
+	ErrJaDecidido     = errors.New("o destino deste lote já foi decidido")
+	ErrDestinoTravado = errors.New("esta coleta já foi importada para outra equipe; o destino não pode mudar")
+	ErrNaoAguardando  = errors.New("o lote ainda está sendo recebido")
 )
 
 // MaxBloco é o maior bloco aceito em PUT /v1/fotos (protocolo.md §3).
@@ -43,8 +49,6 @@ const MaxBloco = 1 << 20
 // Dispositivo é o aparelho autenticado pela credencial.
 type Dispositivo struct {
 	InstalacaoUUID string
-	EquipeUUID     string
-	OperacaoUUID   string
 }
 
 // Importador implementa a recepção. Seguro para uso concorrente.
@@ -53,7 +57,7 @@ type Importador struct {
 	PastaDados string
 	CentralID  string
 	Agora      func() time.Time
-	mu         sync.Mutex // serializa escrita de fotos e importação
+	mu         sync.Mutex // serializa escrita de fotos, importação e decisões
 }
 
 func (im *Importador) agora() time.Time {
@@ -98,8 +102,8 @@ func (im *Importador) ReceberLote(ctx context.Context, d Dispositivo, loteURL st
 	if l.LoteUUID != loteURL {
 		return nil, fmt.Errorf("%w: lote_uuid diferente do endereço", ErrInvalido)
 	}
-	if l.InstalacaoUUID != d.InstalacaoUUID || l.Equipe.UUID != d.EquipeUUID {
-		return nil, fmt.Errorf("%w: o lote é de outra instalação ou equipe", ErrProibido)
+	if l.InstalacaoUUID != d.InstalacaoUUID {
+		return nil, fmt.Errorf("%w: o lote é de outra instalação", ErrProibido)
 	}
 	soma := sha256.Sum256(bruto)
 	hashManifesto := hex.EncodeToString(soma[:])
@@ -116,8 +120,12 @@ func (im *Importador) ReceberLote(ctx context.Context, d Dispositivo, loteURL st
 		Scan(&inst, &status, &hashExistente)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
-		if _, err := tx.ExecContext(ctx, `INSERT INTO lotes_recebidos (uuid, instalacao_uuid, equipe_uuid, canal, status, manifesto_json, manifesto_sha256, recebido_em)
-			VALUES (?, ?, ?, 'wifi', 'recebendo', ?, ?, ?)`, l.LoteUUID, d.InstalacaoUUID, d.EquipeUUID, string(bruto), hashManifesto, im.agora().UnixMilli()); err != nil {
+		agora := im.agora().UnixMilli()
+		if err := im.registrarColeta(ctx, tx, d, &l.Coleta, agora); err != nil {
+			return nil, err
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO lotes_recebidos (uuid, instalacao_uuid, coleta_uuid, codigo_informado, canal, status, manifesto_json, manifesto_sha256, recebido_em)
+			VALUES (?, ?, ?, ?, 'wifi', 'recebendo', ?, ?, ?)`, l.LoteUUID, d.InstalacaoUUID, l.Coleta.UUID, l.Coleta.CodigoEquipe, string(bruto), hashManifesto, agora); err != nil {
 			return nil, err
 		}
 		for _, f := range l.Fotos {
@@ -138,11 +146,34 @@ func (im *Importador) ReceberLote(ctx context.Context, d Dispositivo, loteURL st
 		if hashExistente != hashManifesto {
 			return nil, ErrConflitoLote
 		}
+		if status == contratos.StatusCancelado {
+			return nil, ErrLoteCancelado
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	return im.estadoLocked(ctx, l.LoteUUID)
+}
+
+// registrarColeta guarda a coleta do lote (só dados de recepção; nada é importado
+// antes da decisão do operador). Uma coleta pertence a um único aparelho.
+func (im *Importador) registrarColeta(ctx context.Context, tx *sql.Tx, d Dispositivo, c *contratos.Coleta, agora int64) error {
+	var inst string
+	var equipe sql.NullString
+	err := tx.QueryRowContext(ctx, `SELECT instalacao_uuid, equipe_uuid FROM coletas WHERE uuid = ?`, c.UUID).Scan(&inst, &equipe)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		_, err = tx.ExecContext(ctx, `INSERT INTO coletas (uuid, instalacao_uuid, codigo_informado, codigo_original, created_at, updated_at, recebido_em)
+			VALUES (?, ?, ?, ?, ?, ?, ?)`, c.UUID, d.InstalacaoUUID, c.CodigoEquipe, c.CodigoOriginal, ms(c.CreatedAt), ms(c.UpdatedAt), agora)
+		return err
+	case err != nil:
+		return err
+	case inst != d.InstalacaoUUID:
+		return fmt.Errorf("%w: a coleta é de outro aparelho", ErrProibido)
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE coletas SET codigo_informado = ?, recebido_em = ? WHERE uuid = ?`, c.CodigoEquipe, agora, c.UUID)
+	return err
 }
 
 // EstadoLote responde GET /v1/lotes/{lote}.
@@ -165,17 +196,25 @@ func (im *Importador) EstadoLote(ctx context.Context, d Dispositivo, lote string
 
 func (im *Importador) estadoLocked(ctx context.Context, lote string) (*contratos.EstadoLote, error) {
 	var status string
-	var reciboJSON sql.NullString
-	if err := im.B.Escrita.QueryRowContext(ctx, `SELECT status, recibo_json FROM lotes_recebidos WHERE uuid = ?`, lote).Scan(&status, &reciboJSON); err != nil {
+	var reciboJSON, motivo sql.NullString
+	if err := im.B.Escrita.QueryRowContext(ctx, `SELECT status, recibo_json, motivo_cancelamento FROM lotes_recebidos WHERE uuid = ?`, lote).
+		Scan(&status, &reciboJSON, &motivo); err != nil {
 		return nil, err
 	}
 	est := &contratos.EstadoLote{ProtocoloVersao: contratos.ProtocoloVersao, LoteUUID: lote, Status: status, FotosFaltantes: []contratos.FotoFaltante{}}
-	if status == "importado" {
+	switch status {
+	case contratos.StatusImportado:
 		var r contratos.Recibo
 		if err := json.Unmarshal([]byte(reciboJSON.String), &r); err != nil {
 			return nil, fmt.Errorf("recibo persistido ilegível: %w", err)
 		}
 		est.Recibo = &r
+		return est, nil
+	case contratos.StatusCancelado:
+		m := motivo.String
+		est.Motivo = &m
+		return est, nil
+	case contratos.StatusAguardando:
 		return est, nil
 	}
 	falt, err := im.faltantes(ctx, lote)
@@ -328,15 +367,15 @@ func (im *Importador) ReceberBlocoFoto(ctx context.Context, d Dispositivo, foto 
 
 // ---------- POST /v1/lotes/{lote}/importar ----------
 
-// Importar confere e publica as fotos e aplica o lote numa transação que grava o recibo.
-// Se faltarem fotos (ou alguma tiver hash divergente), devolve o estado com
-// fotos_faltantes e ErrFotosFaltantes, sem aplicar nada.
+// Importar confere as fotos do lote e o deixa aguardando a decisão do operador
+// (ADR-0024). Se faltarem fotos (ou alguma tiver hash divergente), devolve o estado
+// com fotos_faltantes e ErrFotosFaltantes, sem mudar nada. Lote já decidido devolve o
+// estado atual (o mesmo recibo, se importado).
 func (im *Importador) Importar(ctx context.Context, d Dispositivo, lote string) (*contratos.EstadoLote, error) {
 	im.mu.Lock()
 	defer im.mu.Unlock()
-	var inst, status, manifesto string
-	err := im.B.Escrita.QueryRowContext(ctx, `SELECT instalacao_uuid, status, manifesto_json FROM lotes_recebidos WHERE uuid = ?`, lote).
-		Scan(&inst, &status, &manifesto)
+	var inst, status string
+	err := im.B.Escrita.QueryRowContext(ctx, `SELECT instalacao_uuid, status FROM lotes_recebidos WHERE uuid = ?`, lote).Scan(&inst, &status)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNaoEncontrado
 	}
@@ -346,16 +385,35 @@ func (im *Importador) Importar(ctx context.Context, d Dispositivo, lote string) 
 	if inst != d.InstalacaoUUID {
 		return nil, ErrProibido
 	}
-	if status == "importado" {
-		return im.estadoLocked(ctx, lote) // reenvio/ACK perdido: mesmo recibo
+	switch status {
+	case contratos.StatusCancelado:
+		return nil, ErrLoteCancelado
+	case contratos.StatusImportado, contratos.StatusAguardando:
+		return im.estadoLocked(ctx, lote) // reenvio/resposta perdida: mesmo estado
 	}
-
-	// 1–2. Conferir tamanho e SHA-256 de cada foto em staging.
-	es, err := im.esperadas(ctx, lote)
+	_, falt, err := im.conferirFotos(ctx, lote)
 	if err != nil {
 		return nil, err
 	}
-	var paraPublicar []esperada
+	if len(falt) > 0 {
+		return &contratos.EstadoLote{ProtocoloVersao: contratos.ProtocoloVersao, LoteUUID: lote, Status: contratos.StatusRecebendo, FotosFaltantes: falt}, ErrFotosFaltantes
+	}
+	if _, err := im.B.Escrita.ExecContext(ctx, `UPDATE lotes_recebidos SET status = 'aguardando_confirmacao', aguardando_desde = ? WHERE uuid = ? AND status = 'recebendo'`,
+		im.agora().UnixMilli(), lote); err != nil {
+		return nil, err
+	}
+	return im.estadoLocked(ctx, lote)
+}
+
+// conferirFotos confere tamanho e SHA-256 de cada foto esperada em staging. Devolve as
+// prontas para publicar e as que faltam (hash divergente: o .part é apagado e a foto
+// volta a ser pedida do zero).
+func (im *Importador) conferirFotos(ctx context.Context, lote string) ([]esperada, []contratos.FotoFaltante, error) {
+	es, err := im.esperadas(ctx, lote)
+	if err != nil {
+		return nil, nil, err
+	}
+	var prontas []esperada
 	falt := []contratos.FotoFaltante{}
 	for _, e := range es {
 		if im.publicada(e) {
@@ -373,44 +431,34 @@ func (im *Importador) Importar(ctx context.Context, d Dispositivo, lote string) 
 		}
 		h, err := hashArquivo(parte)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if st.Size() != e.tamanho || h != e.sha {
 			_ = os.Remove(parte) // hash divergente: só esta foto é reenviada
 			falt = append(falt, contratos.FotoFaltante{UUID: e.uuid, Offset: 0})
 			continue
 		}
-		paraPublicar = append(paraPublicar, e)
+		prontas = append(prontas, e)
 	}
-	if len(falt) > 0 {
-		return &contratos.EstadoLote{ProtocoloVersao: contratos.ProtocoloVersao, LoteUUID: lote, Status: "recebendo", FotosFaltantes: falt}, ErrFotosFaltantes
-	}
+	return prontas, falt, nil
+}
 
-	// 3. Publicar (rename atômico no mesmo volume + fsync do diretório) ANTES dos registros.
-	for _, e := range paraPublicar {
+// publicar move as fotos conferidas para o lugar final (rename atômico no mesmo volume
+// + fsync do diretório), ANTES da transação dos registros.
+func (im *Importador) publicar(prontas []esperada) error {
+	for _, e := range prontas {
 		final := im.caminhoFinal(e.uuid)
 		if err := os.MkdirAll(filepath.Dir(final), 0o700); err != nil {
-			return nil, err
+			return err
 		}
 		if err := os.Rename(im.caminhoParte(e.uuid), final); err != nil {
-			return nil, fmt.Errorf("publicando foto %s: %w", e.uuid, err)
+			return fmt.Errorf("publicando foto %s: %w", e.uuid, err)
 		}
 		if err := syncDir(filepath.Dir(final)); err != nil {
-			return nil, err
+			return err
 		}
 	}
-
-	// 4. Transação única: registros, aplicações, auditoria e recibo.
-	var l contratos.Lote
-	if err := json.Unmarshal([]byte(manifesto), &l); err != nil {
-		return nil, fmt.Errorf("manifesto persistido ilegível: %w", err)
-	}
-	recibo, err := im.aplicar(ctx, d, &l)
-	if err != nil {
-		return nil, err
-	}
-	return &contratos.EstadoLote{ProtocoloVersao: contratos.ProtocoloVersao, LoteUUID: lote, Status: "importado",
-		FotosFaltantes: []contratos.FotoFaltante{}, Recibo: recibo}, nil
+	return nil
 }
 
 // Ack registra que o aparelho gravou o recibo (informativo).

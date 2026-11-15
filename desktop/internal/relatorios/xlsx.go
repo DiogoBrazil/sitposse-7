@@ -74,7 +74,7 @@ func (p *planilha) cabecalho(aba, titulo string) {
 	if len(p.d.Criterios) > 0 {
 		filtros = strings.Join(p.d.Criterios, "; ")
 	}
-	_ = f.SetCellValue(aba, "A4", fmt.Sprintf("Operação: %s   ·   Filtros: %s   ·   Gerado em %s pelo %s Central", deref(&p.d.Operacao, "—"), filtros, p.d.GeradoEm.Local().Format("02/01/2006 15:04"), Sistema))
+	_ = f.SetCellValue(aba, "A4", fmt.Sprintf("Estudo: %s   ·   Filtros: %s   ·   Gerado em %s pelo %s Central", deref(&p.d.Estudo, "—"), filtros, p.d.GeradoEm.Local().Format("02/01/2006 15:04"), Sistema))
 	for c, s := range map[string]string{"A1": "inst", "A2": "unidade", "A3": "titulo", "A4": "meta"} {
 		_ = f.SetCellStyle(aba, c, c, p.st[s])
 	}
@@ -298,13 +298,13 @@ func XLSX(d Dados) ([]byte, error) {
 	grafico(f, "Panorama", fmt.Sprintf("E%d", linhaCab+24), "Veículos por tipo", "7A4FA8",
 		fmt.Sprintf("'Panorama'!$B$%d:$B$%d", linhaCab+10, linhaCab+12), fmt.Sprintf("'Panorama'!$C$%d:$C$%d", linhaCab+10, linhaCab+12), 3)
 
+	p.abaGrupos("Por jornada", "PorJornada", "Jornada", r.PorJornada)
 	p.abaGrupos("Por equipe", "PorEquipe", "Equipe", r.PorEquipe)
-	p.abaGrupos("Por área", "PorArea", "Área identificada", r.PorArea)
 
 	// ---------- Por família ----------
 	_, _ = f.NewSheet("Por família")
 	p.cabecalho("Por família", "Famílias (cada propriedade corresponde a uma família)")
-	cols := []col{{"Família / propriedade", "texto", 30, false}, {"Responsável", "texto", 24, false}, {"Equipe", "texto", 16, false}, {"Área identificada", "texto", 18, false}}
+	cols := []col{{"Família / propriedade", "texto", 30, false}, {"Responsável", "texto", 24, false}, {"Jornada", "texto", 22, false}, {"Equipe", "texto", 16, false}}
 	for _, c := range colsGrupo {
 		cols = append(cols, col{c.rotulo, "int", 12, true})
 	}
@@ -323,10 +323,11 @@ func XLSX(d Dados) ([]byte, error) {
 		cols = append(cols, col{rot, "int", 13, true})
 	}
 	cols = append(cols, col{"Área (ha)", "area", 12, true}, col{"Unidade informada", "texto", 14, false}, col{"Latitude", "coord", 13, false}, col{"Longitude", "coord", 13, false},
-		col{"Origem da localização", "texto", 16, false}, col{"Cadastrado no celular", "data", 17, false}, col{"Recebido pela Central", "data", 17, false})
+		col{"Origem da localização", "texto", 16, false}, col{"Cadastrado no celular", "data", 17, false}, col{"Recebido pela Central", "data", 17, false},
+		col{"Observações relevantes", "texto", 60, false})
 	var linhas [][]any
 	for _, x := range r.Familias {
-		l := []any{x.Nome, deref(x.Responsavel, ""), x.Equipe, deref(x.AreaIdentificada, "")}
+		l := []any{x.Nome, x.Responsavel, x.Jornada, x.Equipe}
 		for _, c := range colsGrupo {
 			l = append(l, x.Valores[c.chave])
 		}
@@ -343,7 +344,7 @@ func XLSX(d Dados) ([]byte, error) {
 			lat, lon = *x.Lat, *x.Lon
 			origem = map[string]string{"gnss": "GPS do celular", "manual": "Digitada"}[deref(x.GpsOrigem, "")]
 		}
-		l = append(l, area, unidade, lat, lon, origem, time.UnixMilli(x.CriadoEm).Local(), time.UnixMilli(x.RecebidoEm).Local())
+		l = append(l, area, unidade, lat, lon, origem, time.UnixMilli(x.CriadoEm).Local(), time.UnixMilli(x.RecebidoEm).Local(), deref(x.Observacoes, ""))
 		linhas = append(linhas, l)
 	}
 	p.tabela("Por família", "PorFamilia", cols, linhas, "Total (linhas visíveis)")

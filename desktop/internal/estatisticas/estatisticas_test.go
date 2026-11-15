@@ -27,7 +27,7 @@ type itemFx struct {
 type familiaFx struct {
 	UUID        string           `json:"uuid"`
 	Nome        string           `json:"nome"`
-	Responsavel *string          `json:"responsavel"`
+	Responsavel string           `json:"responsavel"`
 	EquipeUUID  string           `json:"equipe_uuid"`
 	Quantidades map[string]int64 `json:"quantidades"`
 	Area        *struct {
@@ -41,15 +41,22 @@ type familiaFx struct {
 	Itens       []itemFx `json:"itens"`
 }
 type baseFx struct {
-	Operacoes []struct{ UUID, Nome, Status string } `json:"operacoes"`
-	Equipes   []struct {
-		UUID              string  `json:"uuid"`
-		Nome              string  `json:"nome"`
-		IdentificacaoArea *string `json:"identificacao_area"`
-		OperacaoUUID      string  `json:"operacao_uuid"`
+	Estudos  []struct{ UUID, Codigo, Nome string } `json:"estudos"`
+	Jornadas []struct {
+		UUID       string `json:"uuid"`
+		EstudoUUID string `json:"estudo_uuid"`
+		Numero     int    `json:"numero"`
+		Data       string `json:"data"`
+	} `json:"jornadas"`
+	Equipes []struct {
+		UUID        string `json:"uuid"`
+		JornadaUUID string `json:"jornada_uuid"`
+		Nome        string `json:"nome"`
+		Codigo      string `json:"codigo"`
 	} `json:"equipes"`
-	Familias  []familiaFx `json:"familias"`
-	Excluidos struct {
+	Familias            []familiaFx `json:"familias"`
+	FamiliasOutroEstudo []familiaFx `json:"familias_outro_estudo"`
+	Excluidos           struct {
 		Familias []familiaFx `json:"familias"`
 		Itens    []itemFx    `json:"itens"`
 		Fotos    []struct {
@@ -59,6 +66,7 @@ type baseFx struct {
 }
 type esperadoFx struct {
 	Familias       int                           `json:"familias"`
+	FamiliasBase   *int                          `json:"familias_base"`
 	UUIDs          []string                      `json:"uuids"`
 	Valores        map[string]int64              `json:"valores"`
 	AreaHa         *string                       `json:"area_ha"`
@@ -100,11 +108,11 @@ func inserir(t testing.TB, db *sql.DB, f familiaFx, excluido bool) {
 		lat, lon, gps = -10.4, -62.4, "gnss"
 	}
 	q := f.Quantidades
-	exec(t, db, `INSERT INTO propriedades (uuid, equipe_uuid, nome_propriedade, responsavel_familia, pessoas_adultos, pessoas_jovens, pessoas_criancas,
+	exec(t, db, `INSERT INTO propriedades (uuid, coleta_uuid, equipe_uuid, nome_propriedade, responsavel_familia, pessoas_adultos, pessoas_jovens, pessoas_criancas,
 		veic_caminhoes, veic_automoveis_utilitarios, veic_motos_ciclomotores, bov_adultos, bov_bezerros, equ_adultos, equ_potros,
 		area_valor_milesimos, area_unidade, lat, lon, gps_origem, created_at, updated_at, excluido_em, rev_origem, recebido_em, origem_instalacao, registro_json)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'teste', '{}')`,
-		f.UUID, f.EquipeUUID, f.Nome, f.Responsavel, q["pessoas_adultos"], q["pessoas_jovens"], q["pessoas_criancas"],
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'teste', '{}')`,
+		f.UUID, "coleta-"+f.EquipeUUID, f.EquipeUUID, f.Nome, f.Responsavel, q["pessoas_adultos"], q["pessoas_jovens"], q["pessoas_criancas"],
 		q["veic_caminhoes"], q["veic_automoveis_utilitarios"], q["veic_motos_ciclomotores"], q["bov_adultos"], q["bov_bezerros"], q["equ_adultos"], q["equ_potros"],
 		mil, un, lat, lon, gps, f.CriadoEm, f.CriadoEm, exc, f.RecebidoEm)
 	for _, it := range f.Itens {
@@ -157,14 +165,20 @@ func bancoComBase(t testing.TB, b baseFx) *banco.Banco {
 	}
 	t.Cleanup(func() { bd.Fechar() })
 	db := bd.Escrita
-	for _, o := range b.Operacoes {
-		exec(t, db, `INSERT INTO operacoes (uuid, nome, status, created_at, updated_at) VALUES (?, ?, ?, 1, 1)`, o.UUID, o.Nome, o.Status)
+	exec(t, db, `INSERT INTO dispositivos (instalacao_uuid, credencial_hash, pareado_em) VALUES ('inst-teste', 'h', 1)`)
+	for i, e := range b.Estudos {
+		exec(t, db, `INSERT INTO estudos (uuid, codigo, nome, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`, e.UUID, e.Codigo, e.Nome, i+1, i+1)
+	}
+	for _, j := range b.Jornadas {
+		exec(t, db, `INSERT INTO jornadas (uuid, estudo_uuid, numero, data, created_at, updated_at) VALUES (?, ?, ?, ?, 1, 1)`, j.UUID, j.EstudoUUID, j.Numero, j.Data)
 	}
 	for _, e := range b.Equipes {
-		exec(t, db, `INSERT INTO equipes (uuid, operacao_uuid, nome, responsavel, identificacao_area, created_at, updated_at, rev_origem, recebido_em, registro_json)
-			VALUES (?, ?, ?, 'Responsável', ?, 1, 1, 1, 1, '{}')`, e.UUID, e.OperacaoUUID, e.Nome, e.IdentificacaoArea)
+		exec(t, db, `INSERT INTO equipes (uuid, jornada_uuid, nome, nome_normalizado, codigo, created_at, updated_at) VALUES (?, ?, ?, lower(?), ?, 1, 1)`,
+			e.UUID, e.JornadaUUID, e.Nome, e.Nome, e.Codigo)
+		exec(t, db, `INSERT INTO coletas (uuid, instalacao_uuid, codigo_informado, codigo_original, equipe_uuid, destino_confirmado_em, created_at, updated_at, recebido_em)
+			VALUES (?, 'inst-teste', ?, ?, ?, 1, 1, 1, 1)`, "coleta-"+e.UUID, e.Codigo, e.Codigo, e.UUID)
 	}
-	for _, f := range b.Familias {
+	for _, f := range append(append([]familiaFx{}, b.Familias...), b.FamiliasOutroEstudo...) {
 		inserir(t, db, f, false)
 	}
 	for _, f := range b.Excluidos.Familias {
@@ -182,14 +196,14 @@ func bancoComBase(t testing.TB, b baseFx) *banco.Banco {
 func TestCasosDaFixture(t *testing.T) {
 	var b baseFx
 	var c casosFx
-	testutil.LerFixture(t, "estatisticas/base.v1.json", &b)
-	testutil.LerFixture(t, "estatisticas/casos.v1.json", &c)
+	testutil.LerFixture(t, "estatisticas/base.v2.json", &b)
+	testutil.LerFixture(t, "estatisticas/casos.v2.json", &c)
 	bd := bancoComBase(t, b)
 	base, err := Carregar(context.Background(), bd.Leitura)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.Casos) < 19 {
+	if len(c.Casos) < 22 {
 		t.Fatalf("fixture com %d casos; esperado pelo menos 19", len(c.Casos))
 	}
 	for _, cs := range c.Casos {
@@ -206,8 +220,12 @@ func TestCasosDaFixture(t *testing.T) {
 			if r.Totais.Familias != e.Familias || len(r.Familias) != e.Familias {
 				t.Errorf("%s: famílias = %d (lista %d), esperado %d", cs.Pergunta, r.Totais.Familias, len(r.Familias), e.Familias)
 			}
-			if r.FamiliasBase != len(b.Familias) {
-				t.Errorf("base = %d, esperado %d (excluídos não contam)", r.FamiliasBase, len(b.Familias))
+			base := len(b.Familias)
+			if e.FamiliasBase != nil {
+				base = *e.FamiliasBase
+			}
+			if r.FamiliasBase != base {
+				t.Errorf("base = %d, esperado %d (excluídos e outros estudos não contam)", r.FamiliasBase, base)
 			}
 			if e.UUIDs != nil {
 				var got []string
@@ -285,14 +303,20 @@ func TestCasosDaFixture(t *testing.T) {
 					somaFam[k] += v
 				}
 			}
+			somaJor := map[string]int64{}
 			for _, g := range r.PorEquipe {
 				for k, v := range g.Totais.Valores {
 					somaEq[k] += v
 				}
 			}
+			for _, g := range r.PorJornada {
+				for k, v := range g.Totais.Valores {
+					somaJor[k] += v
+				}
+			}
 			for k, v := range r.Totais.Valores {
-				if somaFam[k] != v || somaEq[k] != v {
-					t.Errorf("incoerente em %s: total %d, famílias %d, equipes %d", k, v, somaFam[k], somaEq[k])
+				if somaFam[k] != v || somaEq[k] != v || somaJor[k] != v {
+					t.Errorf("incoerente em %s: total %d, famílias %d, equipes %d, jornadas %d", k, v, somaFam[k], somaEq[k], somaJor[k])
 				}
 			}
 		})
@@ -316,9 +340,9 @@ func TestFiltroInvalido(t *testing.T) {
 // RNF-08: painel com filtros em < 300 ms no volume 3× (900 propriedades, RNF-07).
 func TestDesempenhoVolume3x(t *testing.T) {
 	var b baseFx
-	testutil.LerFixture(t, "estatisticas/base.v1.json", &b)
+	testutil.LerFixture(t, "estatisticas/base.v2.json", &b)
 	modelo := b.Familias
-	b.Familias = nil
+	b.Familias, b.FamiliasOutroEstudo = nil, nil
 	b.Excluidos.Familias, b.Excluidos.Itens, b.Excluidos.Fotos = nil, nil, nil
 	for i := 0; i < 900; i++ {
 		f := modelo[i%len(modelo)]

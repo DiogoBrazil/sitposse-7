@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sitposse7.local/schemas/estado-lote.v2.schema.json",
+  "title": "Estado do lote: resposta de PUT/GET /v1/lotes/{lote} e do importar (v2)",
+  "type": "object",
+  "required": [
+    "protocolo_versao",
+    "lote_uuid",
+    "status",
+    "fotos_faltantes",
+    "recibo",
+    "motivo"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "protocolo_versao": {
+      "const": 2
+    },
+    "lote_uuid": {
+      "$ref": "comum.v2.schema.json#/$defs/uuid"
+    },
+    "status": {
+      "enum": [
+        "recebendo",
+        "aguardando_confirmacao",
+        "importado",
+        "cancelado"
+      ]
+    },
+    "fotos_faltantes": {
+      "type": "array",
+      "description": "Fotos cujos bytes a Central ainda não tem completos; offset = bytes já recebidos em staging.",
+      "items": {
+        "type": "object",
+        "required": [
+          "uuid",
+          "offset"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "$ref": "comum.v2.schema.json#/$defs/uuid"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "recibo": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "recibo.v2.schema.json"
+        }
+      ]
+    },
+    "motivo": {
+      "enum": [
+        null,
+        "cancelado_operador",
+        "codigo_inexistente"
+      ],
+      "description": "Preenchido só quando status = cancelado."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "importado"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "recibo": {
+            "type": "object"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "recibo": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "cancelado"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "motivo": {
+            "enum": [
+              "cancelado_operador",
+              "codigo_inexistente"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "motivo": {
+            "const": null
+          }
+        }
+      }
+    }
+  ]
+}

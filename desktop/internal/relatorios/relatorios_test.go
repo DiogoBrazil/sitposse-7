@@ -32,26 +32,28 @@ func dados(t *testing.T, n int, fichas bool) Dados {
 	for i := 0; i < n; i++ {
 		f := estatisticas.Familia{
 			UUID: fmt.Sprintf("u%03d", i), Nome: fmt.Sprintf("Sítio São João Nº %d — Linha C-25, Ramal do Igarapé Água Branca", i),
-			EquipeUUID: fmt.Sprint("e", i%3), Equipe: []string{"Alfa", "Bravo", "Charlie"}[i%3], OperacaoUUID: "o",
+			EquipeUUID: fmt.Sprint("e", i%3), Equipe: []string{"Alfa", "Bravo", "Charlie"}[i%3], EstudoUUID: "o", Estudo: "Levantamento Linha C-25",
+			JornadaUUID: fmt.Sprint("j", i%2), JornadaNumero: i%2 + 1, JornadaData: "2026-10-1" + fmt.Sprint(i%2), Responsavel: "Responsável " + fmt.Sprint(i),
 			Valores:  map[string]int64{"pessoas_adultos": 2, "pessoas_jovens": int64(i % 3), "bov_adultos": int64(i * 3), "item:eletro.geladeira": 1, estatisticas.Fotos: int64(i % 2)},
 			CriadoEm: 1_763_100_000_000, RecebidoEm: 1_763_200_000_000,
 		}
 		if i%4 != 0 {
-			f.Responsavel = ptr("José Antônio da Conceição")
+			f.Responsavel = "José Antônio da Conceição"
 			f.AreaDm2, f.AreaHa, f.AreaUnidade = ptr(int64(24_200_000*(i+1))), ptr(fmt.Sprintf("%d,20", 24*(i+1))), ptr("alq_paulista")
 			f.Lat, f.Lon, f.GpsOrigem, f.GpsPrecisaoM, f.ComLocalizacao = ptr(-10.43), ptr(-62.47), ptr("gnss"), ptr(6.0), true
 			f.Valores["item:ave.outros:codornas"] = 12
 		}
 		if i%3 == 1 {
-			f.AreaIdentificada = ptr("Linha C-28")
+			f.Observacoes = ptr("Família pede prazo para retirar o gado.\nHá um idoso acamado.")
 		}
+		f.Jornada = estatisticas.RotuloJornada(f.JornadaNumero, f.JornadaData)
 		b.Familias = append(b.Familias, estatisticas.NovaFamilia(f, cat))
 	}
 	r, err := estatisticas.Calcular(b, estatisticas.Filtro{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return Dados{Operacao: "Levantamento Linha C-25 — novembro", GeradoEm: time.Date(2026, 11, 14, 22, 0, 0, 0, time.Local),
+	return Dados{Estudo: "Levantamento Linha C-25 (SITPOSSE7-A82F-91C6)", GeradoEm: time.Date(2026, 11, 14, 22, 0, 0, 0, time.Local),
 		Criterios: []string{"Equipe: Alfa", "Bovinos (total): mais de 5"}, R: r, Fichas: fichas}
 }
 
@@ -95,7 +97,7 @@ func TestPDF(t *testing.T) {
 	}
 	t.Logf("PDF: %d páginas, %d KB", n, len(b)/1024)
 
-	ficha, err := PDF(MontarFicha(d.R.Familias[1], d.R.Campos, d.Operacao, d.GeradoEm))
+	ficha, err := PDF(MontarFicha(d.R.Familias[1], d.R.Campos, d.Estudo, d.GeradoEm))
 	if err != nil || !bytes.HasPrefix(ficha, []byte("%PDF-")) {
 		t.Fatalf("ficha: %v", err)
 	}
@@ -172,7 +174,7 @@ func TestXLSX(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	want := []string{"Panorama", "Por equipe", "Por área", "Por família", "Itens por tipo", "Tamanho", "Sobre"}
+	want := []string{"Panorama", "Por jornada", "Por equipe", "Por família", "Itens por tipo", "Tamanho", "Sobre"}
 	if got := f.GetSheetList(); strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Fatalf("abas %v, esperado %v", got, want)
 	}
@@ -218,7 +220,7 @@ func TestAmostras(t *testing.T) {
 	p, _ := PDF(doc)
 	w, _ := DOCX(doc)
 	x, _ := XLSX(d)
-	f, _ := PDF(MontarFicha(d.R.Familias[1], d.R.Campos, d.Operacao, d.GeradoEm))
+	f, _ := PDF(MontarFicha(d.R.Familias[1], d.R.Campos, d.Estudo, d.GeradoEm))
 	for nome, b := range map[string][]byte{"relatorio.pdf": p, "relatorio.docx": w, "relatorio.xlsx": x, "ficha.pdf": f} {
 		if err := os.WriteFile(filepath.Join(dir, nome), b, 0o644); err != nil {
 			t.Fatal(err)

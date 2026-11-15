@@ -105,6 +105,29 @@ func VerificarPragmas(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
+// GeracaoEsquema é a geração do esquema que este binário cria (ADR-0025).
+const GeracaoEsquema = "2"
+
+// ErrBancoGeracaoAnterior: o banco foi criado pela Central do MVP (operação única),
+// cujo esquema foi substituído pela geração 2. A Central não abre nem altera esse
+// banco; o operador move os arquivos de teste antigos (docs/operacao/teste-de-campo-mvp.md).
+var ErrBancoGeracaoAnterior = errors.New("este banco de dados é de uma versão de teste anterior da Central " +
+	"(antes dos estudos de situação) e não pode ser aberto por esta versão; nada foi alterado. " +
+	"Siga o procedimento de reinício dos dados de teste")
+
+// conferirGeracao recusa banco que já passou da migração 1 sem o marcador da geração 2.
+func conferirGeracao(ctx context.Context, db *sql.DB, atual int) error {
+	if atual < 2 {
+		return nil // banco novo ou da Fase 0 (só meta): migra normalmente
+	}
+	var g string
+	err := db.QueryRowContext(ctx, `SELECT valor FROM meta WHERE chave = 'esquema_geracao'`).Scan(&g)
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && g != GeracaoEsquema) {
+		return ErrBancoGeracaoAnterior
+	}
+	return err
+}
+
 type migracao struct {
 	versao int
 	nome   string
@@ -162,6 +185,9 @@ func Migrar(ctx context.Context, db *sql.DB) error {
 	}
 	if atual > len(ms) {
 		return fmt.Errorf("banco na versão %d é mais novo que este aplicativo (conhece até %d); atualize a Central", atual, len(ms))
+	}
+	if err := conferirGeracao(ctx, db, atual); err != nil {
+		return err
 	}
 	for _, m := range ms[atual:] {
 		tx, err := db.BeginTx(ctx, nil)

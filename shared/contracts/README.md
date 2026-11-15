@@ -1,15 +1,5 @@
 # Contratos
 
-Contratos previstos (protocolo v1, ver `docs/synchronization/protocolo.md`):
+Os contratos de sincronização estão definidos como JSON Schema em [`../schemas`](../schemas/README.md) (versão atual: v2, ADR-0024) e descritos em [`docs/synchronization/protocolo.md`](../../docs/synchronization/protocolo.md). As fixtures em [`../test-fixtures/contratos`](../test-fixtures/contratos) rodam no Go e no Kotlin.
 
-| Contrato | Arquivo (a criar) | Uso |
-|---|---|---|
-| QR de pareamento | `qr-pareamento.v1.md` | Central → Android |
-| Pareamento | `pareamento.v1.md` | `POST /v1/pareamento` |
-| Status | `status.v1.md` | `GET /v1/status` |
-| Lote (manifesto + registros) | `lote.v1.md` | `PUT /v1/lotes/{id}`, pacote USB |
-| Recibo | `recibo.v1.md` | Resposta da importação, `.s7rcb`, QR de recibo |
-| Pacote USB | `pacote-s7pkg.v1.md` | Contingência e backup Android |
-| Restauração | `restauracao.v1.md` | `POST /v1/restauracao` |
-
-Todos os payloads levam `protocolo_versao` e `schema_versao`. Timestamps em ISO 8601 UTC com ms e `Z` (ADR-0010).
+Ainda não existem (entram nas fases deles): pacote USB (`.s7pkg`, ADR-0008) e restauração de cadastros (`POST /v1/restauracao`).

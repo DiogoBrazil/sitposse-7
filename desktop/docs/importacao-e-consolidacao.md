@@ -2,22 +2,25 @@
 
 O núcleo único `internal/importacao` atende `PUT/POST /v1/lotes` (Wi‑Fi) e `.s7pkg` (USB).
 
-## Passos
-1. **Validar o envelope**: versões (`protocolo_versao`, `schema_versao`), dispositivo pareado e não revogado, equipe coerente com a instalação, `lote_uuid`.
-2. **Idempotência do lote**: se `lotes_recebidos.status = importado`, devolver o recibo existente.
-3. **Validar registros** com `internal/contratos` (mesmas regras dos JSON Schemas, conferidas nos testes; ADR-0017) e com os CHECKs do banco. Registro inválido → `rejeitado` com motivo, num `SAVEPOINT`; os demais seguem.
-4. **Fotos**: conferir tamanho e SHA‑256 em staging; publicar com rename e fsync (ver [integridade](../../docs/synchronization/integridade.md)).
-5. **Transação única**:
-   - para cada cadastro, aplicar a tabela de decisão de [conflitos.md](../../docs/synchronization/conflitos.md);
-   - gravar `aplicacoes`, `auditoria` (origem = equipe/instalação) e `conflitos`;
-   - gravar `recebido_em`;
-   - `lotes_recebidos.status = importado` + `recibo_json`.
-6. Responder com o recibo (Wi‑Fi) ou gerar `.s7rcb` e QR (USB).
+## Passos (protocolo v2, ADR-0024)
+1. **Validar o envelope** (`PUT /v1/lotes`): versões 2, dispositivo pareado e não revogado, `lote_uuid`, coleta (código no formato com dígito verificador) pertencente a esta instalação. A coleta é registrada em `coletas` (só dados de recepção) e o lote fica `recebendo`.
+2. **Idempotência do lote**: mesmo `lote_uuid` e bytes → estado atual (recibo, se importado); bytes diferentes → `lote_divergente`; lote `cancelado` → `lote_cancelado`.
+3. **Fotos** (`POST …/importar`): conferir tamanho e SHA‑256 em staging. Tudo certo → lote `aguardando_confirmacao`; nada é aplicado.
+4. **Decisão do operador** (`Importador.Decidir`, modal "Confirmar destino da sincronização", `Importador.Aguardando` lista os lotes):
+   - destino sugerido = equipe do código recebido (`estudos.DestinoPorCodigo`); código inexistente → sem sugestão;
+   - coleta já importada → destino travado (só a mesma equipe é aceita);
+   - cancelar → `cancelado` + `decisoes_destino`; nada importado nem apagado.
+5. **Confirmar ou alterar**: conferir de novo as fotos (staging perdido → volta a `recebendo`); publicar com rename e fsync (ver [integridade](../../docs/synchronization/integridade.md)); **transação única**:
+   - gravar o destino da coleta (gatilho impede trocá-lo depois) e a decisão (`confirmar` ou `alterar`, com o código recebido e o oficial);
+   - validar e aplicar cada registro com `internal/contratos` num `SAVEPOINT` (inválido → `rejeitado`), seguindo a tabela de [conflitos.md](../../docs/synchronization/conflitos.md); propriedades gravam `coleta_uuid` e a `equipe_uuid` de destino;
+   - gravar `aplicacoes`, `auditoria` (origem = `coleta:<uuid>`), `recebido_em`;
+   - `lotes_recebidos.status = importado` + `recibo_json` (com `destino`).
+6. O celular obtém o recibo por `GET /v1/lotes/{id}` (Wi‑Fi) ou `.s7rcb` e QR (USB, futuro).
 
 ## Consolidação
-- Visões vigentes reúnem todas as equipes da operação.
+- Visões vigentes trazem equipe, jornada e estudo; telas e relatórios trabalham com um estudo em foco (A28).
 - `aliases_itens` agrupa nomes de "Outros" para estatística sem alterar o original.
 - Possíveis duplicatas entre equipes (P5): sugestão por `nome_normalizado` semelhante + distância GPS; ação "Vincular como mesma família" registra a relação sem fundir nem apagar (detalhe a aprovar na Fase 4).
 
-## Restauração de equipe
+## Restauração de cadastros
 Ver [protocolo.md §7](../../docs/synchronization/protocolo.md).
