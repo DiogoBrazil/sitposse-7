@@ -32,6 +32,13 @@
 
 **Build atual:** `0.8.1-mvp` (0.8.0 + referências atualizadas nas cartas-imagem, RN-98/A31, + brasão em PNG de fundo transparente nos PDF e DOCX), SHA-256 `fd2623b0bc153a5e4f4af58ff28dd0d1e2a2e16a38ee0851985c5a229848bb05`, em `Downloads\sitposse7-teste`; o 0.8.0 ficou com o sufixo `-acc4daa8`. **Testado pelo usuário no Windows em 15/11 ("deu certo"):** brasão nos relatórios; editar a coordenada de uma propriedade → voltar a Cartas-imagem → aviso e "Atualizar referências"; o mesmo sem internet (vale a imagem anterior se cobrir os pinos).
 
+**App Campo em release (A32, 15/11):** `Downloads\sitposse7-teste\sitposse7-campo-release.apk`, versão `0.2.1-mvp` (código igual ao do debug), SHA-256 `985144010d7f2ef0087b7173735cea3bb7478d0de4ba64e3d75fc40d37598116`. Para o celular novo.
+- **Diferença para o debug:** não é depurável (os dados do app não podem ser lidos pelo cabo), não leva as ferramentas de desenvolvimento do Compose e as telas rodam mais rápido. Não há minificação (R8): fica para a Fase 7, com testes próprios.
+- **Chave própria do SITPOSSE-7:** `~/.sitposse7/sitposse7-campo-release.jks`, com a senha em `~/.sitposse7/assinatura-campo.properties`. Fica **fora do repositório**, com permissão 600. Certificado SHA-256 `87:33:F6:2C:78:7D:12:11:A1:C5:F0:E0:97:1F:44:A0:C6:89:E4:69:C2:07:A2:44:10:2B:D5:3F:49:6B:76:98`, válido até 2056.
+- **Guarde uma cópia de segurança da pasta `~/.sitposse7/`** (pendrive ou cofre de senhas). Sem ela, nenhum celular com o release recebe atualização sem desinstalar, e desinstalar apaga os dados do celular.
+- **Celulares com o APK debug:** não atualizam para o release por cima, porque a chave é diferente. Para trocar: sincronizar tudo, conferir os recibos na Central, desinstalar e instalar o release.
+- **Em outra máquina:** copie `~/.sitposse7/` ou aponte `SITPOSSE7_ASSINATURA_CAMPO` para o arquivo de propriedades. Sem a chave, `assembleRelease` falha com uma mensagem clara, e o debug continua igual.
+
 **Build:** instalador `0.8.0-mvp` com SHA-256 `acc4daa8c36057fa29e86cda49ae8add32b42ff7dd8bbe20815742d648e2f62c`, em `Downloads\sitposse7-teste`; o 0.7.2 foi guardado com o sufixo `-481a3311`. Instalar por cima. A migração 0003 numera os cadastros existentes e não apaga nada.
 
 **Pendente (usuário, no Windows):** abrir Cartas-imagem com o estudo real e conferir:
@@ -187,6 +194,7 @@ source ~/.config/sitposse7-env.sh
 cd mobile
 ./gradlew test :core:dados:jvmTest :app:testDebugUnitTest
 ./gradlew :app:assembleDebug            # → app/build/outputs/apk/debug/app-debug.apk
+./gradlew :app:assembleRelease          # → app/build/outputs/apk/release/app-release.apk (precisa de ~/.sitposse7/, A32)
 
 # Central (de desktop/)
 cd ../desktop

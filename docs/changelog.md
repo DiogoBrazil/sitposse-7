@@ -2,6 +2,10 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-15 (A32) — App Campo em release
+- **mobile** · `app/build.gradle.kts`: o release é assinado com a chave própria do SITPOSSE-7, lida de `~/.sitposse7/assinatura-campo.properties` (ou de `SITPOSSE7_ASSINATURA_CAMPO`), **fora do repositório**. Sem a chave, `assembleRelease` falha com uma explicação. Minificação desligada de propósito. O debug não muda. Sem dependência nova.
+- **build** · `sitposse7-campo-release.apk` (`0.2.1-mvp`, versionCode 5), SHA-256 `985144010d7f2ef0087b7173735cea3bb7478d0de4ba64e3d75fc40d37598116`, assinatura v2 conferida com `apksigner`, sem `android:debuggable` e sem telemetria nem Play Services no `releaseRuntimeClasspath`. Instalação no celular novo pendente.
+
 ## 2026-11-15 (A31) — Central 0.8.1-mvp: referências atualizadas nas cartas-imagem e brasão transparente
 - **desktop** · **Referências atualizadas** nas cartas-imagem (RN-98, A31, ADR-0027 §Complemento):
   - a composição grava a chave da área (`chave` em `composicao.json`; nas antigas vale o índice `composicoes/areas/`);

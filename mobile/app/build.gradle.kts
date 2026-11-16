@@ -1,7 +1,19 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+// Assinatura do APK de release (A32): chave própria do SITPOSSE-7 FORA do repositório.
+// O arquivo de propriedades (arquivo, alias, senha) fica em ~/.sitposse7/assinatura-campo.properties
+// ou no caminho da variável SITPOSSE7_ASSINATURA_CAMPO. Sem ele, o release não é gerado (o debug
+// continua igual). Atualizações só instalam por cima com a MESMA chave: guarde cópia de segurança.
+val arquivoAssinatura = file(
+    System.getenv("SITPOSSE7_ASSINATURA_CAMPO")
+        ?: "${System.getProperty("user.home")}/.sitposse7/assinatura-campo.properties",
+)
+val assinatura = Properties().apply { if (arquivoAssinatura.isFile) arquivoAssinatura.inputStream().use { load(it) } }
 
 android {
     // Provisório: ver pendência P11 (applicationId definitivo antes da primeira instalação em campo).
@@ -14,6 +26,26 @@ android {
         targetSdk { version = release(37) } // P7
         versionCode = 5
         versionName = "0.2.1-mvp"
+    }
+
+    signingConfigs {
+        if (!assinatura.isEmpty) {
+            create("release") {
+                storeFile = file(assinatura.getProperty("arquivo"))
+                storePassword = assinatura.getProperty("senha")
+                keyAlias = assinatura.getProperty("alias")
+                keyPassword = assinatura.getProperty("senha")
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            // Sem R8/minificação por enquanto: evita quebrar serialização e reflexão sem testes
+            // próprios do release (o ganho de tamanho fica para a Fase 7).
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
+        }
     }
 
     buildFeatures { compose = true }
@@ -58,4 +90,16 @@ dependencies {
     testImplementation(kotlin("test-junit5"))
     testImplementation(platform(libs.junit.bom))
     testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+// Release sem a chave: falha com explicação em vez de gerar um APK sem assinatura.
+run {
+    // Só valores locais no doFirst (compatível com o configuration cache).
+    val semChave = assinatura.isEmpty
+    val caminho = arquivoAssinatura.path
+    tasks.matching { it.name == "packageRelease" }.configureEach {
+        doFirst {
+            check(!semChave) { "Chave de release do SITPOSSE-7 não encontrada em $caminho (ver docs/planning/continuacao.md, A32)." }
+        }
+    }
 }
