@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -421,6 +422,9 @@ type ResultadoPreparo struct {
 	Reserva      bool               `json:"reserva"`
 	CriadaEm     time.Time          `json:"criada_em"`
 	Avisos       []string           `json:"avisos"`
+	// Anterior: sem internet, as coordenadas mudaram e foi usada a imagem preparada antes
+	// para estas propriedades, que ainda cobre todas elas (RN-98).
+	Anterior bool `json:"anterior"`
 }
 
 // PedidoPreparo: as propriedades (UUIDs do plano) e se a busca deve ser refeita.
@@ -428,6 +432,17 @@ type PedidoPreparo struct {
 	Tipo      string   `json:"tipo"` // individual | geral
 	UUIDs     []string `json:"uuids"`
 	Atualizar bool     `json:"atualizar"` // "Atualizar melhor imagem": ignora a composição guardada
+}
+
+// ErrReferenciasDesatualizadas: a imagem foi preparada para outras coordenadas (RN-98).
+var ErrReferenciasDesatualizadas = errors.New("a localização de propriedade(s) mudou depois que a imagem foi preparada; use \"Atualizar referências\" antes de gerar a carta")
+
+// chaveSelecao identifica a seleção (tipo + propriedades), independentemente das coordenadas.
+func chaveSelecao(tipo string, uuids []string) string {
+	us := append([]string(nil), uuids...)
+	sort.Strings(us)
+	h := sha256.Sum256([]byte(tipo + "|" + strings.Join(us, ",")))
+	return hex.EncodeToString(h[:16])
 }
 
 func novoID() string {
@@ -481,6 +496,19 @@ func (s *CartaService) Preparar(p PedidoPreparo) (string, error) {
 			t.estado.Fase, t.estado.Feito, t.estado.Total, t.estado.BytesRede = pr.Fase, pr.Feito, pr.Total, pr.BytesRede
 			t.mu.Unlock()
 		}, !p.Atualizar)
+		anterior := false
+		sel := chaveSelecao(p.Tipo, plano.UUIDs)
+		if err != nil && errors.Is(err, cartografia.ErrSemConexao) && ctx.Err() == nil {
+			// Sem internet e sem imagem para as coordenadas atuais: a imagem preparada antes
+			// para estas mesmas propriedades serve se ainda cobrir todos os pinos (RN-98).
+			if ant, ok := cs.DaSelecao(sel); ok && ant.Cobre(plano.pontos()) {
+				ant.Guardada = true
+				comp, err, anterior = ant, nil, true
+			}
+		}
+		if err == nil && !anterior {
+			_ = cs.LembrarSelecao(sel, comp.ID) // só um atalho para o uso sem internet
+		}
 		t.mu.Lock()
 		defer t.mu.Unlock()
 		t.estado.Concluida, t.fim = true, time.Now()
@@ -495,6 +523,7 @@ func (s *CartaService) Preparar(p PedidoPreparo) (string, error) {
 			}
 		default:
 			t.estado.Resultado = resultado(comp)
+			t.estado.Resultado.Anterior = anterior // a tela explica e oferece "Atualizar referências"
 		}
 	}()
 	return id, nil
@@ -532,6 +561,8 @@ type PedidoCarta struct {
 	UUIDs        []string `json:"uuids"`
 	ComposicaoID string   `json:"composicao_id"`
 	Criterios    []string `json:"criterios"`
+	// EnquadramentoAnterior: a tela aceitou a imagem preparada antes (sem internet, RN-98).
+	EnquadramentoAnterior bool `json:"enquadramento_anterior"`
 }
 
 // Tolerância de pixels sem nenhuma imagem (bordas): acima disso a folha não é gerada (RN-93).
@@ -558,6 +589,12 @@ func (s *CartaService) GerarCarta(p PedidoCarta) (*cartografia.CartaGuardada, er
 	comp, err := cs.Carregar(p.ComposicaoID)
 	if err != nil {
 		return nil, errors.New("prepare a imagem antes de gerar a carta")
+	}
+	// A imagem precisa ter sido preparada para as coordenadas atuais; a anterior só vale
+	// quando aceita sem internet e se ainda cobre todos os pinos (RN-98).
+	pts := plano.pontos()
+	if !cs.Corresponde(comp, pts, configFolhas(plano.Individual)) && !(p.EnquadramentoAnterior && comp.Cobre(pts)) {
+		return nil, ErrReferenciasDesatualizadas
 	}
 	var fora []string
 	for _, m := range plano.Marcadores {

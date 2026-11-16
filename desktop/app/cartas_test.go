@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -297,5 +298,80 @@ func TestCancelarPreparo(t *testing.T) {
 	}
 	if a.Erro != "Operação cancelada." {
 		t.Fatalf("cancelado: %+v", a)
+	}
+}
+
+// RN-98: coordenada alterada depois do preparo — a carta é recusada até atualizar as
+// referências; sem internet, vale a imagem anterior se ainda cobrir todos os pinos.
+func TestReferenciasAtualizadas(t *testing.T) {
+	c := centralComPropriedades(t)
+	cat := &catalogoFalso{url: servidorMosaico(t)}
+	s := servico(t, c, nil, cat)
+	mover := func(uuid string, lat float64) {
+		if _, err := c.n.B.Escrita.Exec(`UPDATE propriedades SET lat = ?, gps_origem = 'manual', gps_precisao_m = NULL WHERE uuid = ?`, lat, uuid); err != nil {
+			t.Fatal(err)
+		}
+	}
+	preparar := func(uuids []string) *Andamento {
+		id, err := s.Preparar(PedidoPreparo{Tipo: "geral", UUIDs: uuids})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return esperar(t, s, id)
+	}
+	plano, err := s.PlanejarGeral(estatisticas.Filtro{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := preparar(plano.UUIDs)
+	if a.Resultado == nil || a.Resultado.Anterior {
+		t.Fatalf("preparo: %+v", a)
+	}
+	antiga := a.Resultado.ComposicaoID
+
+	// Só o nome mudou: a imagem continua valendo (a chave depende só das coordenadas).
+	if _, err := c.n.B.Escrita.Exec(`UPDATE propriedades SET nome_propriedade = 'Sítio A Renomeado' WHERE uuid = 'u1'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.GerarCarta(PedidoCarta{Tipo: "geral", UUIDs: plano.UUIDs, ComposicaoID: antiga}); err != nil {
+		t.Fatalf("mudança só de nome: %v", err)
+	}
+
+	// Coordenada alterada (≈ 550 m, ainda dentro da geral): recusada sem o aceite.
+	mover("u1", -10.405)
+	if _, err := s.GerarCarta(PedidoCarta{Tipo: "geral", UUIDs: plano.UUIDs, ComposicaoID: antiga}); !errors.Is(err, ErrReferenciasDesatualizadas) {
+		t.Fatalf("coordenada alterada: %v", err)
+	}
+
+	// Sem internet: a imagem anterior serve (cobre os pinos), sinalizada.
+	cat.err = cartografia.ErrSemConexao
+	a = preparar(plano.UUIDs)
+	if a.Erro != "" || a.Resultado == nil || !a.Resultado.Anterior || a.Resultado.ComposicaoID != antiga || !a.Resultado.Guardada {
+		t.Fatalf("anterior sem internet: %+v", a)
+	}
+	if _, err := s.GerarCarta(PedidoCarta{Tipo: "geral", UUIDs: plano.UUIDs, ComposicaoID: antiga, EnquadramentoAnterior: true}); err != nil {
+		t.Fatalf("carta com a imagem anterior aceita: %v", err)
+	}
+
+	// Pino fora da folha anterior: sem internet não há imagem (RN-91), e a carta é recusada
+	// mesmo com o aceite.
+	mover("u1", -10.95)
+	a = preparar(plano.UUIDs)
+	if a.Resultado != nil || !a.SemConexao {
+		t.Fatalf("fora da folha anterior: %+v", a)
+	}
+	if _, err := s.GerarCarta(PedidoCarta{Tipo: "geral", UUIDs: plano.UUIDs, ComposicaoID: antiga, EnquadramentoAnterior: true}); !errors.Is(err, ErrReferenciasDesatualizadas) {
+		t.Fatalf("aceite com pino fora: %v", err)
+	}
+
+	// Com internet: "Atualizar referências" prepara a área nova e a carta sai sem aceite.
+	cat.err = nil
+	mover("u1", -10.405)
+	a = preparar(plano.UUIDs)
+	if a.Resultado == nil || a.Resultado.Anterior || a.Resultado.ComposicaoID == antiga {
+		t.Fatalf("referências atualizadas: %+v", a)
+	}
+	if _, err := s.GerarCarta(PedidoCarta{Tipo: "geral", UUIDs: plano.UUIDs, ComposicaoID: a.Resultado.ComposicaoID}); err != nil {
+		t.Fatalf("carta com a imagem nova: %v", err)
 	}
 }

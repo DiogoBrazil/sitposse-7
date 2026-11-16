@@ -5,6 +5,8 @@
  * propriedades e, quando a área é extensa, folhas de setor. Fluxo: escolher as propriedades
  * (individual ou pelos filtros do Painel) → a imagem é preparada sozinha (ou reaberta, se já
  * guardada) → explorar o mapa (pinos com nome e responsável) → gerar a carta (PDF + PNG).
+ * Referências (RN-98): ao voltar à tela e antes de gerar, as propriedades são relidas; se
+ * coordenadas mudaram (edição ou sincronização), a carta só sai depois de "Atualizar referências".
  */
 import { computed, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { CartaService as Cartas, ConsultaService as Consulta } from '../../bindings/sitposse7/desktop/app'
@@ -16,7 +18,7 @@ import CartaoPropriedade from '../componentes/CartaoPropriedade.vue'
 import ConfigCopernicus from '../componentes/ConfigCopernicus.vue'
 import MapaCarta from '../componentes/MapaCarta.vue'
 import TabelaDados from '../componentes/TabelaDados.vue'
-import { ehSemConexao, megabytes, primeiroPNG, quandoPreparada, type PinoMapa } from '../cartas'
+import { avisoMudanca, compararPlanos, ehSemConexao, exigePreparo, megabytes, primeiroPNG, quandoPreparada, type PinoMapa } from '../cartas'
 import { chips, type Filtro, filtroVazio } from '../filtro'
 import { mensagem, num, plural, quando } from '../formato'
 import type { Resultado } from '../painel'
@@ -48,8 +50,9 @@ const criterios = computed(() => tipo.value === 'geral' && resultado.value
 // Só replaneja (e prepara a imagem de novo) quando a seleção muda de verdade: o filtro é
 // observado em profundidade e pode ser reemitido igual pela barra de filtros.
 let ultimaChave = ''
+const chaveSelecao = () => JSON.stringify([tipo.value, uuid.value, tipo.value === 'geral' ? filtro.value : null])
 async function planejar() {
-  const chave = JSON.stringify([tipo.value, uuid.value, tipo.value === 'geral' ? filtro.value : null])
+  const chave = chaveSelecao()
   if (chave === ultimaChave && plano.value) return
   ultimaChave = chave
   erro.value = ''; gerada.value = null; selecionados.value = []
@@ -71,6 +74,25 @@ async function planejar() {
 }
 let atraso: number | undefined
 watch([tipo, uuid], planejar)
+
+// Relê as propriedades da mesma seleção (RN-98): coordenadas, nomes ou cadastros podem ter
+// mudado (edição na Central ou sincronização). Os pinos passam a mostrar os dados atuais; se a
+// imagem foi preparada para outras coordenadas, o aviso pede "Atualizar referências".
+let revisando: Promise<void> | null = null
+function revisar(): Promise<void> {
+  if (!plano.value || chaveSelecao() !== ultimaChave) return Promise.resolve()
+  if (revisando) return revisando
+  const chave = ultimaChave
+  revisando = (async () => {
+    try {
+      let novo: Plano | null
+      if (tipo.value === 'individual') novo = await Cartas.PlanejarIndividual(uuid.value)
+      else { resultado.value = await Consulta.Estatisticas(filtro.value); novo = await Cartas.PlanejarGeral(filtro.value) }
+      if (chave === ultimaChave && novo) plano.value = novo
+    } catch (e) { if (chave === ultimaChave) erro.value = mensagem(e) } finally { revisando = null }
+  })()
+  return revisando
+}
 watch(filtro, () => { window.clearTimeout(atraso); atraso = window.setTimeout(planejar, 400) }, { deep: true })
 
 const pinos = computed<PinoMapa[]>(() => (plano.value?.marcadores ?? []).map((m) => ({
@@ -84,6 +106,15 @@ const enquadramento = computed(() => {
 
 // ---------- preparo da imagem (tarefa em segundo plano) ----------
 const preparo = ref<ResultadoPreparo | null>(null)
+// Pinos (com coordenadas) para os quais a imagem atual foi pedida: base da comparação (RN-98).
+const pinosPreparo = ref<PinoMapa[]>([])
+const mudanca = computed(() => preparo.value ? compararPlanos(pinosPreparo.value, pinos.value) : null)
+const desatualizada = computed(() => !!mudanca.value && exigePreparo(mudanca.value))
+async function atualizarReferencias() {
+  erro.value = ''
+  await revisar()
+  if (!erro.value) preparar(false)
+}
 const andamento = ref<Andamento | null>(null)
 let tarefa = ''
 let relogio: number | undefined
@@ -98,6 +129,7 @@ async function preparar(atualizar: boolean) {
   if (!plano.value) return
   cancelar()
   erro.value = ''; gerada.value = null
+  const base = pinos.value.map((p) => ({ ...p }))
   try {
     const id = await Cartas.Preparar({ tipo: tipo.value, uuids: plano.value.uuids, atualizar })
     tarefa = id
@@ -112,6 +144,7 @@ async function preparar(atualizar: boolean) {
         window.clearInterval(relogio); tarefa = ''; andamento.value = null
         if (a.erro) { if (a.erro !== 'Operação cancelada.') erro.value = a.erro; return }
         preparo.value = a.resultado
+        pinosPreparo.value = base
         carregarEstado()
       } catch (e) { window.clearInterval(relogio); tarefa = ''; andamento.value = null; erro.value = mensagem(e) }
     }, 400)
@@ -147,9 +180,13 @@ async function gerar() {
   if (!plano.value || !preparo.value) return
   erro.value = ''; gerando.value = true
   try {
-    gerada.value = await Cartas.GerarCarta({ tipo: tipo.value, uuids: plano.value.uuids, composicao_id: preparo.value.composicao_id, criterios: criterios.value })
+    // Uma sincronização pode ter chegado com a tela aberta: confere antes de gerar (RN-98).
+    await revisar()
+    if (desatualizada.value || erro.value || !plano.value || !preparo.value) return
+    gerada.value = await Cartas.GerarCarta({ tipo: tipo.value, uuids: plano.value.uuids, composicao_id: preparo.value.composicao_id,
+      criterios: criterios.value, enquadramento_anterior: !!preparo.value.anterior })
     await Promise.all([carregarSalvas(), carregarEstado()])
-  } catch (e) { erro.value = mensagem(e) } finally { gerando.value = false }
+  } catch (e) { erro.value = mensagem(e); revisar() } finally { gerando.value = false }
 }
 async function abrir(c: CartaGuardada, arq: string) { try { await Cartas.AbrirCarta(c.id, arq) } catch (e) { erro.value = mensagem(e) } }
 async function mostrar(c: CartaGuardada) { try { await Cartas.MostrarCarta(c.id, 'carta.pdf') } catch (e) { erro.value = mensagem(e) } }
@@ -174,7 +211,7 @@ onMounted(async () => {
   if (props.uuidInicial) { tipo.value = 'individual'; uuid.value = props.uuidInicial } else planejar()
   carregarSalvas()
 })
-onActivated(() => { carregarEstado(); carregarSalvas() })
+onActivated(() => { carregarEstado(); carregarSalvas(); revisar() })
 watch(() => props.uuidInicial, (u) => { if (u) { aba.value = 'nova'; tipo.value = 'individual'; uuid.value = u } })
 
 const comLocalizacao = computed(() => propriedades.value.filter((p) => p.tem_gps))
@@ -222,6 +259,18 @@ const nFolhas = computed(() => 1 + (preparo.value?.setores?.length ?? 0))
         <div v-if="offline" class="linha"><button @click="preparar(false)">Tentar novamente</button><button class="discreto" @click="erro = ''">Voltar</button></div>
       </div>
 
+      <div v-if="plano && preparo && !andamento && (desatualizada || preparo.anterior)" class="aviso referencias" role="status">
+        <p v-if="desatualizada">
+          <strong>{{ avisoMudanca(mudanca!) }}</strong>
+          A imagem e as folhas foram preparadas para as localizações anteriores; os pinos já mostram as atuais. Atualize as referências para gerar a carta.
+        </p>
+        <p v-else>
+          <strong>Sem internet: imagem preparada antes, com o enquadramento anterior.</strong>
+          Todos os pinos continuam dentro das folhas e a carta pode ser gerada. Atualize as referências quando houver internet.
+        </p>
+        <button class="primario" :disabled="gerando" @click="atualizarReferencias">Atualizar referências</button>
+      </div>
+
       <div v-if="plano" class="area">
         <aside class="painel pilha">
           <section class="pilha bloco-p">
@@ -248,7 +297,7 @@ const nFolhas = computed(() => 1 + (preparo.value?.setores?.length ?? 0))
             <p v-if="preparo" class="fraco">
               {{ nFolhas === 1 ? 'Uma folha.' : `${nFolhas} folhas: a geral e ${plural(nFolhas - 1, 'setor', 'setores')} (${(preparo.setores ?? []).map((s) => s.rotulo).join(', ')}), com a mesma numeração.` }}
             </p>
-            <button class="primario" :disabled="!preparo || !!andamento || gerando || !pinos.length" @click="gerar">{{ gerando ? 'Gerando a carta…' : 'Gerar carta (PDF e PNG)' }}</button>
+            <button class="primario" :disabled="!preparo || !!andamento || gerando || !pinos.length || desatualizada" @click="gerar">{{ gerando ? 'Gerando a carta…' : 'Gerar carta (PDF e PNG)' }}</button>
             <div v-if="gerada" class="msg-ok pilha">
               <strong>Carta gerada e guardada ({{ plural(folhasDe(gerada), 'folha', 'folhas') }}).</strong>
               <div class="linha">
@@ -340,6 +389,9 @@ const nFolhas = computed(() => 1 + (preparo.value?.setores?.length ?? 0))
 .segmentado button[aria-checked="true"] { background: var(--mata); color: var(--sobre-mata); }
 .sel-prop { flex: 1 1 320px; width: auto; }
 .erro-bloco { display: flex; flex-direction: column; gap: .6rem; }
+.referencias { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.referencias p { margin: 0; flex: 1 1 420px; }
+.referencias strong { display: block; margin-bottom: .15rem; }
 .area { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
 .painel { position: sticky; top: 1rem; }
 .bloco-p { background: var(--folha); border: 1px solid var(--regua); border-radius: var(--raio-grande); padding: .9rem 1rem; gap: .6rem; }

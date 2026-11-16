@@ -97,3 +97,12 @@
   - nunca reutilizado, nem depois de uma exclusão;
   - é o número dos pinos, das legendas e de todas as folhas e arquivos das cartas. *(ADR-0027.)*
 - **RN-97** Quando a carta geral fica com detalhe muito menor que o da imagem, ou com pinos sobrepostos, são geradas automaticamente **folhas de setor**, além da geral: o PDF reúne todas as folhas e há um PNG por folha. Um mosaico traz o quadro de proveniência (fonte, data e resolução de cada parte) e nunca é apresentado como imagem de uma data só. *(ADR-0027.)*
+- **RN-98** A carta-imagem usa sempre as **coordenadas atuais** das propriedades.
+  - **Detecção:** ao voltar à tela de cartas e antes de gerar, a Central relê as propriedades da seleção.
+  - **Mudança que exige nova imagem:** coordenada alterada (edição na Central ou sincronização), ou propriedade que entrou ou saiu da seleção. A tela avisa quais números mudaram e oferece **"Atualizar referências"**, que refaz o enquadramento e os setores e prepara a imagem da área.
+  - **Bloqueio:** enquanto isso não for feito, a carta não é gerada (a tela desabilita o botão e a Central recusa).
+  - **Mudança só de nome, responsável ou número:** basta redesenhar os pinos; a imagem continua valendo.
+  - **Sem internet:** vale a imagem preparada antes para as mesmas propriedades, com o enquadramento anterior e aviso, **somente** se todos os pinos continuarem dentro da folha geral e, havendo setores, de algum setor. Caso contrário, aparece a mensagem da RN-91.
+  - **Cartas já geradas** não são alteradas: são o registro do que foi gerado naquela data.
+
+  *(15/11/2026, A31, ADR-0027 §Complemento.)*

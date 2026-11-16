@@ -24,3 +24,5 @@ Implementação e critérios em [ADR-0026](../../docs/architecture/decisions/002
 Verificação 0.7.1-mvp: Chromium conferiu Ação como última coluna, ícones na mesma linha com intervalo de 8 px e totalmente visíveis nas larguras 1440/1024/900/560 px; ações de estudos/jornadas/equipes também espaçadas. Compilação TypeScript e 12 testes Vitest passaram.
 
 Verificação 0.7.2-mvp: Chromium confirmou Ação como última coluna de Estudos de situação e manteve os testes de ícones e responsividade das demais listagens. 12 testes Vitest passaram.
+
+Verificação 0.8.1-mvp (RN-98): no Chromium (`npm run demo`, 1440 px) foi feito o fluxo Cartas-imagem → editar a latitude da propriedade nº 8 → voltar. Aparece o aviso "a localização da propriedade nº 8 mudou" e "Gerar carta" fica desabilitado; "Atualizar referências" prepara de novo, e o aviso some com o botão liberado. Vitest: 21 testes. Go: `TestReferenciasAtualizadas` e `composicao/referencias_test.go`.

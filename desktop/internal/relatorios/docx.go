@@ -190,7 +190,7 @@ func cabecalhoDocx() string {
 	w := h * logoLarguraPx / logoAlturaPx
 	img := fmt.Sprintf(`<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="%d" cy="%d"/><wp:docPr id="1" name="Brasão"/>`+
 		`<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>`+
-		`<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="logo-cabecalho-docs.jpeg"/><pic:cNvPicPr/></pic:nvPicPr>`+
+		`<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="logo-cabecalho-docs.png"/><pic:cNvPicPr/></pic:nvPicPr>`+
 		`<pic:blipFill><a:blip r:embed="rIdLogo"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>`+
 		`<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="%d" cy="%d"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`, w, h, w, h)
 	return fmt.Sprintf(cabecalhoXML,
@@ -230,7 +230,7 @@ func DOCX(doc Documento) ([]byte, error) {
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
 <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
 <Default Extension="xml" ContentType="application/xml"/>
-<Default Extension="jpeg" ContentType="image/jpeg"/>
+<Default Extension="png" ContentType="image/png"/>
 <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
 <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
 <Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
@@ -258,7 +258,7 @@ func DOCX(doc Documento) ([]byte, error) {
 </Relationships>`},
 		{"word/_rels/header1.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-<Relationship Id="rIdLogo" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/logo-cabecalho-docs.jpeg"/>
+<Relationship Id="rIdLogo" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/logo-cabecalho-docs.png"/>
 </Relationships>`},
 		{"word/styles.xml", estilosDocx},
 		{"word/header1.xml", cabecalhoDocx()},
@@ -276,7 +276,7 @@ func DOCX(doc Documento) ([]byte, error) {
 			return nil, err
 		}
 	}
-	w, err := z.CreateHeader(&zip.FileHeader{Name: "word/media/logo-cabecalho-docs.jpeg", Method: zip.Store})
+	w, err := z.CreateHeader(&zip.FileHeader{Name: "word/media/logo-cabecalho-docs.png", Method: zip.Store})
 	if err != nil {
 		return nil, err
 	}

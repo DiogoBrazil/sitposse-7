@@ -6,7 +6,7 @@
 
 ## Contexto
 O usuário pediu exportar as informações em PDF, planilha XLSX e DOCX (A26): um panorama geral e o detalhamento por família/propriedade. Pediu também:
-- PDF e DOCX com o brasão (`logo-cabecalho-docs.jpeg`, na raiz do projeto) e, abaixo dele, "Polícia Militar de Rondônia" e "7º Batalhão de Polícia Militar";
+- PDF e DOCX com o brasão (`logo-cabecalho-docs.png`, na raiz do projeto) e, abaixo dele, "Polícia Militar de Rondônia" e "7º Batalhão de Polícia Militar";
 - planilha só com os textos, bonita e interativa.
 
 Tudo precisa funcionar offline (AGENTS.md §6), com versões exatas e licenças compatíveis.

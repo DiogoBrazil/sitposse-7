@@ -80,6 +80,10 @@ func TestPDF(t *testing.T) {
 	if !bytes.HasPrefix(b, []byte("%PDF-")) {
 		t.Fatal("não começa com %PDF-")
 	}
+	// O brasão é PNG com fundo transparente: o PDF precisa levar a máscara de transparência.
+	if !bytes.Contains(b, []byte("/SMask")) {
+		t.Error("brasão sem máscara de transparência no PDF")
+	}
 	m := regexp.MustCompile(`/Type /Pages[^>]*?/Count (\d+)`).FindSubmatch(b)
 	if m == nil {
 		m = regexp.MustCompile(`/Count (\d+)`).FindSubmatch(b)
@@ -135,7 +139,7 @@ func TestDOCX(t *testing.T) {
 			xmlValido(t, f.Name, bytes.NewReader(conteudo))
 		}
 	}
-	for _, p := range []string{"[Content_Types].xml", "_rels/.rels", "word/document.xml", "word/styles.xml", "word/header1.xml", "word/footer1.xml", "word/_rels/header1.xml.rels", "word/media/logo-cabecalho-docs.jpeg"} {
+	for _, p := range []string{"[Content_Types].xml", "_rels/.rels", "word/document.xml", "word/styles.xml", "word/header1.xml", "word/footer1.xml", "word/_rels/header1.xml.rels", "word/media/logo-cabecalho-docs.png"} {
 		if _, ok := partes[p]; !ok {
 			t.Errorf("parte %s ausente", p)
 		}
@@ -158,7 +162,7 @@ func TestDOCX(t *testing.T) {
 	if !strings.Contains(doc, esc("Sítio São João Nº 3 — Linha C-25, Ramal do Igarapé Água Branca")) || !strings.Contains(doc, "Equipe: Alfa") {
 		t.Error("conteúdo esperado ausente")
 	}
-	if !bytes.Equal([]byte(partes["word/media/logo-cabecalho-docs.jpeg"]), Logo) {
+	if !bytes.Equal([]byte(partes["word/media/logo-cabecalho-docs.png"]), Logo) {
 		t.Error("logo diferente do embutido")
 	}
 }

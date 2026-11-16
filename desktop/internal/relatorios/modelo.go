@@ -28,10 +28,10 @@ const (
 	Sistema     = "SITPOSSE-7"
 )
 
-//go:embed logo-cabecalho-docs.jpeg
+//go:embed logo-cabecalho-docs.png
 var Logo []byte
 
-// Logo: 150 × 182 px.
+// Logo: 150 × 182 px, PNG com fundo transparente (canal alfa).
 const logoLarguraPx, logoAlturaPx = 150, 182
 
 // Dados de um relatório geral (panorama + famílias).

@@ -77,6 +77,9 @@ type Composicao struct {
 	Reserva    bool            `json:"reserva"` // veio do CDSE
 	Pontos     []geo.Ponto     `json:"-"`
 	Guardada   bool            `json:"guardada"` // reaproveitada sem consultar a internet
+	// Chave da área (pontos + configuração) para a qual foi preparada (RN-98). Vazia nas
+	// composições anteriores à 0.8.1; vale também o índice composicoes/areas.
+	Chave string `json:"chave,omitempty"`
 }
 
 // Servico de composição.
@@ -604,6 +607,7 @@ func gravarAtomico(destino string, dados []byte) error {
 }
 
 func (s *Servico) gravar(c *Composicao, chave string) error {
+	c.Chave = chave
 	b, _ := json.MarshalIndent(c, "", " ")
 	if err := gravarAtomico(filepath.Join(s.dirComp(c.ID), "composicao.json"), b); err != nil {
 		return err
@@ -625,6 +629,67 @@ func (s *Servico) Carregar(id string) (*Composicao, error) {
 		return nil, err
 	}
 	return &c, nil
+}
+
+// Corresponde diz se a composição foi preparada para exatamente estes pontos e esta
+// configuração (RN-98): pela chave gravada nela ou, nas antigas, pelo índice da área.
+func (s *Servico) Corresponde(c *Composicao, pts []geo.Ponto, cfg ConfigFolhas) bool {
+	chave := ChaveArea(pts, cfg(2))
+	if c.Chave == chave {
+		return true
+	}
+	// A mesma composição pode servir a mais de uma área (o id vem do conteúdo).
+	b, err := os.ReadFile(filepath.Join(s.Dir, "composicoes", "areas", chave))
+	return err == nil && strings.TrimSpace(string(b)) == c.ID
+}
+
+// Cobre diz se todos os pontos estão na folha geral e, havendo setores, em algum setor:
+// nenhum pino fica fora da carta nem some das folhas de setor (RN-98).
+func (c *Composicao) Cobre(pts []geo.Ponto) bool {
+	for _, p := range pts {
+		if !c.Folhas.Geral.Retangulo.Contem(p) {
+			return false
+		}
+		if len(c.Folhas.Setores) == 0 {
+			continue
+		}
+		ok := false
+		for _, f := range c.Folhas.Setores {
+			if f.Retangulo.Contem(p) {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+var reSelecao = regexp.MustCompile(`^[0-9a-f]{32}$`)
+
+// LembrarSelecao guarda a última composição preparada para uma seleção de propriedades
+// (chave opaca, ver o serviço de cartas): é a imagem usada sem internet quando as
+// coordenadas mudaram e a área nova ainda não foi preparada (RN-98).
+func (s *Servico) LembrarSelecao(selecao, id string) error {
+	if !reSelecao.MatchString(selecao) || !reID.MatchString(id) {
+		return errors.New("seleção ou composição inválida")
+	}
+	return gravarAtomico(filepath.Join(s.Dir, "composicoes", "selecoes", selecao), []byte(id))
+}
+
+// DaSelecao devolve a última composição lembrada para a seleção.
+func (s *Servico) DaSelecao(selecao string) (*Composicao, bool) {
+	if !reSelecao.MatchString(selecao) {
+		return nil, false
+	}
+	b, err := os.ReadFile(filepath.Join(s.Dir, "composicoes", "selecoes", selecao))
+	if err != nil {
+		return nil, false
+	}
+	c, err := s.Carregar(strings.TrimSpace(string(b)))
+	return c, err == nil
 }
 
 func (s *Servico) guardada(chave string) (*Composicao, bool) {

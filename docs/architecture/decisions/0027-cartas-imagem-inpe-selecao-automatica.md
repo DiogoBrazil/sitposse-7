@@ -60,6 +60,19 @@ Num recorte de 1,6 km, o CBERS de 2 m mostrou árvores isoladas, estradas e açu
 - A nuvem no CBERS é estimativa: os filtros são conservadores e o operador sempre vê fonte e data.
 - O INPE vira dependência externa, mitigada pela reserva CDSE e pelas composições guardadas.
 
+## Complemento (15/11/2026, A31): referências atualizadas
+**Problema:** a coordenada de uma propriedade pode mudar depois do preparo da imagem (edição na Central ou nova sincronização). A tela de cartas fica montada em memória, e a carta usava as coordenadas novas sobre a imagem preparada para as antigas: a tela mostrava outro lugar, e um pino que saísse do seu setor sumia das folhas de setor sem aviso.
+
+**Decisão (RN-98):**
+- **Composição:** grava a chave da área para a qual foi preparada (`chave` em `composicao.json`). Nas composições anteriores, que não têm o campo, vale o índice `composicoes/areas/`.
+- **Recusa:** `GerarCarta` recusa a composição que não corresponde às coordenadas atuais.
+- **Exceção sem internet:** a recusa não vale para a imagem anterior aceita sem internet que ainda cobre todos os pinos (folha geral e algum setor).
+- **Tela:** relê as propriedades ao voltar e antes de gerar, compara pelo UUID com os pinos usados no preparo e oferece "Atualizar referências".
+- **Sem internet:** a última composição de cada seleção (tipo + propriedades) fica lembrada em `composicoes/selecoes/`. Ela é usada quando as coordenadas mudaram, a busca falhou e a composição ainda cobre todos os pinos.
+- **Cartas salvas:** não são regeneradas nem sobrescritas.
+
+**Sem mudança de banco, de protocolo ou da chave de área:** as composições guardadas continuam sendo reaproveitadas.
+
 ## Alternativas consideradas
 - **GDAL:** exige DLLs nativas e cgo, aumenta o instalador e complica a distribuição no Windows.
 - **Só o Sentinel-2 com melhor tratamento de cor:** continua com 10 m e sem os detalhes necessários.

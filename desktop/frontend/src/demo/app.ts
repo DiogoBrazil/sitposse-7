@@ -62,7 +62,7 @@ const baseEst = montarBase(propriedades)
 
 export const ConsultaService = {
   DocumentoEdicao:(id:string)=>{const p:any=propriedades.find(p=>p.uuid===id);return espera(JSON.stringify({token:'demo',propriedade:{...p,nome_propriedade:p.nome,responsavel_familia:p.responsavel,area_valor_milesimos:p.area_milesimos,observacoes_relevantes:p.observacoes},itens:p.itens.map((i:any)=>({...i,codigo_catalogo:i.codigo,nome_personalizado:i.outros?i.nome:null})),fotos:p.fotos,catalogo:p.itens.map((i:any)=>({codigo:i.codigo,categoria:i.categoria,nome_exibicao:i.nome}))}))},
-  SalvarEdicao:()=>espera(undefined),ExcluirPropriedade:()=>espera(undefined),BaixarFoto:()=>espera('foto.jpg'),
+  SalvarEdicao:(id:string,doc:string)=>{const p:any=propriedades.find(p=>p.uuid===id);const n=JSON.parse(doc).propriedade;if(p&&n){p.lat=n.lat;p.lon=n.lon;p.nome=n.nome_propriedade??p.nome}return espera(undefined)},ExcluirPropriedade:()=>espera(undefined),BaixarFoto:()=>espera('foto.jpg'),
   Estatisticas: (f: any) => espera(calcular(baseEst, f)),
   Resumo: () => espera({
     equipes: 4, aparelhos: 4, propriedades: propriedades.length,
@@ -182,7 +182,7 @@ function resultadoDemo(pl: any) {
       { rotulo: 'CBERS-4A/WPM (INPE)', periodo: '13/10/2026', resolucao_m: 2, fracao: 0.94, nuvem_estimada: true, atribuicao: 'Imagem CBERS-4A/WPM © INPE (CC BY 4.0)', fonte: 'cbers4a-wpm' },
       { rotulo: 'Sentinel-2 L2A (Copernicus/INPE)', periodo: '16/09/2026', resolucao_m: 10, fracao: 0.06, nuvem_estimada: false, atribuicao: 'Contains modified Copernicus Sentinel data 2026', fonte: 'sentinel2-l2a' },
     ],
-    mosaico: true, resolucao_m: 2, guardada: false, reserva: false, criada_em: new Date().toISOString(), avisos: [],
+    mosaico: true, resolucao_m: 2, guardada: false, reserva: false, anterior: false, criada_em: new Date().toISOString(), avisos: [],
   }
 }
 let ultimoPlano: any = null

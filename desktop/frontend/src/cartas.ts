@@ -61,3 +61,46 @@ export function primeiroPNG(arquivos: string[] | null | undefined): string {
   const pngs = (arquivos ?? []).filter((a) => a.endsWith('.png')).sort()
   return pngs[0] ?? 'carta.png'
 }
+
+/** O que mudou nas propriedades entre a preparação da imagem e os dados atuais (RN-98). */
+export interface MudancaPlano {
+  /** Propriedades que entraram ou saíram (ganharam ou perderam coordenada, filtro, exclusão). */
+  entraram: number; sairam: number
+  /** Números (atuais) das propriedades cuja coordenada mudou. */
+  movidas: number[]
+  /** Só textos ou números mudaram: basta redesenhar os pinos, a imagem continua valendo. */
+  textos: boolean
+}
+
+/** Mudança que exige preparar a imagem de novo (a área ou as folhas podem ter mudado). */
+export const exigePreparo = (m: MudancaPlano) => m.entraram > 0 || m.sairam > 0 || m.movidas.length > 0
+
+/** Compara os pinos usados na preparação com os atuais, pela identidade (UUID). */
+export function compararPlanos(antes: PinoMapa[], agora: PinoMapa[]): MudancaPlano {
+  const velhos = new Map(antes.map((p) => [p.uuid, p]))
+  const novos = new Set(agora.map((p) => p.uuid))
+  const m: MudancaPlano = { entraram: 0, sairam: 0, movidas: [], textos: false }
+  for (const p of agora) {
+    const v = velhos.get(p.uuid)
+    if (!v) { m.entraram++; continue }
+    if (v.lat !== p.lat || v.lon !== p.lon) m.movidas.push(p.numero)
+    if (v.nome !== p.nome || v.responsavel !== p.responsavel || v.numero !== p.numero) m.textos = true
+  }
+  for (const p of antes) if (!novos.has(p.uuid)) m.sairam++
+  m.movidas.sort((a, b) => a - b)
+  return m
+}
+
+/** Frase do aviso de referências desatualizadas ("" quando nada exige preparo). */
+export function avisoMudanca(m: MudancaPlano): string {
+  const partes: string[] = []
+  if (m.movidas.length) {
+    const ns = m.movidas.slice(0, 8).map((n) => `nº ${n}`).join(', ') + (m.movidas.length > 8 ? '…' : '')
+    partes.push(m.movidas.length === 1 ? `a localização da propriedade ${ns} mudou` : `a localização de ${m.movidas.length} propriedades mudou (${ns})`)
+  }
+  if (m.entraram) partes.push(m.entraram === 1 ? '1 propriedade entrou na carta' : `${m.entraram} propriedades entraram na carta`)
+  if (m.sairam) partes.push(m.sairam === 1 ? '1 propriedade saiu da carta' : `${m.sairam} propriedades saíram da carta`)
+  if (!partes.length) return ''
+  const t = partes.join('; ')
+  return `Desde a preparação da imagem, ${t}.`
+}

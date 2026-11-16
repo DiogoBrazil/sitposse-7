@@ -91,6 +91,11 @@ export interface PedidoCarta {
     "uuids": string[] | null;
     "composicao_id": string;
     "criterios": string[] | null;
+
+    /**
+     * EnquadramentoAnterior: a tela aceitou a imagem preparada antes (sem internet, RN-98).
+     */
+    "enquadramento_anterior": boolean;
 }
 
 /**
@@ -158,4 +163,10 @@ export interface ResultadoPreparo {
     "reserva": boolean;
     "criada_em": string;
     "avisos": string[] | null;
+
+    /**
+     * Anterior: sem internet, as coordenadas mudaram e foi usada a imagem preparada antes
+     * para estas propriedades, que ainda cobre todas elas (RN-98).
+     */
+    "anterior": boolean;
 }

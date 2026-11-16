@@ -22,7 +22,7 @@ import (
 )
 
 // Versao do aplicativo Central.
-const Versao = "0.8.0-mvp"
+const Versao = "0.8.1-mvp"
 
 // Central inicializa o núcleo e mantém o servidor de sincronização.
 type Central struct {

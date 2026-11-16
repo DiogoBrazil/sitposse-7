@@ -30,6 +30,8 @@
 - **Primeiro preparo:** 13 s e 24 MB (5 propriedades); 38 s e 89 MB (20 propriedades em 2 × 10 km, 4 setores).
 - Detalhes em `desktop/docs/cartografia.md`.
 
+**Build atual:** `0.8.1-mvp` (0.8.0 + referências atualizadas nas cartas-imagem, RN-98/A31, + brasão em PNG de fundo transparente nos PDF e DOCX), SHA-256 `fd2623b0bc153a5e4f4af58ff28dd0d1e2a2e16a38ee0851985c5a229848bb05`, em `Downloads\sitposse7-teste`; o 0.8.0 ficou com o sufixo `-acc4daa8`. **Testado pelo usuário no Windows em 15/11 ("deu certo"):** brasão nos relatórios; editar a coordenada de uma propriedade → voltar a Cartas-imagem → aviso e "Atualizar referências"; o mesmo sem internet (vale a imagem anterior se cobrir os pinos).
+
 **Build:** instalador `0.8.0-mvp` com SHA-256 `acc4daa8c36057fa29e86cda49ae8add32b42ff7dd8bbe20815742d648e2f62c`, em `Downloads\sitposse7-teste`; o 0.7.2 foi guardado com o sufixo `-481a3311`. Instalar por cima. A migração 0003 numera os cadastros existentes e não apaga nada.
 
 **Pendente (usuário, no Windows):** abrir Cartas-imagem com o estudo real e conferir:

@@ -25,6 +25,12 @@ Decisões:
    - **PNG:** um por folha (`carta-01-geral.png`, `carta-02-setor-A.png`…).
    - Tudo fica guardado em `cartografia/cartas/<id>/` e abre sem internet.
 
+5. **Referências atualizadas (RN-98):**
+   - **Quando confere:** ao voltar à tela e antes de gerar, a Central relê as propriedades da seleção.
+   - **Coordenada mudou, ou propriedade entrou ou saiu:** aparece o aviso com os números e o botão **Atualizar referências**, e "Gerar carta" fica bloqueado. O servidor também recusa uma composição que não corresponde às coordenadas atuais.
+   - **Mudança só de nome ou responsável:** apenas redesenha os pinos.
+   - **Sem internet:** vale a imagem anterior das mesmas propriedades, com aviso, se todos os pinos continuarem dentro da geral e de algum setor.
+
 ## Fluxo e componentes
 | Parte | Onde | Papel |
 |---|---|---|
@@ -54,6 +60,7 @@ Decisões:
 | Raster | `raster/` | Leitura numa grade 3857 (coordenada exata a cada 16 px, interpolada entre eles; bilinear), SCL como máscara, cor por ajuste afim robusto contra o mosaico ou casamento de percentis, nuvem do CBERS **estimada** pelo resíduo do brilho, composição por célula com costura de ≈ 40 m, tom único, tiles XYZ |
 | Seleção | `selecao/` | Critérios num só struct; elegibilidade por célula (≤ 0,5% sem dados, ≤ 2% nuvem); regra hierárquica: nível de resolução, depois pontuação; desempate determinístico |
 | Composição | `composicao/` | Orquestra tudo; refaz os setores na escala de 10 m quando não há 2 m; guarda `composicoes/<id>/` (receita, folhas, tiles) e reabre offline pela área; reserva CDSE |
+| Referências | `composicao.Corresponde`/`Cobre`, `LembrarSelecao`/`DaSelecao`; `app/cartas.go` (`GerarCarta`, `Preparar`); `src/cartas.ts` (`compararPlanos`) | Chave da área gravada na composição; recusa de composição desatualizada; imagem anterior sem internet (`composicoes/selecoes/`); aviso na tela (RN-98) |
 
 **Calibração em Ariquemes (15/11/2026, teste `SITPOSSE7_REDE=1`):**
 - **Cenas usadas:** CBERS-4A de 13/10/2026 em 94–96% da área; Sentinel-2 nas células com nuvem estimada.
@@ -89,7 +96,8 @@ Não contratar planos pagos. Cota gratuita: 10.000 unidades e 10.000 requisiçõ
 | `composicao/` | Ponta a ponta com servidor falso (escolha, folhas, tiles, reabrir offline, reusar sem internet); real opcional em Ariquemes |
 | `carta/` | Pino em `geo.Pixel`; PNG e PDF; carta com várias folhas, proveniência do mosaico, índice de setores |
 | `app/cartas_test.go` | Plano com número fixo e responsável, preparo assíncrono, carta com setores (arquivos por folha), reinício offline, rotas seguras (tiles, PNG), limpar imagens, reserva CDSE (inclusive incompleta), sem reserva = RN-91, cancelamento |
-| `frontend/src/cartas.test.ts` | Agrupamento de pinos (sem perder nenhum, determinístico, coordenadas iguais) e escolha do PNG da carta |
+| `composicao/referencias_test.go`, `TestReferenciasAtualizadas` | Pino na geral mas fora dos setores não é coberto; correspondência pela chave e pelo índice (composição antiga); seleção lembrada com nomes validados. Ponta a ponta: nome mudou e a carta sai; coordenada mudou e a carta é recusada; sem internet vale a imagem anterior e a carta sai com o aceite; pino fora da folha anterior leva à RN-91 e à recusa; com internet, a imagem nova sai sem aceite |
+| `frontend/src/cartas.test.ts` | Agrupamento de pinos (sem perder nenhum, determinístico, coordenadas iguais), escolha do PNG da carta e `compararPlanos`/`avisoMudanca` (RN-98) |
 | `cdse_test.go`, `armazem_test.go`, `credenciais_test.go` | Como na A27 |
 
 Revisão visual: `npm run demo` → Cartas-imagem (preparo simulado, tooltip, cartão, grupos, setores).

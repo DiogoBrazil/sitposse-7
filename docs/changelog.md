@@ -2,6 +2,21 @@
 
 Formato: data · área · descrição. Mudanças de **esquema** e **protocolo** sempre citam o ADR e a migração.
 
+## 2026-11-15 (A31) — Central 0.8.1-mvp: referências atualizadas nas cartas-imagem e brasão transparente
+- **desktop** · **Referências atualizadas** nas cartas-imagem (RN-98, A31, ADR-0027 §Complemento):
+  - a composição grava a chave da área (`chave` em `composicao.json`; nas antigas vale o índice `composicoes/areas/`);
+  - `GerarCarta` recusa uma composição preparada para outras coordenadas (`ErrReferenciasDesatualizadas`), o que elimina o pino que sumia das folhas de setor;
+  - sem internet, `Preparar` usa a última composição da mesma seleção (`composicoes/selecoes/`) se ela ainda cobrir todos os pinos (`Resultado.Anterior`), e a carta aceita essa imagem só com `enquadramento_anterior` e cobertura conferida.
+  - Sem mudança de banco, de protocolo nem da chave de área.
+- **frontend** · Cartas-imagem relê as propriedades ao voltar à tela e antes de gerar (`compararPlanos`):
+  - coordenada alterada ou seleção diferente mostra um aviso com os números e o botão **Atualizar referências**, e bloqueia "Gerar carta";
+  - mudança só de nome ou responsável apenas redesenha os pinos;
+  - o modo demo aplica a coordenada editada.
+- **testes** · Go: `composicao/referencias_test.go` (cobertura geral/setor, chave e índice, seleção lembrada) e `TestReferenciasAtualizadas` (nome, coordenada, sem internet, fora da folha, de volta online). Vitest: `compararPlanos`/`avisoMudanca` (21 testes no total). Chromium: editar a latitude → voltar → aviso → atualizar → carta liberada.
+- **desktop** · O brasão dos relatórios (PDF e DOCX) e das cartas-imagem em PDF passa a ser `logo-cabecalho-docs.png` (fundo removido pelo usuário, 150 × 182 px, canal alfa), no lugar do JPEG. No DOCX, a parte `word/media/logo-cabecalho-docs.png` é declarada como `image/png`; no PDF, a transparência vai como máscara (`/SMask`). ADR-0021 e A26 citam o arquivo novo.
+- **testes** · `TestPDF` confere a máscara de transparência; `TestDOCX` confere a parte PNG. Cabeçalho conferido num PDF de amostra renderizado.
+- **build** · Central `0.8.1-mvp` (referências + brasão), instalador SHA-256 `fd2623b0bc153a5e4f4af58ff28dd0d1e2a2e16a38ee0851985c5a229848bb05`, em `Downloads\sitposse7-teste`; o 0.8.0 foi guardado com o sufixo `-acc4daa8`. Testado pelo usuário no Windows em 15/11 ("deu certo").
+
 ## 2026-11-15 (A30, E6) — Central 0.8.0-mvp
 - **build** · Central `0.8.0-mvp`, instalador NSIS (WebView2 offline), SHA-256 `acc4daa8c36057fa29e86cda49ae8add32b42ff7dd8bbe20815742d648e2f62c`, em `Downloads\sitposse7-teste`; o 0.7.2 foi guardado com o sufixo `-481a3311`. Migração 0003 (numeração) aplicada ao abrir. Teste no Windows pendente.
 
